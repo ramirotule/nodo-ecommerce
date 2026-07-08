@@ -8,7 +8,7 @@ import { useCatalogo } from "@/context/CatalogoContext";
 const FlipBook = dynamic(() => import("./FlipBook"), { ssr: false });
 
 const CATALOG_PAGES = [
-  { src: "/catalogo/portada.png", alt: "Portada — La Parfumerie de Solange" },
+  { src: "/catalogo/portada.png", alt: "Portada — Mi Tienda" },
   { src: "/catalogo/pagina-02.png", alt: "Fragancias Femeninas" },
   { src: "/catalogo/pagina-03.png", alt: "Fragancias Femeninas" },
   { src: "/catalogo/pagina-04.png", alt: "Femeninas Femeninas" },
@@ -76,8 +76,8 @@ export default function CatalogoModal() {
         {/* Header del modal */}
         <div className="flex items-center justify-between w-full max-w-3xl">
           <div>
-            <p className="text-[#D4AF37] text-[10px] tracking-[0.5em] uppercase">
-              La Parfumerie de Solange
+            <p className="text-gold text-[10px] tracking-[0.5em] uppercase">
+              Mi Tienda
             </p>
             <h2 className="font-serif text-2xl text-white mt-1">
               Catálogo Digital

@@ -43,8 +43,8 @@ html {
 }
 
 body {
-  background-color: #000000;
-  color: #ffffff;
+  background-color: var(--color-luxury-black);
+  color: var(--color-text, #ffffff);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -54,8 +54,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::selection {
-  background-color: #D4AF37;
-  color: #000000;
+  background-color: var(--color-gold);
+  color: var(--color-luxury-black);
 }
 
 ::-webkit-scrollbar {
@@ -63,10 +63,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: #000000;
+  background: var(--color-luxury-black);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D4AF37;
+  background: var(--color-gold);
   border-radius: 3px;
 }

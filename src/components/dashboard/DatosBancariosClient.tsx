@@ -36,8 +36,8 @@ function seedCuentas(config: Record<string, string>): Cuenta[] {
 
 const EMPTY_FORM = { titular: "", banco: "", cbu: "", alias: "" };
 
-const inputClass = "w-full bg-[#111111] border border-[#2D2D2D] text-white px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-[#444444]";
-const labelClass = "block text-[#888888] text-xs uppercase tracking-wider mb-1.5";
+const inputClass = "w-full bg-[#111111] border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444]";
+const labelClass = "block text-luxury-gray-light text-xs uppercase tracking-wider mb-1.5";
 
 export default function DatosBancariosClient({ config: initial }: Props) {
   const [cuentas, setCuentas] = useState<Cuenta[]>(() => seedCuentas(initial));
@@ -103,16 +103,16 @@ export default function DatosBancariosClient({ config: initial }: Props) {
     <>
       {/* Snackbar */}
       <div
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#1A1A1A] border border-[#D4AF37]/40 text-white px-4 py-3 text-sm shadow-xl transition-all duration-300 ${
+        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-luxury-gray border border-gold/40 text-white px-4 py-3 text-sm shadow-xl transition-all duration-300 ${
           saved ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
-        <CheckCircle size={15} className="text-[#D4AF37] shrink-0" />
+        <CheckCircle size={15} className="text-gold shrink-0" />
         Datos guardados correctamente
       </div>
 
       <div className="mb-8">
-        <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
+        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
         <h1 className="text-white text-2xl font-serif">Datos Bancarios</h1>
         <p className="text-[#555555] text-sm mt-1">
           Estos datos se muestran al cliente cuando elige pagar por transferencia.
@@ -124,7 +124,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
         {/* Lista de cuentas */}
         <div className="space-y-3">
           <div className="flex items-center gap-3 mb-1">
-            <Building2 size={16} className="text-[#D4AF37]" />
+            <Building2 size={16} className="text-gold" />
             <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase">Cuentas</h2>
           </div>
 
@@ -137,18 +137,18 @@ export default function DatosBancariosClient({ config: initial }: Props) {
             const ef = editForms[cuenta.id] ?? { titular: cuenta.titular, banco: cuenta.banco, cbu: cuenta.cbu, alias: cuenta.alias };
 
             return (
-              <div key={cuenta.id} className="bg-[#0D0D0D] border border-[#1A1A1A]">
+              <div key={cuenta.id} className="bg-luxury-black border border-luxury-gray">
                 {/* Header de la card */}
                 <div className="flex items-center justify-between px-4 py-3">
                   <div>
                     <p className="text-white text-sm font-medium">{cuenta.banco || "Sin nombre"}</p>
-                    <p className="text-[#888] text-xs mt-0.5">{cuenta.titular}</p>
+                    <p className="text-luxury-gray-light text-xs mt-0.5">{cuenta.titular}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => isExpanded ? setExpandedId(null) : startEdit(cuenta)}
-                      className="p-2 text-[#555] hover:text-[#D4AF37] transition-colors"
+                      className="p-2 text-[#555] hover:text-gold transition-colors"
                       aria-label="Editar"
                     >
                       {isExpanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
@@ -166,7 +166,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
 
                 {/* Formulario de edición inline */}
                 {isExpanded && (
-                  <div className="border-t border-[#1A1A1A] px-4 py-4 space-y-3">
+                  <div className="border-t border-luxury-gray px-4 py-4 space-y-3">
                     {(["titular", "banco", "cbu", "alias"] as const).map((key) => (
                       <div key={key}>
                         <label className={labelClass}>{key === "alias" ? "Alias CBU" : key.charAt(0).toUpperCase() + key.slice(1)}</label>
@@ -181,7 +181,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
                       type="button"
                       onClick={() => handleEdit(cuenta.id)}
                       disabled={loading}
-                      className="flex items-center gap-2 bg-[#D4AF37] text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-[#E8CC6B] transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-gold-light transition-colors disabled:opacity-50"
                     >
                       <Save size={13} /> Guardar cambios
                     </button>
@@ -193,13 +193,13 @@ export default function DatosBancariosClient({ config: initial }: Props) {
 
           {/* Formulario nueva cuenta */}
           {adding && (
-            <div className="bg-[#0D0D0D] border border-[#D4AF37]/30 p-4 space-y-3">
-              <p className="text-[#D4AF37] text-xs uppercase tracking-wider font-bold">Nueva cuenta</p>
+            <div className="bg-luxury-black border border-gold/30 p-4 space-y-3">
+              <p className="text-gold text-xs uppercase tracking-wider font-bold">Nueva cuenta</p>
               {([
                 ["titular", "Titular", "Nombre completo o razón social"],
                 ["banco", "Banco / Billetera", "Ej: Mercado Pago, Uala, Brubank..."],
                 ["cbu", "CBU / CVU", "22 dígitos"],
-                ["alias", "Alias", "Ej: LAPARFUMERIE.MP"],
+                ["alias", "Alias", "Ej: MITIENDA.MP"],
               ] as const).map(([key, label, placeholder]) => (
                 <div key={key}>
                   <label className={labelClass}>{label}</label>
@@ -216,14 +216,14 @@ export default function DatosBancariosClient({ config: initial }: Props) {
                   type="button"
                   onClick={handleAdd}
                   disabled={loading}
-                  className="flex items-center gap-2 bg-[#D4AF37] text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-[#E8CC6B] transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-gold-light transition-colors disabled:opacity-50"
                 >
                   <Save size={13} /> Agregar
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAdding(false); setNewForm(EMPTY_FORM); }}
-                  className="px-4 py-2 text-xs text-[#555] hover:text-white transition-colors border border-[#2D2D2D]"
+                  className="px-4 py-2 text-xs text-[#555] hover:text-white transition-colors border border-luxury-gray-mid"
                 >
                   Cancelar
                 </button>
@@ -235,7 +235,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
             <button
               type="button"
               onClick={() => setAdding(true)}
-              className="flex items-center gap-2 border border-dashed border-[#2D2D2D] text-[#555] hover:text-[#D4AF37] hover:border-[#D4AF37]/40 text-xs uppercase tracking-wider px-4 py-3 w-full transition-colors"
+              className="flex items-center gap-2 border border-dashed border-luxury-gray-mid text-[#555] hover:text-gold hover:border-gold/40 text-xs uppercase tracking-wider px-4 py-3 w-full transition-colors"
             >
               <Plus size={14} /> Agregar cuenta
             </button>
@@ -260,7 +260,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
             ].filter(Boolean).join("\n");
 
             return (
-              <div key={c.id} className="bg-[#0D0D0D] border border-[#1A1A1A] p-4 space-y-2 text-sm">
+              <div key={c.id} className="bg-luxury-black border border-luxury-gray p-4 space-y-2 text-sm">
                 {[
                   ["Banco", c.banco],
                   ["Titular", c.titular],
@@ -268,7 +268,7 @@ export default function DatosBancariosClient({ config: initial }: Props) {
                   ["Alias", c.alias],
                 ].map(([k, v]) => v ? (
                   <div key={k} className="flex justify-between border-b border-[#111] pb-1.5">
-                    <span className="text-[#888888]">{k}</span>
+                    <span className="text-luxury-gray-light">{k}</span>
                     <span className="text-white font-mono text-xs">{v}</span>
                   </div>
                 ) : null)}

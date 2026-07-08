@@ -36,19 +36,19 @@ export default function CartDrawer() {
 
       {/* Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-[#0D0D0D] border-l border-[#1A1A1A] z-50 flex flex-col transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-full max-w-sm bg-luxury-black border-l border-luxury-gray z-50 flex flex-col transition-transform duration-300 ease-in-out ${
           drawerOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#1A1A1A]">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-luxury-gray">
           <div className="flex items-center gap-2">
-            <ShoppingBag size={16} className="text-[#D4AF37]" />
+            <ShoppingBag size={16} className="text-gold" />
             <span className="text-white text-sm font-semibold tracking-wider uppercase">
               Carrito
             </span>
             {count > 0 && (
-              <span className="bg-[#D4AF37] text-black text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
+              <span className="bg-gold text-black text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                 {count}
               </span>
             )}
@@ -63,20 +63,20 @@ export default function CartDrawer() {
 
         {/* Shipping Progress Bar */}
         {count > 0 && (
-          <div className="px-5 py-3 bg-[#111111] border-b border-[#1A1A1A]">
+          <div className="px-5 py-3 bg-[#111111] border-b border-luxury-gray">
             <div className="flex justify-between items-center mb-1.5">
-              <span className="text-[10px] uppercase tracking-widest text-[#888888]">
+              <span className="text-[10px] uppercase tracking-widest text-luxury-gray-light">
                 {total >= SITE_CONFIG.shipping.freeThreshold 
                   ? "¡Tenés envío gratis!" 
                   : `Te faltan ${formatPrice(SITE_CONFIG.shipping.freeThreshold - total)} para el envío gratis`}
               </span>
-              <span className="text-[10px] font-bold text-[#D4AF37]">
+              <span className="text-[10px] font-bold text-gold">
                 {Math.min(100, Math.round((total / SITE_CONFIG.shipping.freeThreshold) * 100))}%
               </span>
             </div>
-            <div className="h-1 w-full bg-[#1A1A1A] rounded-full overflow-hidden">
+            <div className="h-1 w-full bg-luxury-gray rounded-full overflow-hidden">
               <div 
-                className="h-full bg-[#D4AF37] transition-all duration-500 ease-out"
+                className="h-full bg-gold transition-all duration-500 ease-out"
                 style={{ width: `${Math.min(100, (total / SITE_CONFIG.shipping.freeThreshold) * 100)}%` }}
               />
             </div>
@@ -87,11 +87,11 @@ export default function CartDrawer() {
         <div className="flex-1 overflow-y-auto py-4 px-5">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <ShoppingBag size={40} className="text-[#2D2D2D] mb-4" />
+              <ShoppingBag size={40} className="text-luxury-gray-mid mb-4" />
               <p className="text-[#555555] text-sm">Tu carrito está vacío</p>
               <button
                 onClick={closeDrawer}
-                className="mt-4 text-[#D4AF37] text-xs hover:underline"
+                className="mt-4 text-gold text-xs hover:underline"
               >
                 Seguir explorando
               </button>
@@ -101,10 +101,10 @@ export default function CartDrawer() {
               {items.map((item) => (
                 <li
                   key={item.id}
-                  className="flex gap-3 pb-4 border-b border-[#1A1A1A] last:border-0"
+                  className="flex gap-3 pb-4 border-b border-luxury-gray last:border-0"
                 >
                   {/* Thumbnail */}
-                  <div className="w-16 h-16 shrink-0 bg-[#111111] border border-[#1A1A1A] overflow-hidden">
+                  <div className="w-16 h-16 shrink-0 bg-[#111111] border border-luxury-gray overflow-hidden">
                     {item.imagen_url ? (
                       <Image
                         src={item.imagen_url}
@@ -122,7 +122,7 @@ export default function CartDrawer() {
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#888888] text-[10px] tracking-wider uppercase truncate">
+                    <p className="text-luxury-gray-light text-[10px] tracking-wider uppercase truncate">
                       {item.marca}
                     </p>
                     <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ export default function CartDrawer() {
                         </span>
                       )}
                     </div>
-                    <p className="text-[#D4AF37] text-sm font-bold mt-0.5">
+                    <p className="text-gold text-sm font-bold mt-0.5">
                       {formatPrice(item.precio_venta)}
                       <span className="text-[10px] ml-1 font-normal text-gray-500 italic">contado/transf.</span>
                     </p>
@@ -147,7 +147,7 @@ export default function CartDrawer() {
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() => updateCantidad(item.id, item.cantidad - 1)}
-                        className="w-6 h-6 border border-[#2D2D2D] flex items-center justify-center text-[#888888] hover:text-white hover:border-[#555555] transition-colors"
+                        className="w-6 h-6 border border-luxury-gray-mid flex items-center justify-center text-luxury-gray-light hover:text-white hover:border-[#555555] transition-colors"
                       >
                         <Minus size={11} />
                       </button>
@@ -156,7 +156,7 @@ export default function CartDrawer() {
                       </span>
                       <button
                         onClick={() => updateCantidad(item.id, item.cantidad + 1)}
-                        className="w-6 h-6 border border-[#2D2D2D] flex items-center justify-center text-[#888888] hover:text-white hover:border-[#555555] transition-colors"
+                        className="w-6 h-6 border border-luxury-gray-mid flex items-center justify-center text-luxury-gray-light hover:text-white hover:border-[#555555] transition-colors"
                       >
                         <Plus size={11} />
                       </button>
@@ -178,7 +178,7 @@ export default function CartDrawer() {
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="border-t border-[#1A1A1A] px-5 py-5 space-y-4 bg-black/40">
+          <div className="border-t border-luxury-gray px-5 py-5 space-y-4 bg-black/40">
             <div className="space-y-1">
               <div className="flex items-center justify-between text-[#555555] text-xs">
                 <span>Precio de lista</span>
@@ -192,7 +192,7 @@ export default function CartDrawer() {
 
               <div className="flex items-end justify-between pt-2">
                 <div className="flex flex-col">
-                  <span className="text-[#888888] text-xs uppercase tracking-wider font-semibold">Total Especial</span>
+                  <span className="text-luxury-gray-light text-xs uppercase tracking-wider font-semibold">Total Especial</span>
                   <span className="text-[#555555] text-[10px] italic">Efectivo / Transferencia</span>
                 </div>
                 <span className="text-yellow-400 font-black text-3xl tracking-tighter">
@@ -201,13 +201,13 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            <p className="text-center text-[#555555] text-[10px] bg-[#111111] py-2 border border-[#1A1A1A]">
+            <p className="text-center text-[#555555] text-[10px] bg-[#111111] py-2 border border-luxury-gray">
               O 3 cuotas sin interés de <span className="text-white font-medium">{formatPrice(calculateInstallment(total))}</span>
             </p>
             <Link
               href="/checkout"
               onClick={closeDrawer}
-              className="flex items-center justify-center gap-2 w-full bg-[#D4AF37] text-black font-bold py-3.5 text-sm tracking-wider uppercase hover:bg-[#E8CC6B] transition-colors"
+              className="flex items-center justify-center gap-2 w-full bg-gold text-black font-bold py-3.5 text-sm tracking-wider uppercase hover:bg-gold-light transition-colors"
             >
               Finalizar compra
               <ArrowRight size={16} />

@@ -2,16 +2,16 @@ import { Metadata } from "next";
 import FlipBookWrapper from "@/components/catalogo/FlipBookWrapper";
 
 export const metadata: Metadata = {
-  title: "Catálogo Digital | La Parfumerie de Solange",
+  title: "Catálogo Digital | Mi Tienda",
   description:
-    "Explorá nuestro catálogo digital de fragancias de lujo. Perfumes exclusivos disponibles en Santa Rosa, La Pampa.",
+    "Explorá nuestro catálogo digital de fragancias de lujo. Perfumes exclusivos.",
   alternates: { canonical: "/catalogo" },
 };
 
 // Agregá tus imágenes en /public/catalogo/ y listálas aquí.
 // El orden define el orden de las páginas del libro.
 const CATALOG_PAGES = [
-  { src: "/catalogo/portada.png", alt: "Portada — La Parfumerie de Solange" },
+  { src: "/catalogo/portada.png", alt: "Portada — Mi Tienda" },
   { src: "/catalogo/pagina-02.png", alt: "Fragancias Femeninas" },
   { src: "/catalogo/pagina-03.png", alt: "Fragancias Femeninas" },
   { src: "/catalogo/pagina-04.png", alt: "Femeninas Femeninas" },
@@ -53,8 +53,8 @@ export default function CatalogoPage() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">
-          <p className="text-[#D4AF37] text-xs tracking-[0.5em] uppercase mb-4">
-            La Parfumerie de Solange
+          <p className="text-gold text-xs tracking-[0.5em] uppercase mb-4">
+            Mi Tienda
           </p>
           <h1 className="font-serif text-4xl md:text-5xl text-white mb-4">
             Catálogo Digital

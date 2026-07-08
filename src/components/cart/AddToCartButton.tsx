@@ -30,7 +30,7 @@ export default function AddToCartButton({ item, inStock, variant = "card" }: Pro
         className={`flex items-center justify-center gap-2 font-bold px-4 py-3.5 tracking-wider text-sm uppercase transition-all duration-200 flex-1 whitespace-nowrap cursor-pointer ${
           added
             ? "bg-green-600 text-white"
-            : "bg-[#D4AF37] text-black hover:bg-[#E8CC6B]"
+            : "bg-gold text-black hover:bg-gold-light"
         }`}
       >
         {added ? (
@@ -52,7 +52,7 @@ export default function AddToCartButton({ item, inStock, variant = "card" }: Pro
       className={`flex flex-1 items-center justify-center gap-1.5 text-xs px-2 py-2 border transition-all duration-200 whitespace-nowrap cursor-pointer ${
         added
           ? "border-green-500/50 bg-green-500/10 text-green-400"
-          : "bg-[#D4AF37] border-[#D4AF37] text-black hover:bg-[#E8CC6B] hover:border-[#E8CC6B]"
+          : "bg-gold border-gold text-black hover:bg-gold-light hover:border-gold-light"
       }`}
     >
       {added ? (

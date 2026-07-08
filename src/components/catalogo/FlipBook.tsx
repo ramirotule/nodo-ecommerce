@@ -49,7 +49,7 @@ export default function FlipBook({ pages }: Props) {
         <button
           onClick={goPrev}
           disabled={currentPage === 0}
-          className="absolute left-0 -translate-x-full z-10 p-3 text-[#D4AF37] hover:text-white disabled:text-gray-700 transition-colors"
+          className="absolute left-0 -translate-x-full z-10 p-3 text-gold hover:text-white disabled:text-gray-700 transition-colors"
           aria-label="Página anterior"
         >
           <ChevronLeft size={32} />
@@ -83,7 +83,7 @@ export default function FlipBook({ pages }: Props) {
           maxShadowOpacity={0.5}
         >
           {pages.map((page, i) => (
-            <div key={i} className="w-full h-full" style={{ background: "#fff" }}>
+            <div key={i} className="w-full h-full" style={{ background: "white" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={page.src}
@@ -98,7 +98,7 @@ export default function FlipBook({ pages }: Props) {
         <button
           onClick={goNext}
           disabled={currentPage >= totalPages - 1}
-          className="absolute right-0 translate-x-full z-10 p-3 text-[#D4AF37] hover:text-white disabled:text-gray-700 transition-colors"
+          className="absolute right-0 translate-x-full z-10 p-3 text-gold hover:text-white disabled:text-gray-700 transition-colors"
           aria-label="Página siguiente"
         >
           <ChevronRight size={32} />
@@ -111,7 +111,7 @@ export default function FlipBook({ pages }: Props) {
         </span>
         <button
           onClick={toggleFullscreen}
-          className="text-gray-500 hover:text-[#D4AF37] transition-colors"
+          className="text-gray-500 hover:text-gold transition-colors"
           aria-label="Pantalla completa"
         >
           <Maximize2 size={16} />

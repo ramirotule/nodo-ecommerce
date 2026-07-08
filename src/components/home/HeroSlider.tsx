@@ -91,7 +91,7 @@ export default function HeroSlider() {
         >
           <Image
             src={s.imagen_url}
-            alt={s.titulo ?? `Slide ${i + 1} — La Parfumerie`}
+            alt={s.titulo ?? `Slide ${i + 1}`}
             fill
             className="object-contain"
             priority={i === 0}
@@ -108,14 +108,14 @@ export default function HeroSlider() {
           <button
             onClick={prev}
             aria-label="Slide anterior"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 text-[#D4AF37] hover:text-white transition-colors"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 p-2 text-gold hover:text-white transition-colors"
           >
             <ChevronLeft size={28} strokeWidth={1.5} />
           </button>
           <button
             onClick={next}
             aria-label="Slide siguiente"
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 text-[#D4AF37] hover:text-white transition-colors"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 p-2 text-gold hover:text-white transition-colors"
           >
             <ChevronRight size={28} strokeWidth={1.5} />
           </button>
@@ -129,7 +129,7 @@ export default function HeroSlider() {
                 aria-label={`Ir al slide ${i + 1}`}
                 className={`w-2 h-2 rounded-full transition-all duration-300 ${
                   i === current
-                    ? "bg-[#D4AF37] w-6"
+                    ? "bg-gold w-6"
                     : "bg-white/40 hover:bg-white/70"
                 }`}
               />

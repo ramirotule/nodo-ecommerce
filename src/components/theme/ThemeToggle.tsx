@@ -16,7 +16,7 @@ export function ThemeToggle() {
   if (!mounted) {
     return (
       <div className="w-9 h-9 flex items-center justify-center">
-        <div className="w-5 h-5 bg-transparent border border-[#2D2D2D] rounded-full animate-pulse" />
+        <div className="w-5 h-5 bg-transparent border border-luxury-gray-mid rounded-full animate-pulse" />
       </div>
     );
   }
@@ -24,7 +24,7 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className="relative flex items-center justify-center w-9 h-9 text-white hover:text-[#D4AF37] transition-all group"
+      className="relative flex items-center justify-center w-9 h-9 text-white hover:text-gold transition-all group"
       aria-label="Cambiar tema"
     >
       <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />

@@ -58,7 +58,7 @@ export default function CustomSelect({
   return (
     <div className="relative" ref={containerRef}>
       {label && (
-        <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+        <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
           {label}
         </label>
       )}
@@ -71,8 +71,8 @@ export default function CustomSelect({
             setSearchTerm("");
           }
         }}
-        className={`w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 text-left text-sm transition-all flex items-center justify-between hover:border-[#D4AF37]/50 ${
-          isOpen ? "border-[#D4AF37] ring-1 ring-[#D4AF37]/20" : ""
+        className={`w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 text-left text-sm transition-all flex items-center justify-between hover:border-gold/50 ${
+          isOpen ? "border-gold ring-1 ring-gold/20" : ""
         } ${loading ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
       >
         <span className={!selectedOption ? "text-[#555555]" : "text-white"}>
@@ -80,21 +80,21 @@ export default function CustomSelect({
         </span>
         <ChevronDown
           size={16}
-          className={`text-[#D4AF37] transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+          className={`text-gold transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
       {isOpen && (
-        <div className="absolute z-[110] w-full mt-1 bg-[#111111] border border-[#2D2D2D] shadow-2xl max-h-60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute z-[110] w-full mt-1 bg-[#111111] border border-luxury-gray-mid shadow-2xl max-h-60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Input de Búsqueda */}
-          <div className="p-2 border-b border-[#2D2D2D] bg-[#0A0A0A]">
+          <div className="p-2 border-b border-luxury-gray-mid bg-[#0A0A0A]">
             <input
               ref={searchInputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar..."
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-2 py-1.5 text-xs focus:outline-none focus:border-[#D4AF37] transition-colors"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-2 py-1.5 text-xs focus:outline-none focus:border-gold transition-colors"
             />
           </div>
 
@@ -112,8 +112,8 @@ export default function CustomSelect({
                     setIsOpen(false);
                     setSearchTerm("");
                   }}
-                  className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-[#D4AF37] hover:text-black ${
-                    value === opt.value ? "bg-[#D4AF37]/10 text-[#D4AF37] font-medium" : "text-[#cccccc]"
+                  className={`w-full text-left px-4 py-3 text-sm transition-colors hover:bg-gold hover:text-black ${
+                    value === opt.value ? "bg-gold/10 text-gold font-medium" : "text-[#cccccc]"
                   }`}
                 >
                   {opt.label}

@@ -49,7 +49,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>("");
   const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>("");
-  const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "genero" | "subcategoria" | null>(null);
+  const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "subcategoria" | null>(null);
   const [precioModal, setPrecioModal] = useState<{ open: boolean; venta: string; costo: string }>({ open: false, venta: "", costo: "" });
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, slug: string, categoria_id: string}[]>([]);
@@ -63,7 +63,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       // Cargamos categorías y productos en paralelo para máxima eficiencia
       const [{ data: cats }, { data: prods }] = await Promise.all([
         supabase.from("categorias").select("id, nombre"),
-        supabase.from("productos").select("*, familia_olfativa:familias_olfativas(*)").order("created_at", { ascending: false })
+        supabase.from("productos").select("*").order("created_at", { ascending: false })
       ]);
 
       if (!prods) return;
@@ -151,7 +151,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     toast.success(`Se actualizaron ${ids.length} productos.`);
   }
   
-  async function bulkUpdateField(field: "categoria" | "genero", value: string) {
+  async function bulkUpdateField(field: "categoria", value: string) {
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
     
@@ -254,15 +254,10 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     const exportData = toExport.map((p) => ({
       nombre: p.nombre,
       marca: p.marca,
-      categoria: p.categoria || "Fragancias",
+      categoria: p.categoria || "",
       precio_costo: p.precio_costo || 0,
       precio_venta: p.precio_venta || 0,
       stock: p.stock || 0,
-      genero: p.genero || "Unisex",
-      concentracion: p.concentracion || "EDP",
-      volumen_ml: p.volumen_ml || 0,
-      familia: p.familia_olfativa?.nombre || "",
-      inspired_in: p.inspired_in || "",
       imagen_url: p.imagen_url || "",
       activo: p.activo ? "SI" : "NO",
       destacado: p.destacado ? "SI" : "NO",
@@ -341,28 +336,28 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     <>
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-5">
-          <div className="flex items-center gap-2 text-[#888888] text-xs mb-2">
+        <div className="bg-luxury-black border border-luxury-gray p-5">
+          <div className="flex items-center gap-2 text-luxury-gray-light text-xs mb-2">
             <Package size={14} /> TOTAL
           </div>
           <p className="text-white font-bold text-2xl">{currentStats.total}</p>
           <p className="text-[#555555] text-xs">productos</p>
         </div>
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-5">
-          <div className="flex items-center gap-2 text-[#D4AF37] text-xs mb-2">
+        <div className="bg-luxury-black border border-luxury-gray p-5">
+          <div className="flex items-center gap-2 text-gold text-xs mb-2">
             <Eye size={14} /> ACTIVOS
           </div>
           <p className="text-white font-bold text-2xl">{currentStats.activos}</p>
           <p className="text-[#555555] text-xs">publicados</p>
         </div>
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-5">
+        <div className="bg-luxury-black border border-luxury-gray p-5">
           <div className="flex items-center gap-2 text-orange-400 text-xs mb-2">
             <AlertTriangle size={14} /> SIN STOCK
           </div>
           <p className="text-white font-bold text-2xl">{currentStats.sinStock}</p>
           <p className="text-[#555555] text-xs">para reponer</p>
         </div>
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-5">
+        <div className="bg-luxury-black border border-luxury-gray p-5">
           <div className="flex items-center gap-2 text-green-400 text-xs mb-2">
             <DollarSign size={14} /> INVENTARIO
           </div>
@@ -371,8 +366,8 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
           </p>
           <p className="text-[#555555] text-xs">valor costo</p>
         </div>
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-5">
-          <div className="flex items-center gap-2 text-[#D4AF37] text-xs mb-2">
+        <div className="bg-luxury-black border border-luxury-gray p-5">
+          <div className="flex items-center gap-2 text-gold text-xs mb-2">
             <TrendingUp size={14} /> MARGEN
           </div>
           <p className="text-white font-bold text-2xl">{currentStats.margenPromedio}%</p>
@@ -388,7 +383,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Buscar por nombre o marca..."
-            className="bg-[#0D0D0D] border border-[#2D2D2D] text-white placeholder-[#555555] px-4 py-2.5 focus:outline-none focus:border-[#D4AF37] transition-colors text-sm w-full sm:w-72"
+            className="bg-luxury-black border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-2.5 focus:outline-none focus:border-gold transition-colors text-sm w-full sm:w-72"
           />
           <div className="w-full sm:w-44">
             <CustomSelect
@@ -419,28 +414,28 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
         <div className="flex items-center gap-3 shrink-0">
           <Link
             href="/dashboard/nuevo"
-            className="flex items-center gap-2 bg-[#D4AF37] text-black font-bold px-5 py-2.5 text-sm tracking-wider hover:bg-[#E8CC6B] transition-colors whitespace-nowrap"
+            className="flex items-center gap-2 bg-gold text-black font-bold px-5 py-2.5 text-sm tracking-wider hover:bg-gold-light transition-colors whitespace-nowrap"
           >
             <Plus size={16} />
             Nuevo
           </Link>
           <button
             onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 bg-[#1A1A1A] text-white border border-[#2D2D2D] font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
+            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
           >
             <div className="relative flex items-center">
-              <FileSpreadsheet size={16} className="text-[#D4AF37]" />
-              <ArrowDown size={10} className="text-white absolute -right-1 -bottom-1 bg-[#1A1A1A] rounded-full group-hover:translate-y-0.5 transition-transform" />
+              <FileSpreadsheet size={16} className="text-gold" />
+              <ArrowDown size={10} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:translate-y-0.5 transition-transform" />
             </div>
             Importar
           </button>
           <button
             onClick={() => downloadExcel(productosFiltrados)}
-            className="flex items-center gap-2 bg-[#1A1A1A] text-white border border-[#2D2D2D] font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
+            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
           >
             <div className="relative flex items-center">
-              <FileSpreadsheet size={16} className="text-[#D4AF37]" />
-              <ArrowUp size={10} className="text-white absolute -right-1 -bottom-1 bg-[#1A1A1A] rounded-full group-hover:-translate-y-0.5 transition-transform" />
+              <FileSpreadsheet size={16} className="text-gold" />
+              <ArrowUp size={10} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
             </div>
             Exportar
           </button>
@@ -448,17 +443,17 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       </div>
 
       {/* Tabla */}
-      <div className="bg-[#0D0D0D] border border-[#1A1A1A] overflow-hidden relative">
+      <div className="bg-luxury-black border border-luxury-gray overflow-hidden relative">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1A1A1A] bg-black/30">
+              <tr className="border-b border-luxury-gray bg-black/30">
                 <th className="px-4 py-3 text-left w-10">
                   <input
                     type="checkbox"
                     checked={selectedIds.size === productosFiltrados.length && productosFiltrados.length > 0}
                     onChange={toggleSelectAll}
-                    className="w-4 h-4 rounded border-[#2D2D2D] bg-black text-[#D4AF37] focus:ring-[#D4AF37]"
+                    className="w-4 h-4 rounded border-luxury-gray-mid bg-black text-gold focus:ring-gold"
                   />
                 </th>
                 <th 
@@ -467,7 +462,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 >
                   <div className="flex items-center gap-2">
                     Producto
-                    <span className={`transition-all ${sortConfig?.key === "nombre" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "nombre" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "nombre" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
@@ -478,21 +473,18 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 >
                   <div className="flex items-center gap-2">
                     Categoría
-                    <span className={`transition-all ${sortConfig?.key === "categoria" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "categoria" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "categoria" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
                 </th>
-                {(!categoriaFiltrada || categoriaFiltrada === "Fragancias") && (
-                  <th className="text-left text-[#555555] text-xs tracking-widest uppercase px-4 py-3 hidden sm:table-cell">Género</th>
-                )}
                 <th 
                   className="text-right text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("precio_costo")}
                 >
                   <div className="flex items-center justify-end gap-2">
                     Costo
-                    <span className={`transition-all ${sortConfig?.key === "precio_costo" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "precio_costo" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "precio_costo" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
@@ -503,7 +495,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 >
                   <div className="flex items-center justify-end gap-2">
                     Venta
-                    <span className={`transition-all ${sortConfig?.key === "precio_venta" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "precio_venta" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "precio_venta" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
@@ -515,7 +507,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 >
                   <div className="flex items-center justify-center gap-2">
                     Stock
-                    <span className={`transition-all ${sortConfig?.key === "stock" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "stock" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "stock" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
@@ -526,7 +518,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 >
                   <div className="flex items-center justify-center gap-2">
                     Estado
-                    <span className={`transition-all ${sortConfig?.key === "activo" ? "opacity-100 text-[#D4AF37]" : "opacity-30 text-white"}`}>
+                    <span className={`transition-all ${sortConfig?.key === "activo" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "activo" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
@@ -546,14 +538,14 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                 return (
                   <tr
                     key={producto.id}
-                    className={`hover:bg-[#111111] transition-colors ${!producto.activo ? "opacity-50" : ""} ${selectedIds.has(producto.id) ? "bg-[#D4AF37]/5" : ""}`}
+                    className={`hover:bg-[#111111] transition-colors ${!producto.activo ? "opacity-50" : ""} ${selectedIds.has(producto.id) ? "bg-gold/5" : ""}`}
                   >
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={selectedIds.has(producto.id)}
                         onChange={() => toggleSelect(producto.id)}
-                        className="w-4 h-4 rounded border-[#2D2D2D] bg-black text-[#D4AF37] focus:ring-[#D4AF37]"
+                        className="w-4 h-4 rounded border-luxury-gray-mid bg-black text-gold focus:ring-gold"
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -573,18 +565,13 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-[#888888] text-xs hidden lg:table-cell">
+                    <td className="px-4 py-3 text-luxury-gray-light text-xs hidden lg:table-cell">
                       {producto.categoria || "Fragancias"}
                     </td>
-                    {(!categoriaFiltrada || categoriaFiltrada === "Fragancias") && (
-                      <td className="px-4 py-3 text-[#888888] text-xs hidden sm:table-cell">
-                        {(producto.categoria?.toLowerCase() === "fragancias" && producto.genero) ? producto.genero : "—"}
-                      </td>
-                    )}
-                    <td className="px-4 py-3 text-right text-[#888888]">
+                    <td className="px-4 py-3 text-right text-luxury-gray-light">
                       {producto.precio_costo ? `$${producto.precio_costo.toLocaleString("es-AR")}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-[#D4AF37] font-semibold">
+                    <td className="px-4 py-3 text-right text-gold font-semibold">
                       ${producto.precio_venta.toLocaleString("es-AR")}
                     </td>
                     <td className="px-4 py-3 text-right hidden md:table-cell">
@@ -617,11 +604,11 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-2">
                         <Link href={`/productos/${producto.slug}`} target="_blank"
-                          className="text-[#555555] hover:text-[#D4AF37] transition-colors" title="Ver en tienda">
+                          className="text-[#555555] hover:text-gold transition-colors" title="Ver en tienda">
                           <Eye size={14} />
                         </Link>
                         <Link href={`/dashboard/editar/${producto.id}`}
-                          className="text-[#555555] hover:text-[#D4AF37] transition-colors" title="Editar">
+                          className="text-[#555555] hover:text-gold transition-colors" title="Editar">
                           <Edit2 size={14} />
                         </Link>
                         <button
@@ -653,20 +640,20 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-[#1A1A1A] border border-[#D4AF37]/30 shadow-2xl px-6 py-4 flex items-center gap-6 animate-fade-in-up">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-luxury-gray border border-gold/30 shadow-2xl px-6 py-4 flex items-center gap-6 animate-fade-in-up">
           <div className="flex items-center gap-3">
             <span className="text-white font-bold text-sm">{selectedIds.size} seleccionados</span>
-            <button onClick={() => setSelectedIds(new Set())} className="text-[#D4AF37] text-[10px] uppercase tracking-wider hover:underline">Desmarcar todos</button>
+            <button onClick={() => setSelectedIds(new Set())} className="text-gold text-[10px] uppercase tracking-wider hover:underline">Desmarcar todos</button>
           </div>
-          <div className="h-8 w-px bg-[#2D2D2D]" />
+          <div className="h-8 w-px bg-luxury-gray-mid" />
           <div className="flex items-center gap-3">
             <button 
               onClick={() => downloadExcel()}
-              className="px-3 py-1.5 text-xs font-bold text-[#D4AF37] border border-[#D4AF37]/20 hover:bg-[#D4AF37]/10 transition-colors flex items-center gap-2 group"
+              className="px-3 py-1.5 text-xs font-bold text-gold border border-gold/20 hover:bg-gold/10 transition-colors flex items-center gap-2 group"
             >
               <div className="relative flex items-center">
-                <FileSpreadsheet size={14} className="text-[#D4AF37]" />
-                <ArrowUp size={8} className="text-white absolute -right-0.5 -bottom-0.5 bg-[#1A1A1A] rounded-full group-hover:-translate-y-0.5 transition-transform" />
+                <FileSpreadsheet size={14} className="text-gold" />
+                <ArrowUp size={8} className="text-white absolute -right-0.5 -bottom-0.5 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
               </div>
               Exportar
             </button>
@@ -685,20 +672,20 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               Ocultar
             </button>
 
-            <div className="h-6 w-px bg-[#2D2D2D] mx-1" />
+            <div className="h-6 w-px bg-luxury-gray-mid mx-1" />
 
             {/* Categoría Masiva */}
             <div className="relative">
               <button 
                 onClick={() => setMenuBulkAbierto(menuBulkAbierto === "categoria" ? null : "categoria")}
-                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "categoria" ? "bg-[#D4AF37] text-black border-[#D4AF37]" : "text-[#D4AF37] border-[#D4AF37]/20 hover:bg-[#D4AF37]/10"}`}
+                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "categoria" ? "bg-gold text-black border-gold" : "text-gold border-gold/20 hover:bg-gold/10"}`}
               >
                 Categoría
               </button>
               {menuBulkAbierto === "categoria" && (
                 <>
                   <div className="fixed inset-0 z-[-1]" onClick={() => setMenuBulkAbierto(null)} />
-                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-[#2D2D2D] shadow-2xl p-2 min-w-[160px] animate-fade-in-up">
+                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-luxury-gray-mid shadow-2xl p-2 min-w-[160px] animate-fade-in-up">
                     {categoriasDb.map(cat => (
                       <button
                         key={cat.id}
@@ -706,7 +693,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                           bulkUpdateField("categoria", cat.nombre);
                           setMenuBulkAbierto(null);
                         }}
-                        className="w-full text-left px-3 py-2 text-[10px] text-[#888888] hover:text-white hover:bg-[#1A1A1A] transition-colors"
+                        className="w-full text-left px-3 py-2 text-[10px] text-luxury-gray-light hover:text-white hover:bg-luxury-gray transition-colors"
                       >
                         {cat.nombre}
                       </button>
@@ -720,14 +707,14 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             <div className="relative">
               <button
                 onClick={() => setMenuBulkAbierto(menuBulkAbierto === "subcategoria" ? null : "subcategoria")}
-                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "subcategoria" ? "bg-[#D4AF37] text-black border-[#D4AF37]" : "text-[#D4AF37] border-[#D4AF37]/20 hover:bg-[#D4AF37]/10"}`}
+                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "subcategoria" ? "bg-gold text-black border-gold" : "text-gold border-gold/20 hover:bg-gold/10"}`}
               >
                 Subcategoría
               </button>
               {menuBulkAbierto === "subcategoria" && (
                 <>
                   <div className="fixed inset-0 z-[-1]" onClick={() => setMenuBulkAbierto(null)} />
-                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-[#2D2D2D] shadow-2xl p-2 min-w-[200px] animate-fade-in-up max-h-72 overflow-y-auto">
+                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-luxury-gray-mid shadow-2xl p-2 min-w-[200px] animate-fade-in-up max-h-72 overflow-y-auto">
                     {categoriasDb.map(cat => {
                       const subs = subcategoriasDb.filter(s => s.categoria_id === cat.id);
                       if (!subs.length) return null;
@@ -741,7 +728,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                                 bulkUpdateSubcategoria(sub.id, sub.categoria_id);
                                 setMenuBulkAbierto(null);
                               }}
-                              className="w-full text-left px-3 py-2 text-[10px] text-[#888888] hover:text-white hover:bg-[#1A1A1A] transition-colors pl-5"
+                              className="w-full text-left px-3 py-2 text-[10px] text-luxury-gray-light hover:text-white hover:bg-luxury-gray transition-colors pl-5"
                             >
                               {sub.nombre}
                             </button>
@@ -754,34 +741,6 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               )}
             </div>
 
-            {/* Género Masivo */}
-            <div className="relative">
-              <button 
-                onClick={() => setMenuBulkAbierto(menuBulkAbierto === "genero" ? null : "genero")}
-                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "genero" ? "bg-[#D4AF37] text-black border-[#D4AF37]" : "text-[#D4AF37] border-[#D4AF37]/20 hover:bg-[#D4AF37]/10"}`}
-              >
-                Género
-              </button>
-              {menuBulkAbierto === "genero" && (
-                <>
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setMenuBulkAbierto(null)} />
-                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-[#2D2D2D] shadow-2xl p-2 min-w-[120px] animate-fade-in-up">
-                    {["Femenino", "Masculino", "Unisex", "No aplica"].map(gen => (
-                      <button
-                        key={gen}
-                        onClick={() => {
-                          bulkUpdateField("genero", gen);
-                          setMenuBulkAbierto(null);
-                        }}
-                        className="w-full text-left px-3 py-2 text-[10px] text-[#888888] hover:text-white hover:bg-[#1A1A1A] transition-colors"
-                      >
-                        {gen}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
             <button
               onClick={() => setPrecioModal({ open: true, venta: "", costo: "" })}
               className="px-3 py-1.5 text-xs font-bold text-blue-400 border border-blue-400/20 hover:bg-blue-400/10 transition-colors"
@@ -797,7 +756,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               Eliminar
             </button>
           </div>
-          <div className="h-8 w-px bg-[#2D2D2D]" />
+          <div className="h-8 w-px bg-luxury-gray-mid" />
           <button
             onClick={() => setSelectedIds(new Set())}
             className="text-[#555555] hover:text-white transition-colors p-1"
@@ -807,7 +766,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
           </button>
           {bulkLoading && (
             <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
-              <div className="w-5 h-5 border-2 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
             </div>
           )}
         </div>
@@ -816,19 +775,19 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       {/* Modal eliminación unitaria */}
       {deleteModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-md p-6 md:p-8">
+          <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-md p-6 md:p-8">
             <div className="flex items-center gap-3 text-red-500 mb-4">
               <AlertTriangle size={24} />
               <h2 className="font-serif text-xl text-white">Confirmar eliminación</h2>
             </div>
-            <p className="text-[#888888] text-sm mb-6 leading-relaxed">
+            <p className="text-luxury-gray-light text-sm mb-6 leading-relaxed">
               ¿Estás seguro que deseas eliminar{" "}
-              <strong className="text-[#D4AF37]">{deleteModal.nombre}</strong>? Esta acción no se puede deshacer.
+              <strong className="text-gold">{deleteModal.nombre}</strong>? Esta acción no se puede deshacer.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, id: "", nombre: "" })}
-                className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
                 disabled={loading === deleteModal.id}
               >
                 Cancelar
@@ -853,18 +812,18 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       {/* Modal eliminación masiva */}
       {bulkDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-md p-6 md:p-8">
+          <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-md p-6 md:p-8">
             <div className="flex items-center gap-3 text-red-500 mb-4">
               <AlertTriangle size={24} />
               <h2 className="font-serif text-xl text-white">Eliminación Masiva</h2>
             </div>
-            <p className="text-[#888888] text-sm mb-6 leading-relaxed">
+            <p className="text-luxury-gray-light text-sm mb-6 leading-relaxed">
               ¿Estás seguro que deseas eliminar <strong className="text-white">{selectedIds.size} productos</strong> seleccionados? Esta acción es permanente y afectará a todo el catálogo.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setBulkDeleteModal(false)}
-                className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
                 disabled={bulkLoading}
               >
                 Cancelar
@@ -888,37 +847,37 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       {/* Modal Actualización Masiva de Precios */}
       {precioModal.open && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-sm p-6 md:p-8">
+          <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-sm p-6 md:p-8">
             <h2 className="font-serif text-xl text-white mb-1">Actualizar precios</h2>
             <p className="text-[#555555] text-xs mb-6">
               {selectedIds.size} producto{selectedIds.size !== 1 ? "s" : ""} seleccionado{selectedIds.size !== 1 ? "s" : ""}. Dejá en blanco el campo que no querés modificar.
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-[#888888] text-xs uppercase tracking-widest mb-1.5">Precio de Venta</label>
+                <label className="block text-luxury-gray-light text-xs uppercase tracking-widest mb-1.5">Precio de Venta</label>
                 <input
                   type="number"
                   value={precioModal.venta}
                   onChange={(e) => setPrecioModal(prev => ({ ...prev, venta: e.target.value }))}
                   placeholder="Precio nuevo..."
-                  className="w-full bg-[#111] border border-[#2D2D2D] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                  className="w-full bg-[#111] border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-[#888888] text-xs uppercase tracking-widest mb-1.5">Precio de Costo</label>
+                <label className="block text-luxury-gray-light text-xs uppercase tracking-widest mb-1.5">Precio de Costo</label>
                 <input
                   type="number"
                   value={precioModal.costo}
                   onChange={(e) => setPrecioModal(prev => ({ ...prev, costo: e.target.value }))}
                   placeholder="Precio nuevo..."
-                  className="w-full bg-[#111] border border-[#2D2D2D] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                  className="w-full bg-[#111] border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setPrecioModal({ open: false, venta: "", costo: "" })}
-                className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
                 disabled={bulkLoading}
               >
                 Cancelar
@@ -926,7 +885,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               <button
                 onClick={bulkUpdatePrecios}
                 disabled={bulkLoading || (!precioModal.venta && !precioModal.costo)}
-                className="flex-1 px-4 py-2.5 text-sm font-bold bg-[#D4AF37] text-black hover:bg-[#E8CC6B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 text-sm font-bold bg-gold text-black hover:bg-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {bulkLoading ? <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : null}
                 Aplicar

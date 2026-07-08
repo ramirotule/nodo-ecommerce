@@ -25,9 +25,9 @@ async function searchProducts(query: string): Promise<Producto[]> {
   const supabase = createClient();
   const { data } = await supabase
     .from("productos")
-    .select("id, nombre, marca, slug, precio_venta, imagen_url, genero, destacado")
+    .select("id, nombre, marca, slug, precio_venta, imagen_url, destacado")
     .eq("activo", true)
-    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,inspired_in.ilike.%${query}%`)
+    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,descripcion.ilike.%${query}%`)
     .order("destacado", { ascending: false })
     .limit(MAX_RESULTS);
   return (data as Producto[]) || [];
@@ -136,16 +136,16 @@ export default function QuickSearchModal() {
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-2xl bg-[#111111] border border-[#2D2D2D] rounded-xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-2xl bg-[#111111] border border-luxury-gray-mid rounded-xl shadow-2xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
-        <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-4 border-b border-[#2D2D2D]">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3 px-4 py-4 border-b border-luxury-gray-mid">
           {isPending ? (
-            <Loader2 className="w-5 h-5 text-[#D4AF37] shrink-0 animate-spin" />
+            <Loader2 className="w-5 h-5 text-gold shrink-0 animate-spin" />
           ) : (
-            <Search className="w-5 h-5 text-[#D4AF37] shrink-0" />
+            <Search className="w-5 h-5 text-gold shrink-0" />
           )}
           <input
             ref={inputRef}
@@ -165,7 +165,7 @@ export default function QuickSearchModal() {
                 <X className="w-4 h-4" />
               </button>
             )}
-            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono text-[#555555] border border-[#2D2D2D] rounded">
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 text-[10px] font-mono text-[#555555] border border-luxury-gray-mid rounded">
               ESC
             </kbd>
           </div>
@@ -173,14 +173,14 @@ export default function QuickSearchModal() {
 
         {/* Results */}
         {results.length > 0 && (
-          <ul className="max-h-[60vh] overflow-y-auto divide-y divide-[#1A1A1A]">
+          <ul className="max-h-[60vh] overflow-y-auto divide-y divide-luxury-gray">
             {results.map((product, index) => (
               <li key={product.id}>
                 <button
                   className={`w-full flex items-center gap-4 px-4 py-3 text-left transition-colors ${
                     index === selectedIndex
-                      ? "bg-[#1A1A1A]"
-                      : "hover:bg-[#1A1A1A]"
+                      ? "bg-luxury-gray"
+                      : "hover:bg-luxury-gray"
                   }`}
                   onClick={() => {
                     router.push(`/productos/${product.slug}`);
@@ -189,7 +189,7 @@ export default function QuickSearchModal() {
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
                   {/* Thumbnail */}
-                  <div className="w-12 h-12 shrink-0 bg-[#0A0A0A] rounded-md overflow-hidden border border-[#2D2D2D]">
+                  <div className="w-12 h-12 shrink-0 bg-[#0A0A0A] rounded-md overflow-hidden border border-luxury-gray-mid">
                     {product.imagen_url ? (
                       <Image
                         src={product.imagen_url}
@@ -208,12 +208,12 @@ export default function QuickSearchModal() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium truncate">{product.nombre}</p>
-                    <p className="text-[#888888] text-xs truncate">{product.marca} · {product.genero}</p>
+                    <p className="text-luxury-gray-light text-xs truncate">{product.marca}</p>
                   </div>
 
                   {/* Price */}
                   <div className="text-right shrink-0">
-                    <p className="text-[#D4AF37] text-sm font-bold">
+                    <p className="text-gold text-sm font-bold">
                       {formatPrice(product.precio_venta)}
                     </p>
                   </div>
@@ -234,16 +234,16 @@ export default function QuickSearchModal() {
         )}
 
         {/* Footer hint */}
-        <div className="flex items-center justify-between px-4 py-2.5 border-t border-[#1A1A1A] bg-[#0A0A0A]">
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-luxury-gray bg-[#0A0A0A]">
           <div className="flex items-center gap-3 text-[10px] text-[#444] font-mono">
-            <span><kbd className="border border-[#2D2D2D] rounded px-1 py-0.5">↑↓</kbd> navegar</span>
-            <span><kbd className="border border-[#2D2D2D] rounded px-1 py-0.5">↵</kbd> abrir</span>
-            <span><kbd className="border border-[#2D2D2D] rounded px-1 py-0.5">ESC</kbd> cerrar</span>
+            <span><kbd className="border border-luxury-gray-mid rounded px-1 py-0.5">↑↓</kbd> navegar</span>
+            <span><kbd className="border border-luxury-gray-mid rounded px-1 py-0.5">↵</kbd> abrir</span>
+            <span><kbd className="border border-luxury-gray-mid rounded px-1 py-0.5">ESC</kbd> cerrar</span>
           </div>
           {query.trim() && (
             <button
               onClick={handleSubmit}
-              className="text-[10px] text-[#D4AF37] hover:text-white transition-colors tracking-wider uppercase font-bold"
+              className="text-[10px] text-gold hover:text-white transition-colors tracking-wider uppercase font-bold"
             >
               Ver todos los resultados →
             </button>

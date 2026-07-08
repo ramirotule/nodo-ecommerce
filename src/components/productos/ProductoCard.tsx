@@ -14,7 +14,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
 
   if (isCompact) {
     return (
-      <article className="group relative bg-[#0D0D0D] border border-[#1A1A1A] hover:border-[#D4AF37]/40 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
+      <article className="group relative bg-luxury-black border border-luxury-gray hover:border-gold/40 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
         <Link href={`/productos/${producto.slug}`} className="block relative aspect-square bg-black/40">
           {producto.imagen_url ? (
             <Image
@@ -26,14 +26,14 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <span className="text-[#D4AF37] text-2xl font-serif">✦</span>
+              <span className="text-gold text-2xl font-serif">✦</span>
             </div>
           )}
           
           {/* Minimal Badges for Compact View */}
           <div className="absolute top-1 left-1 flex flex-col gap-0.5">
             {producto.nuevo && (
-              <div className="w-2 h-2 rounded-full bg-[#D4AF37]" title="Nuevo" />
+              <div className="w-2 h-2 rounded-full bg-gold" title="Nuevo" />
             )}
             {producto.stock === 0 && (
               <div className="w-2 h-2 rounded-full bg-gray-300" title="Sin stock" />
@@ -52,13 +52,13 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
   }
 
   return (
-    <article className="group bg-[#0D0D0D] border border-[#1A1A1A] hover:border-[#D4AF37]/40 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
+    <article className="group bg-luxury-black border border-luxury-gray hover:border-gold/40 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
       {/* Image */}
       <Link href={`/productos/${producto.slug}`} className="block relative overflow-hidden aspect-square bg-black/40">
         {producto.imagen_url ? (
           <Image
             src={producto.imagen_url}
-            alt={`Producto ${producto.nombre} ${producto.marca} - ${producto.genero} - La Parfumerie Santa Rosa La Pampa`}
+            alt={`Producto ${producto.nombre} ${producto.marca}`}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
@@ -67,7 +67,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
-              <div className="text-4xl mb-2 text-[#D4AF37]">✦</div>
+              <div className="text-4xl mb-2 text-gold">✦</div>
               <p className="text-gray-400 text-xs tracking-wider">
                 {producto.marca}
               </p>
@@ -78,22 +78,15 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
         {/* Badges — top left: Nuevo / Destacado only */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {producto.nuevo && (
-            <span className="bg-[#D4AF37] text-black text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
+            <span className="bg-gold text-black text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
               Nuevo
             </span>
           )}
           {producto.destacado && !producto.nuevo && (
-            <span className="bg-[#1A1A1A] border border-[#D4AF37]/50 text-[#D4AF37] text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
+            <span className="bg-luxury-gray border border-gold/50 text-gold text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
               Destacado
             </span>
           )}
-        </div>
-
-        {/* Género badge — top right */}
-        <div className="absolute top-2 right-2">
-          <span className="bg-black/60 border border-[#1A1A1A] text-gray-300 text-[9px] tracking-wider px-2 py-0.5 uppercase backdrop-blur-sm">
-            {(producto.categoria?.toLowerCase() === "fragancias" || !producto.categoria) ? producto.genero : "—"}
-          </span>
         </div>
 
         {/* Sin stock badge — bottom, full width */}
@@ -112,16 +105,10 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
           <p className="text-[#555555] text-xs tracking-[0.2em] uppercase mb-1">
             {producto.marca}
           </p>
-          <h3 className="text-white font-serif text-base leading-snug group-hover:text-[#D4AF37] transition-colors line-clamp-2">
+          <h3 className="text-white font-serif text-base leading-snug group-hover:text-gold transition-colors line-clamp-2">
             {producto.nombre}
           </h3>
         </Link>
-
-        {producto.volumen_ml && producto.concentracion && (
-          <p className="text-gray-400 text-xs mt-1">
-            {producto.volumen_ml}ml · {producto.concentracion}
-          </p>
-        )}
 
         <div className="mt-auto pt-4">
           <div className="mb-3 flex flex-col">
@@ -135,7 +122,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
               <span className="text-white font-bold text-xl">
                 {formatPrice(producto.precio_venta)}
               </span>
-              <span className="text-[#D4AF37] text-[10px] font-bold ml-1 uppercase tracking-tight">
+              <span className="text-gold text-[10px] font-bold ml-1 uppercase tracking-tight">
                 Contado / Transferencia
               </span>
             </div>

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || "https://laparfumerie.com.ar";
+    process.env.NEXT_PUBLIC_SITE_URL || "https://mitienda.com";
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

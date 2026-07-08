@@ -36,7 +36,7 @@ export default function NewsletterModal({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
-      <div className="relative bg-[#0D0D0D] border border-[#D4AF37]/30 max-w-lg w-full p-8 md:p-12 shadow-2xl shadow-black">
+      <div className="relative bg-luxury-black border border-gold/30 max-w-lg w-full p-8 md:p-12 shadow-2xl shadow-black">
         {/* Botón cerrar */}
         <button
           onClick={onClose}
@@ -47,7 +47,7 @@ export default function NewsletterModal({
 
         {status === "success" ? (
           <div className="text-center py-8 animate-fade-in">
-            <CheckCircle2 className="text-[#D4AF37] w-16 h-16 mx-auto mb-6" />
+            <CheckCircle2 className="text-gold w-16 h-16 mx-auto mb-6" />
             <h3 className="text-2xl font-serif text-white mb-2">
               ¡Bienvenido a la Colección!
             </h3>
@@ -59,7 +59,7 @@ export default function NewsletterModal({
         ) : (
           <div className="animate-fade-in">
             <div className="text-center mb-8">
-              <h3 className="text-[#D4AF37] text-xs font-bold tracking-[0.3em] uppercase mb-4">
+              <h3 className="text-gold text-xs font-bold tracking-[0.3em] uppercase mb-4">
                 Newsletter
               </h3>
               <h2 className="font-serif text-3xl text-white mb-4">
@@ -79,13 +79,13 @@ export default function NewsletterModal({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Tu correo electrónico"
-                  className="w-full bg-black border border-[#1A1A1A] text-white px-4 py-4 focus:outline-none focus:border-[#D4AF37] transition-colors placeholder:text-gray-700"
+                  className="w-full bg-black border border-luxury-gray text-white px-4 py-4 focus:outline-none focus:border-gold transition-colors placeholder:text-gray-700"
                 />
               </div>
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="w-full bg-[#D4AF37] text-black font-bold py-4 uppercase tracking-widest text-xs hover:bg-[#E8CC6B] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-gold text-black font-bold py-4 uppercase tracking-widest text-xs hover:bg-gold-light transition-all disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {status === "loading" ? (
                   "Procesando..."

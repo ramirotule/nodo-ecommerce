@@ -141,10 +141,10 @@ export default function SliderConfig() {
   }
 
   return (
-    <section className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 md:p-8">
+    <section className="bg-luxury-black border border-luxury-gray p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-1">
+          <p className="text-gold text-xs tracking-[0.3em] uppercase mb-1">
             Homepage
           </p>
           <h2 className="text-white text-xl font-serif">
@@ -154,7 +154,7 @@ export default function SliderConfig() {
         <button
           onClick={save}
           disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#D4AF37] text-black text-sm font-bold hover:bg-[#E8CC6B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-2 px-5 py-2.5 bg-gold text-black text-sm font-bold hover:bg-gold-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? (
             <Loader2 size={14} className="animate-spin" />
@@ -167,7 +167,7 @@ export default function SliderConfig() {
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={24} className="animate-spin text-[#D4AF37]" />
+          <Loader2 size={24} className="animate-spin text-gold" />
         </div>
       ) : (
         <div className="space-y-4">
@@ -186,7 +186,7 @@ export default function SliderConfig() {
               onDrop={(e) => handleDrop(e, i)}
               onDragEnd={handleDragEnd}
               className={`flex gap-4 items-start border bg-[#0A0A0A] p-4 transition-all ${
-                dragOver === i ? "border-[#D4AF37] opacity-70" : "border-[#1A1A1A]"
+                dragOver === i ? "border-gold opacity-70" : "border-luxury-gray"
               }`}
             >
               {/* Drag handle */}
@@ -194,7 +194,7 @@ export default function SliderConfig() {
                 <GripVertical size={16} />
               </div>
               {/* Thumbnail */}
-              <div className="flex-shrink-0 w-20 h-14 bg-[#1A1A1A] border border-[#2D2D2D] overflow-hidden relative rounded-sm">
+              <div className="flex-shrink-0 w-20 h-14 bg-luxury-gray border border-luxury-gray-mid overflow-hidden relative rounded-sm">
                 {slide.imagen_url ? (
                   <Image
                     src={slide.imagen_url}
@@ -232,7 +232,7 @@ export default function SliderConfig() {
                       type="button"
                       onClick={() => fileInputRefs.current[i]?.click()}
                       disabled={uploading === i}
-                      className="flex items-center gap-2 px-4 py-2 border border-[#2D2D2D] text-[#888888] hover:border-[#D4AF37] hover:text-[#D4AF37] text-xs transition-colors disabled:opacity-50"
+                      className="flex items-center gap-2 px-4 py-2 border border-luxury-gray-mid text-luxury-gray-light hover:border-gold hover:text-gold text-xs transition-colors disabled:opacity-50"
                     >
                       {uploading === i ? (
                         <Loader2 size={13} className="animate-spin" />
@@ -258,7 +258,7 @@ export default function SliderConfig() {
                     value={slide.titulo ?? ""}
                     onChange={(e) => updateSlide(i, "titulo", e.target.value)}
                     placeholder="Ej: Nueva colección árabe"
-                    className="w-full bg-[#111] border border-[#2D2D2D] text-white text-sm px-3 py-2 focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-[#333]"
+                    className="w-full bg-[#111] border border-luxury-gray-mid text-white text-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors placeholder-[#333]"
                   />
                 </div>
                 <div>
@@ -270,7 +270,7 @@ export default function SliderConfig() {
                     value={slide.subtitulo ?? ""}
                     onChange={(e) => updateSlide(i, "subtitulo", e.target.value)}
                     placeholder="Ej: Fragancias exclusivas"
-                    className="w-full bg-[#111] border border-[#2D2D2D] text-white text-sm px-3 py-2 focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-[#333]"
+                    className="w-full bg-[#111] border border-luxury-gray-mid text-white text-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors placeholder-[#333]"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -282,7 +282,7 @@ export default function SliderConfig() {
                     value={slide.href ?? ""}
                     onChange={(e) => updateSlide(i, "href", e.target.value)}
                     placeholder="Ej: /productos?categoria=arabes"
-                    className="w-full bg-[#111] border border-[#2D2D2D] text-white text-sm px-3 py-2 focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-[#333]"
+                    className="w-full bg-[#111] border border-luxury-gray-mid text-white text-sm px-3 py-2 focus:outline-none focus:border-gold transition-colors placeholder-[#333]"
                   />
                 </div>
               </div>
@@ -300,7 +300,7 @@ export default function SliderConfig() {
 
           <button
             onClick={addSlide}
-            className="flex items-center gap-2 text-[#D4AF37] hover:text-white text-sm border border-[#2D2D2D] hover:border-[#D4AF37] px-4 py-2.5 transition-colors w-full justify-center"
+            className="flex items-center gap-2 text-gold hover:text-white text-sm border border-luxury-gray-mid hover:border-gold px-4 py-2.5 transition-colors w-full justify-center"
           >
             <Plus size={14} />
             Agregar slide

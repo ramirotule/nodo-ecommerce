@@ -83,7 +83,7 @@ export default function Header({ navCategorias }: Props) {
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-black border-b border-[#1A1A1A]">
+    <header className="sticky top-0 z-50 bg-black border-b border-luxury-gray">
       <div className="w-full px-2 sm:px-4 lg:px-6">
         <div className="flex items-center gap-12 lg:gap-20 pt-1 pb-6 md:pt-2 md:pb-8">
           {/* Logo */}
@@ -91,7 +91,7 @@ export default function Header({ navCategorias }: Props) {
             <Link href="/">
               <Image
                 src="/logo2.png"
-                alt="La Parfumerie de Solange"
+                alt="Logo"
                 width={300}
                 height={300}
                 className="h-20 md:h-32 lg:h-44 w-auto object-contain transition-transform hover:scale-105"
@@ -103,37 +103,37 @@ export default function Header({ navCategorias }: Props) {
           {/* Columna derecha */}
           <div className="flex-1 flex flex-col gap-6 xl:gap-8">
             {/* Fila 1: Utilidades */}
-            <div className="hidden md:flex items-center justify-end gap-6 border-b border-[#1A1A1A]/50 pb-4">
+            <div className="hidden md:flex items-center justify-end gap-6 border-b border-luxury-gray/50 pb-4">
               <Link
-                href={`https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent(SITE_CONFIG.contact.emprenderMsg)}`}
-                target="_blank"
+                href={SITE_CONFIG.contact.phone ? `https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent(SITE_CONFIG.contact.emprenderMsg)}` : "#"}
+                target={SITE_CONFIG.contact.phone ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="text-[11px] tracking-[0.2em] text-[#D4AF37] hover:text-white transition-colors font-bold uppercase flex items-center gap-2 group"
+                className="text-[11px] tracking-[0.2em] text-gold hover:text-white transition-colors font-bold uppercase flex items-center gap-2 group"
               >
                 <WhatsAppIcon className="w-3 h-3 transition-transform group-hover:scale-110" />
-                Emprendé con Bagués
+                Contacto
               </Link>
               <button
                 onClick={openCatalogo}
-                className="text-[11px] tracking-[0.2em] text-[#888888] hover:text-white transition-colors font-bold uppercase"
+                className="text-[11px] tracking-[0.2em] text-luxury-gray-light hover:text-white transition-colors font-bold uppercase"
               >
                 Catálogo
               </button>
               <Link
                 href="/quienes-somos"
-                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/quienes-somos" ? "text-[#D4AF37]" : "text-[#888888] hover:text-white"}`}
+                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/quienes-somos" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
               >
                 Nosotros
               </Link>
               <Link
                 href="/preguntas-frecuentes"
-                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/preguntas-frecuentes" ? "text-[#D4AF37]" : "text-[#888888] hover:text-white"}`}
+                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
               >
                 Preguntas Frecuentes
               </Link>
               <Link
                 href="/login"
-                className="text-[11px] tracking-[0.2em] text-[#D4AF37] border border-[#D4AF37]/50 px-3 py-1 rounded hover:bg-[#D4AF37] hover:text-black transition-all font-bold uppercase"
+                className="text-[11px] tracking-[0.2em] text-gold border border-gold/50 px-3 py-1 rounded hover:bg-gold hover:text-black transition-all font-bold uppercase"
               >
                 Acceso Emprendedores
               </Link>
@@ -145,7 +145,7 @@ export default function Header({ navCategorias }: Props) {
               <nav className="hidden lg:flex items-center gap-x-6 xl:gap-x-10">
                 <Link
                   href="/"
-                  className={`text-xs tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/" ? "text-[#D4AF37]" : "text-white hover:text-[#D4AF37]"}`}
+                  className={`text-xs tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/" ? "text-gold" : "text-white hover:text-gold"}`}
                 >
                   INICIO
                 </Link>
@@ -159,7 +159,7 @@ export default function Header({ navCategorias }: Props) {
                   >
                     <button
                       onClick={() => setOpenDropdown(openDropdown === cat.id ? null : cat.id)}
-                      className="flex items-center gap-1.5 text-xs tracking-[0.2em] text-white hover:text-[#D4AF37] transition-colors font-bold uppercase"
+                      className="flex items-center gap-1.5 text-xs tracking-[0.2em] text-white hover:text-gold transition-colors font-bold uppercase"
                     >
                       {cat.nombre}
                       {cat.subcategorias.length > 0 && (
@@ -169,52 +169,22 @@ export default function Header({ navCategorias }: Props) {
 
                     {openDropdown === cat.id && cat.subcategorias.length > 0 && (
                       <div className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 z-50 ${cat.slug === "fragancias" || cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? "w-[280px]" : "w-[200px]"}`}>
-                        <div className="bg-[#0D0D0D] border border-[#1A1A1A] shadow-2xl shadow-black/80 p-5 flex flex-col gap-2">
+                        <div className="bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 p-5 flex flex-col gap-2">
                           <Link
                             href={`/productos?categoria=${cat.slug}`}
-                            className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-2 mb-1 hover:text-[#D4AF37] transition-colors block"
+                            className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-2 mb-1 hover:text-gold transition-colors block"
                           >
                             VER TODO
                           </Link>
 
-                          {cat.slug === "fragancias" ? (
-                            <>
-                              {cat.subcategorias.map((sub) => (
-                                <div key={sub.id} className="mt-1">
-                                  <Link
-                                    href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                    className="block text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-1 mb-2 hover:text-[#D4AF37] transition-colors"
-                                  >
-                                    {sub.nombre}
-                                  </Link>
-                                  {(["femenino", "masculino", "unisex"] as const).map((genero) => (
-                                    <Link
-                                      key={genero}
-                                      href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&genero=${genero}`}
-                                      className="block text-xs text-[#cccccc] hover:text-[#D4AF37] transition-colors py-1 pl-2"
-                                    >
-                                      {genero.charAt(0).toUpperCase() + genero.slice(1)}
-                                    </Link>
-                                  ))}
-                                </div>
-                              ))}
-                              <div className="mt-1 border-t border-[#2D2D2D] pt-2">
-                                <Link
-                                  href="/familias-olfativas"
-                                  className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase hover:text-[#D4AF37] transition-colors block"
-                                >
-                                  🌸 Familias Olfativas
-                                </Link>
-                              </div>
-                            </>
-                          ) : cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
+                          {cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
                             cat.subcategorias.map((sub) => {
                               const subitems = MEGA_MENU_SUBITEMS[sub.slug] ?? [];
                               return (
                                 <div key={sub.id} className="mt-1">
                                   <Link
                                     href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                    className="block text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-1 mb-2 hover:text-[#D4AF37] transition-colors"
+                                    className="block text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 mb-2 hover:text-gold transition-colors"
                                   >
                                     {sub.nombre}
                                   </Link>
@@ -222,7 +192,7 @@ export default function Header({ navCategorias }: Props) {
                                     <Link
                                       key={item}
                                       href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
-                                      className="block text-xs text-[#cccccc] hover:text-[#D4AF37] transition-colors py-1 pl-2"
+                                      className="block text-xs text-[#cccccc] hover:text-gold transition-colors py-1 pl-2"
                                     >
                                       {item}
                                     </Link>
@@ -235,7 +205,7 @@ export default function Header({ navCategorias }: Props) {
                               <Link
                                 key={sub.id}
                                 href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-1 hover:text-[#D4AF37] transition-colors block"
+                                className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 hover:text-gold transition-colors block"
                               >
                                 {sub.nombre}
                               </Link>
@@ -252,12 +222,12 @@ export default function Header({ navCategorias }: Props) {
               <div className="flex flex-1 justify-end items-center gap-4 xl:gap-6">
                 <button
                   onClick={openQuickSearch}
-                  className="hidden md:flex items-center gap-2 border border-[#D4AF37]/40 bg-[#D4AF37]/5 hover:bg-[#D4AF37]/10 px-3 py-1.5 transition-colors group"
+                  className="hidden md:flex items-center gap-2 border border-gold/40 bg-gold/5 hover:bg-gold/10 px-3 py-1.5 transition-colors group"
                   aria-label="Búsqueda rápida"
                 >
-                  <Search size={13} className="text-[#D4AF37]" />
-                  <span className="text-[11px] font-mono text-[#888] group-hover:text-[#aaa] transition-colors">Búsqueda rápida</span>
-                  <kbd className="px-1.5 py-0.5 border border-[#D4AF37]/60 rounded text-[#D4AF37] bg-[#D4AF37]/10 text-[11px] font-mono animate-pulse shadow-[0_0_8px_rgba(212,175,55,0.3)]">
+                  <Search size={13} className="text-gold" />
+                  <span className="text-[11px] font-mono text-luxury-gray-light group-hover:text-[#aaa] transition-colors">Búsqueda rápida</span>
+                  <kbd className="px-1.5 py-0.5 border border-gold/60 rounded text-gold bg-gold/10 text-[11px] font-mono animate-pulse shadow-[0_0_8px_rgba(212,175,55,0.3)]">
                     ctrl+K
                   </kbd>
                 </button>
@@ -265,12 +235,12 @@ export default function Header({ navCategorias }: Props) {
                 <button
                   onClick={openDrawer}
                   aria-label="Ver carrito"
-                  className="relative text-white hover:text-[#D4AF37] transition-all flex items-center gap-2 group p-1"
+                  className="relative text-white hover:text-gold transition-all flex items-center gap-2 group p-1"
                 >
                   <div className="relative">
                     <ShoppingBag size={20} className="group-hover:scale-110 transition-transform" />
                     {count > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-[#D4AF37] text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
+                      <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
                         {count > 9 ? "9+" : count}
                       </span>
                     )}
@@ -279,7 +249,7 @@ export default function Header({ navCategorias }: Props) {
                 </button>
 
                 <button
-                  className="lg:hidden text-white hover:text-[#D4AF37] transition-colors shrink-0"
+                  className="lg:hidden text-white hover:text-gold transition-colors shrink-0"
                   onClick={() => setMenuOpen(!menuOpen)}
                   aria-label="Menú"
                 >
@@ -293,55 +263,24 @@ export default function Header({ navCategorias }: Props) {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-[#0D0D0D] border-t border-[#1A1A1A] px-4 py-6">
+        <div className="md:hidden bg-luxury-black border-t border-luxury-gray px-4 py-6">
           <nav className="flex flex-col gap-4">
-            <Link href="/" onClick={() => setMenuOpen(false)} className="text-sm tracking-wider text-white hover:text-[#D4AF37] transition-colors">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="text-sm tracking-wider text-white hover:text-gold transition-colors">
               INICIO
             </Link>
 
             {navCategorias.map((cat) => (
-              <div key={cat.id} className="border-t border-[#2D2D2D] pt-4">
+              <div key={cat.id} className="border-t border-luxury-gray-mid pt-4">
                 <Link
                   href={`/productos?categoria=${cat.slug}`}
                   onClick={() => setMenuOpen(false)}
-                  className="text-[#D4AF37] text-xs tracking-widest mb-3 uppercase font-bold block"
+                  className="text-gold text-xs tracking-widest mb-3 uppercase font-bold block"
                 >
                   {cat.nombre}
                 </Link>
                 {cat.subcategorias.length > 0 && (
                   <div className="flex flex-col gap-1 pl-2">
-                    {cat.slug === "fragancias" ? (
-                      <>
-                        {cat.subcategorias.map((sub) => (
-                          <div key={sub.id} className="mt-2">
-                            <Link
-                              href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                              onClick={() => setMenuOpen(false)}
-                              className="block text-[#D4AF37] text-[10px] font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-1 mb-1 hover:opacity-80 transition-opacity"
-                            >
-                              {sub.nombre}
-                            </Link>
-                            {(["femenino", "masculino", "unisex"] as const).map((genero) => (
-                              <Link
-                                key={genero}
-                                href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&genero=${genero}`}
-                                onClick={() => setMenuOpen(false)}
-                                className="block text-xs text-[#cccccc] hover:text-[#D4AF37] py-0.5 pl-2 transition-colors"
-                              >
-                                {genero.charAt(0).toUpperCase() + genero.slice(1)}
-                              </Link>
-                            ))}
-                          </div>
-                        ))}
-                        <Link
-                          href="/familias-olfativas"
-                          onClick={() => setMenuOpen(false)}
-                          className="block text-xs text-[#D4AF37]/70 hover:text-[#D4AF37] py-1 transition-colors border-t border-[#2D2D2D] mt-2 pt-2"
-                        >
-                          🌸 Familias Olfativas
-                        </Link>
-                      </>
-                    ) : cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
+                    {cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
                       cat.subcategorias.map((sub) => {
                         const subitems = MEGA_MENU_SUBITEMS[sub.slug] ?? [];
                         return (
@@ -349,7 +288,7 @@ export default function Header({ navCategorias }: Props) {
                             <Link
                               href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
                               onClick={() => setMenuOpen(false)}
-                              className="block text-[#D4AF37] text-[10px] font-bold tracking-[0.2em] uppercase border-b border-[#2D2D2D] pb-1 mb-1 hover:opacity-80 transition-opacity"
+                              className="block text-gold text-[10px] font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 mb-1 hover:opacity-80 transition-opacity"
                             >
                               {sub.nombre}
                             </Link>
@@ -358,7 +297,7 @@ export default function Header({ navCategorias }: Props) {
                                 key={item}
                                 href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
                                 onClick={() => setMenuOpen(false)}
-                                className="block text-xs text-[#cccccc] hover:text-[#D4AF37] py-0.5 pl-2 transition-colors"
+                                className="block text-xs text-[#cccccc] hover:text-gold py-0.5 pl-2 transition-colors"
                               >
                                 {item}
                               </Link>
@@ -372,7 +311,7 @@ export default function Header({ navCategorias }: Props) {
                           key={sub.id}
                           href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
                           onClick={() => setMenuOpen(false)}
-                          className="block text-xs text-[#cccccc] hover:text-[#D4AF37] py-1 transition-colors"
+                          className="block text-xs text-[#cccccc] hover:text-gold py-1 transition-colors"
                         >
                           {sub.nombre}
                         </Link>
@@ -385,42 +324,42 @@ export default function Header({ navCategorias }: Props) {
 
             <button
               onClick={() => { setMenuOpen(false); openCatalogo(); }}
-              className="text-sm tracking-wider text-white hover:text-[#D4AF37] transition-colors text-left border-t border-[#2D2D2D] pt-4"
+              className="text-sm tracking-wider text-white hover:text-gold transition-colors text-left border-t border-luxury-gray-mid pt-4"
             >
               CATÁLOGO
             </button>
             <Link
               href="/quienes-somos"
               onClick={() => setMenuOpen(false)}
-              className={`text-sm tracking-wider transition-colors ${pathname === "/quienes-somos" ? "text-[#D4AF37]" : "text-white hover:text-[#D4AF37]"}`}
+              className={`text-sm tracking-wider transition-colors ${pathname === "/quienes-somos" ? "text-gold" : "text-white hover:text-gold"}`}
             >
               NOSOTROS
             </Link>
             <Link
               href="/preguntas-frecuentes"
               onClick={() => setMenuOpen(false)}
-              className={`text-sm tracking-wider transition-colors ${pathname === "/preguntas-frecuentes" ? "text-[#D4AF37]" : "text-white hover:text-[#D4AF37]"}`}
+              className={`text-sm tracking-wider transition-colors ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-white hover:text-gold"}`}
             >
               FAQ
             </Link>
             <Link
               href="/login"
               onClick={() => setMenuOpen(false)}
-              className="text-sm tracking-wider text-[#D4AF37] font-bold transition-colors"
+              className="text-sm tracking-wider text-gold font-bold transition-colors"
             >
               INGRESAR (EMPRENDEDORES)
             </Link>
 
-            <div className="border-t border-[#2D2D2D] pt-4">
+            <div className="border-t border-luxury-gray-mid pt-4">
               <form onSubmit={handleSearch} className="flex gap-2">
                 <input
                   type="text"
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   placeholder="Buscar..."
-                  className="flex-1 bg-[#1A1A1A] border border-[#2D2D2D] text-white px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37]"
+                  className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold"
                 />
-                <button type="submit" className="px-3 py-2 bg-[#D4AF37] text-black">
+                <button type="submit" className="px-3 py-2 bg-gold text-black">
                   <Search size={16} />
                 </button>
               </form>

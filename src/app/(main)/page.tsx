@@ -11,7 +11,7 @@ async function getProductosDestacados(): Promise<Producto[]> {
     const supabase = await createClient();
     const { data } = await supabase
       .from("productos")
-      .select("*, familia_olfativa:familias_olfativas(*)")
+      .select("*")
       .eq("activo", true)
       .eq("destacado", true)
       .order("created_at", { ascending: false })
@@ -27,7 +27,7 @@ async function getProductosNuevos(): Promise<Producto[]> {
     const supabase = await createClient();
     const { data } = await supabase
       .from("productos")
-      .select("*, familia_olfativa:familias_olfativas(*)")
+      .select("*")
       .eq("activo", true)
       .eq("nuevo", true)
       .order("created_at", { ascending: false })
@@ -55,7 +55,7 @@ export default async function HomePage() {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-2">
+              <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
                 Recién llegados
               </p>
               <h2 className="font-serif text-3xl md:text-4xl text-white">
@@ -64,7 +64,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/productos?nuevo=true"
-              className="hidden sm:flex items-center gap-1 text-[#888888] hover:text-[#D4AF37] text-sm transition-colors"
+              className="hidden sm:flex items-center gap-1 text-luxury-gray-light hover:text-gold text-sm transition-colors"
             >
               Ver todos <ChevronRight size={16} />
             </Link>
@@ -78,7 +78,7 @@ export default async function HomePage() {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
-              <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-2">
+              <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
                 Selección exclusiva
               </p>
               <h2 className="font-serif text-3xl md:text-4xl text-white">
@@ -87,7 +87,7 @@ export default async function HomePage() {
             </div>
             <Link
               href="/productos?destacado=true"
-              className="hidden sm:flex items-center gap-1 text-[#888888] hover:text-[#D4AF37] text-sm transition-colors"
+              className="hidden sm:flex items-center gap-1 text-luxury-gray-light hover:text-gold text-sm transition-colors"
             >
               Ver todos <ChevronRight size={16} />
             </Link>

@@ -106,18 +106,18 @@ export default function MisDatosClient({ config: initial }: Props) {
     setTimeout(() => setSaved(false), 3000);
   }
 
-  const inputClass = "w-full bg-[#0D0D0D] border border-[#2D2D2D] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors placeholder-[#444444]";
-  const labelClass = "block text-[#888888] text-xs uppercase tracking-wider mb-1.5";
+  const inputClass = "w-full bg-luxury-black border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444]";
+  const labelClass = "block text-luxury-gray-light text-xs uppercase tracking-wider mb-1.5";
 
   return (
     <>
       {/* Snackbar */}
       <div
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#1A1A1A] border border-[#D4AF37]/40 text-white px-4 py-3 text-sm shadow-xl transition-all duration-300 ${
+        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-luxury-gray border border-gold/40 text-white px-4 py-3 text-sm shadow-xl transition-all duration-300 ${
           saved ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
         }`}
       >
-        <CheckCircle size={15} className="text-[#D4AF37] shrink-0" />
+        <CheckCircle size={15} className="text-gold shrink-0" />
         Datos guardados correctamente
       </div>
 
@@ -145,7 +145,7 @@ export default function MisDatosClient({ config: initial }: Props) {
       )}
 
       <div className="mb-8">
-        <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
+        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
         <h1 className="text-white text-2xl font-serif">Mis Datos</h1>
         <p className="text-[#555555] text-sm mt-1">
           Tu información personal y de contacto para el sitio.
@@ -159,9 +159,9 @@ export default function MisDatosClient({ config: initial }: Props) {
           <div className="space-y-6">
 
             {/* Foto de perfil */}
-            <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6">
-              <div className="flex items-center gap-3 pb-4 border-b border-[#1A1A1A] mb-5">
-                <Camera size={16} className="text-[#D4AF37]" />
+            <div className="bg-luxury-black border border-luxury-gray p-6">
+              <div className="flex items-center gap-3 pb-4 border-b border-luxury-gray mb-5">
+                <Camera size={16} className="text-gold" />
                 <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase">Foto de perfil</h2>
               </div>
 
@@ -171,7 +171,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                   <button
                     type="button"
                     onClick={() => avatarUrl && setLightboxOpen(true)}
-                    className={`w-20 h-20 rounded-full border-2 border-[#2D2D2D] overflow-hidden bg-[#1A1A1A] flex items-center justify-center ${avatarUrl ? "cursor-pointer hover:border-[#D4AF37] transition-colors" : "cursor-default"}`}
+                    className={`w-20 h-20 rounded-full border-2 border-luxury-gray-mid overflow-hidden bg-luxury-gray flex items-center justify-center ${avatarUrl ? "cursor-pointer hover:border-gold transition-colors" : "cursor-default"}`}
                     aria-label={avatarUrl ? "Ver foto en grande" : undefined}
                     disabled={!avatarUrl}
                   >
@@ -184,7 +184,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                   </button>
                   {avatarLoading && (
                     <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center">
-                      <Loader2 size={20} className="text-[#D4AF37] animate-spin" />
+                      <Loader2 size={20} className="text-gold animate-spin" />
                     </div>
                   )}
                 </div>
@@ -202,7 +202,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={avatarLoading}
-                    className="flex items-center gap-2 border border-[#D4AF37]/40 text-[#D4AF37] text-xs tracking-widest uppercase px-4 py-2 hover:bg-[#D4AF37]/10 transition-colors disabled:opacity-50"
+                    className="flex items-center gap-2 border border-gold/40 text-gold text-xs tracking-widest uppercase px-4 py-2 hover:bg-gold/10 transition-colors disabled:opacity-50"
                   >
                     <Camera size={13} />
                     {avatarUrl ? "Cambiar foto" : "Subir foto"}
@@ -214,9 +214,9 @@ export default function MisDatosClient({ config: initial }: Props) {
             </div>
 
             {/* Datos personales */}
-            <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
-              <div className="flex items-center gap-3 pb-4 border-b border-[#1A1A1A]">
-                <User size={16} className="text-[#D4AF37]" />
+            <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-luxury-gray">
+                <User size={16} className="text-gold" />
                 <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase">Datos personales</h2>
               </div>
 
@@ -226,7 +226,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                   value={form.nombre_completo}
                   onChange={(e) => setForm({ ...form, nombre_completo: e.target.value })}
                   className={inputClass}
-                  placeholder="Ej: Solange García"
+                  placeholder="Ej: Nombre completo"
                 />
               </div>
 
@@ -238,15 +238,15 @@ export default function MisDatosClient({ config: initial }: Props) {
                   value={form.telefono}
                   onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                   className={inputClass}
-                  placeholder="Ej: 2954 808202"
+                  placeholder="Ej: número de teléfono"
                 />
               </div>
             </div>
           </div>
 
           {/* Columna derecha: redes sociales */}
-          <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
-            <div className="flex items-center gap-3 pb-4 border-b border-[#1A1A1A]">
+          <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
+            <div className="flex items-center gap-3 pb-4 border-b border-luxury-gray">
               <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase">Redes sociales y contacto</h2>
             </div>
 
@@ -258,7 +258,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                 value={form.instagram}
                 onChange={(e) => setForm({ ...form, instagram: e.target.value })}
                 className={inputClass}
-                placeholder="https://www.instagram.com/laparfumerie.desolange/"
+                placeholder="https://www.instagram.com/mitienda/"
               />
             </div>
 
@@ -273,7 +273,7 @@ export default function MisDatosClient({ config: initial }: Props) {
                 value={form.whatsapp}
                 onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
                 className={inputClass}
-                placeholder="5492954808202"
+                placeholder="549XXXXXXXXXX"
               />
             </div>
 
@@ -308,7 +308,7 @@ export default function MisDatosClient({ config: initial }: Props) {
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 flex items-center gap-2 bg-[#D4AF37] text-black font-bold px-6 py-3 text-sm tracking-wider hover:bg-[#E8CC6B] transition-colors disabled:opacity-50"
+          className="mt-6 flex items-center gap-2 bg-gold text-black font-bold px-6 py-3 text-sm tracking-wider hover:bg-gold-light transition-colors disabled:opacity-50"
         >
           {loading ? (
             <><span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> Guardando...</>

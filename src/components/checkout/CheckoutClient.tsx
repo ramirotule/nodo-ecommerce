@@ -128,7 +128,7 @@ export default function CheckoutPage() {
       <div className="mb-8">
         <button 
           onClick={openDrawer}
-          className="group flex items-center gap-2 text-xs text-gray-400 hover:text-[#D4AF37] transition-colors uppercase tracking-widest font-bold"
+          className="group flex items-center gap-2 text-xs text-gray-400 hover:text-gold transition-colors uppercase tracking-widest font-bold"
         >
           <ChevronLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           Volver al carrito
@@ -143,7 +143,7 @@ export default function CheckoutPage() {
         <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-8">
           {/* Datos personales */}
           <section>
-            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-[#1A1A1A]">
+            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-luxury-gray">
               Tus datos
             </h2>
             <div className="grid grid-cols-2 gap-4">
@@ -154,7 +154,7 @@ export default function CheckoutPage() {
                 <input
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className={`w-full bg-black border ${submitted && !nombre ? 'border-red-500' : 'border-[#1A1A1A]'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors`}
+                  className={`w-full bg-black border ${submitted && !nombre ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="María"
                 />
                 {submitted && !nombre && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
@@ -166,7 +166,7 @@ export default function CheckoutPage() {
                 <input
                   value={apellido}
                   onChange={(e) => setApellido(e.target.value)}
-                  className={`w-full bg-black border ${submitted && !apellido ? 'border-red-500' : 'border-[#1A1A1A]'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors`}
+                  className={`w-full bg-black border ${submitted && !apellido ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="González"
                 />
                 {submitted && !apellido && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   type="tel"
-                  className={`w-full bg-black border ${submitted && !telefono ? 'border-red-500' : 'border-[#1A1A1A]'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors`}
+                  className={`w-full bg-black border ${submitted && !telefono ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="2954 000000"
                 />
                 {submitted && !telefono && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
@@ -194,19 +194,19 @@ export default function CheckoutPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
-                  className="w-full bg-black border border-[#1A1A1A] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                  className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
                   placeholder="opcional"
                 />
               </div>
             </div>
             <div className="mt-4">
               <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
-                Dirección / Barrio (para envío en Santa Rosa)
+                Dirección / Barrio (para envío)
               </label>
                 <input
                   value={direccion}
                   onChange={(e) => setDireccion(e.target.value)}
-                  className="w-full bg-black border border-[#1A1A1A] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                  className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
                   placeholder="Calle 123, Barrio Norte — o 'Retiro en tienda'"
                 />
             </div>
@@ -218,7 +218,7 @@ export default function CheckoutPage() {
                   value={notas}
                   onChange={(e) => setNotas(e.target.value)}
                   rows={2}
-                  className="w-full bg-black border border-[#1A1A1A] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors resize-none"
+                  className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors resize-none"
                   placeholder="Indicaciones especiales, horario preferido, etc."
                 />
             </div>
@@ -226,7 +226,7 @@ export default function CheckoutPage() {
 
           {/* Método de pago */}
           <section>
-            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-[#1A1A1A]">
+            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-luxury-gray">
               Forma de pago
             </h2>
             <div className="space-y-3">
@@ -238,8 +238,8 @@ export default function CheckoutPage() {
                     key={m.id}
                     className={`flex items-start gap-4 p-4 border cursor-pointer transition-all duration-200 ${
                       selected
-                        ? "border-[#D4AF37] bg-[#D4AF37]/5"
-                        : "border-[#1A1A1A] hover:border-[#333333] bg-[#0D0D0D]"
+                        ? "border-gold bg-gold/5"
+                        : "border-luxury-gray hover:border-[#333333] bg-luxury-black"
                     }`}
                   >
                     <input
@@ -252,19 +252,19 @@ export default function CheckoutPage() {
                     />
                     <div
                       className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        selected ? "border-[#D4AF37]" : "border-[#333333]"
+                        selected ? "border-gold" : "border-[#333333]"
                       }`}
                     >
                       {selected && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-[#D4AF37]" />
+                        <div className="w-2.5 h-2.5 rounded-full bg-gold" />
                       )}
                     </div>
                     <Icon
                       size={18}
-                      className={selected ? "text-[#D4AF37] shrink-0 mt-0.5" : "text-gray-400 shrink-0 mt-0.5"}
+                      className={selected ? "text-gold shrink-0 mt-0.5" : "text-gray-400 shrink-0 mt-0.5"}
                     />
                     <div>
-                      <p className={`text-sm font-semibold ${selected ? "text-[#D4AF37]" : "text-white"}`}>
+                      <p className={`text-sm font-semibold ${selected ? "text-gold" : "text-white"}`}>
                         {m.label}
                       </p>
                       <p className="text-gray-400 text-xs mt-0.5">{m.desc}</p>
@@ -285,7 +285,7 @@ export default function CheckoutPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 bg-[#D4AF37] text-black font-bold py-4 text-sm tracking-wider uppercase hover:bg-[#E8CC6B] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-2 bg-gold text-black font-bold py-4 text-sm tracking-wider uppercase hover:bg-gold-light transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
               <>
@@ -307,14 +307,14 @@ export default function CheckoutPage() {
         </form>
 
         <aside className="lg:col-span-2">
-          <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 sticky top-32 shadow-sm">
-            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-6 pb-3 border-b border-[#1A1A1A]">
+          <div className="bg-luxury-black border border-luxury-gray p-6 sticky top-32 shadow-sm">
+            <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-6 pb-3 border-b border-luxury-gray">
               Tu pedido
             </h2>
             <ul className="space-y-4 mb-6">
               {checkoutItems.map((item) => (
                 <li key={item.id} className="flex gap-4 items-center">
-                  <div className="w-20 h-20 bg-[#1A1A1A] border border-[#2D2D2D] shrink-0 overflow-hidden">
+                  <div className="w-20 h-20 bg-luxury-gray border border-luxury-gray-mid shrink-0 overflow-hidden">
                     {item.imagen_url ? (
                       <Image
                         src={item.imagen_url}
@@ -333,7 +333,7 @@ export default function CheckoutPage() {
                     <p className="text-white text-sm font-medium leading-tight">{item.nombre}</p>
                     <p className="text-gray-400 text-xs mt-1">{item.marca}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[#D4AF37] text-xs font-bold">
+                      <span className="text-gold text-xs font-bold">
                         {item.cantidad} unidades
                       </span>
                       <span className="text-gray-500 text-[10px]">
@@ -345,7 +345,7 @@ export default function CheckoutPage() {
               ))}
             </ul>
 
-            <div className="border-t border-[#1A1A1A] pt-5 space-y-3">
+            <div className="border-t border-luxury-gray pt-5 space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Subtotal</span>
                 <span className="text-white">
@@ -356,7 +356,6 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-sm">
                 <div className="flex flex-col">
                   <span className="text-gray-500">Envío</span>
-                  <span className="text-[#D4AF37] text-[10px] font-semibold">Santa Rosa, La Pampa</span>
                 </div>
                 {finalTotal >= SITE_CONFIG.shipping.freeThreshold ? (
                   <span className="text-green-500 text-xs font-bold uppercase tracking-wider">Gratis</span>
@@ -378,7 +377,7 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <div className="flex justify-between items-end pt-4 border-t border-[#1A1A1A]">
+              <div className="flex justify-between items-end pt-4 border-t border-luxury-gray">
                 <div className="flex flex-col">
                   <span className="text-white font-bold text-sm uppercase tracking-wider">Total Final</span>
                   <span className="text-gray-400 text-[10px]">

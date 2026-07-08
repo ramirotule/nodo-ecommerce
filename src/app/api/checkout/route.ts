@@ -35,7 +35,7 @@ function generarNumeroPedido(): string {
   const d = new Date();
   const fecha = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
   const rand = Math.floor(Math.random() * 9000 + 1000);
-  return `LP-${fecha}-${rand}`;
+  return `ORD-${fecha}-${rand}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
           payer: {
             name: nombre,
             surname: apellido,
-            email: email || "comprador@laparfumerie.com.ar",
+            email: email || "comprador@mitienda.com",
           },
           back_urls: {
             success: `${baseUrl}/checkout/confirmacion?id=${orderId}&mp=success`,
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
           },
           auto_return: "approved",
           external_reference: orderId,
-          statement_descriptor: "La Parfumerie de Solange",
+          statement_descriptor: "Mi Tienda",
         }),
       });
 

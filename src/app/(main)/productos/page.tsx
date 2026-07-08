@@ -18,9 +18,9 @@ interface SearchParams {
 }
 
 export const metadata: Metadata = {
-  title: "Catálogo de Productos de Lujo en Santa Rosa, La Pampa",
+  title: "Catálogo de Productos de Lujo | Mi Tienda",
   description:
-    "Explorá nuestro catálogo completo de productos de lujo. Femeninos, masculinos, unisex y árabes. Envío gratis en Santa Rosa, La Pampa. Visitanos en Ayala 604.",
+    "Explorá nuestro catálogo completo de productos de lujo. Femeninos, masculinos, unisex y árabes. Envío gratis.",
   alternates: {
     canonical: "/productos",
   },

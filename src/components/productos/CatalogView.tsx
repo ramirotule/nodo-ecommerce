@@ -5,15 +5,11 @@ import FiltrosCatalogo from "@/components/productos/FiltrosCatalogo";
 import CategoriasSidebar from "@/components/productos/CategoriasSidebar";
 
 interface SearchParams {
-  genero?: string;
-  familia?: string;
   ordenar?: string;
   busqueda?: string;
   nuevo?: string;
   destacado?: string;
   q?: string;
-  acordes?: string;
-  notas?: string;
   marca?: string;
   categoria?: string;
   subcategoria?: string;
@@ -26,22 +22,8 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
     const supabase = await createClient();
     let query = supabase
       .from("productos")
-      .select("*, familia_olfativa:familias_olfativas(*)")
+      .select("*")
       .eq("activo", true);
-
-    if (params.genero) {
-      if (params.genero === "Internacional") {
-        query = query.neq("genero", "Árabe");
-      } else {
-        // Normalize: "femenino" → "Femenino"
-        const generoNorm = params.genero.charAt(0).toUpperCase() + params.genero.slice(1).toLowerCase();
-        query = query.ilike("genero", generoNorm);
-      }
-    }
-
-    if (params.tipo === "internacional") {
-      query = query.neq("genero", "Árabe");
-    }
 
     if (params.nuevo === "true") query = query.eq("nuevo", true);
     if (params.destacado === "true") query = query.eq("destacado", true);
@@ -70,7 +52,7 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
         query = query.ilike("categoria", `%${params.categoria.replace(/-/g, " ")}%`);
       }
     }
-    
+
     if (params.seccion === "bienestar") {
       query = query.ilike("categoria", "%bienestar%");
     }
@@ -86,31 +68,8 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
     if (params.busqueda || params.q) {
       const term = params.busqueda || params.q || "";
       query = query.or(
-        `nombre.ilike.%${term}%,marca.ilike.%${term}%,descripcion.ilike.%${term}%,inspired_in.ilike.%${term}%`,
+        `nombre.ilike.%${term}%,marca.ilike.%${term}%,descripcion.ilike.%${term}%`,
       );
-    }
-
-    if (params.acordes) {
-      const acordesList = params.acordes.split(",").map(a => a.trim());
-      acordesList.forEach(acorde => {
-        query = query.ilike("descripcion", `%${acorde}%`);
-      });
-    }
-
-    if (params.notas) {
-      const notasList = params.notas.split(",").map(n => n.trim());
-      notasList.forEach(nota => {
-        query = query.ilike("descripcion", `%${nota}%`);
-      });
-    }
-
-    if (params.familia) {
-      const { data: familia } = await supabase
-        .from("familias_olfativas")
-        .select("id")
-        .eq("nombre", params.familia)
-        .single();
-      if (familia) query = query.eq("familia_olfativa_id", familia.id);
     }
 
     switch (params.ordenar) {
@@ -145,39 +104,30 @@ export default async function CatalogView({
 }) {
   const productos = await getProductos(searchParams);
 
-  const generoLabel = searchParams.genero === "Unisex" ? "Unisex" : searchParams.genero ? `${searchParams.genero}s` : null;
-  const displayTitle = title || (generoLabel
-    ? `Productos ${generoLabel}`
-    : searchParams.familia
-      ? `Productos ${searchParams.familia}s`
-      : searchParams.nuevo === "true"
-        ? "Novedades"
-        : searchParams.destacado === "true"
-          ? "Productos Destacados"
-          : searchParams.categoria
-            ? searchParams.categoria.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())
-            : searchParams.seccion === "bienestar"
-              ? "Línea Bienestar"
-              : searchParams.seccion === "cuidados-piel"
-                ? "Cuidados de la Piel"
-                : "Catálogo de Productos");
+  const displayTitle = title || (searchParams.nuevo === "true"
+    ? "Novedades"
+    : searchParams.destacado === "true"
+      ? "Productos Destacados"
+      : searchParams.categoria
+        ? searchParams.categoria.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())
+        : searchParams.seccion === "bienestar"
+          ? "Línea Bienestar"
+          : searchParams.seccion === "cuidados-piel"
+            ? "Cuidados de la Piel"
+            : "Catálogo de Productos");
 
   return (
     <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="px-4 sm:px-6 lg:px-8 mb-10">
-        <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-2">
-          La Parfumerie de Solange
+        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
+          Catálogo
         </p>
         <h1 className="font-serif text-4xl md:text-5xl text-white mb-4">
           {displayTitle}
         </h1>
-        <p className="text-[#888888] text-sm">
+        <p className="text-luxury-gray-light text-sm">
           {productos.length}{" "}
-          {searchParams.seccion === "bienestar" || 
-           searchParams.seccion === "aromatizantes" || 
-           searchParams.seccion === "cuidados-piel"
-            ? "producto"
-            : "fragancia"}
+          {"producto"}
           {productos.length !== 1 ? "s" : ""} {productos.length === 1 ? "encontrado" : "encontrados"} en{" "}
           {searchParams.categoria
             ? searchParams.categoria

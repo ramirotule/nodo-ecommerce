@@ -18,12 +18,12 @@ export default function Footer() {
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
 
   return (
-    <footer className="bg-black border-t border-[#1A1A1A] mt-20">
+    <footer className="bg-black border-t border-luxury-gray mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
           {/* Catálogo */}
           <div>
-            <h4 className="text-[#D4AF37] text-xs font-bold tracking-[0.2em] uppercase mb-4">
+            <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
               Catálogo
             </h4>
             <ul className="space-y-2">
@@ -35,7 +35,7 @@ export default function Footer() {
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className="text-gray-400 text-sm hover:text-[#D4AF37] transition-colors"
+                    className="text-gray-400 text-sm hover:text-gold transition-colors"
                   >
                     {item.label}
                   </Link>
@@ -46,74 +46,81 @@ export default function Footer() {
 
           {/* Horarios */}
           <div>
-            <h4 className="text-[#D4AF37] text-xs font-bold tracking-[0.2em] uppercase mb-4">
+            <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
               🕒 Horarios de Atención
             </h4>
-            <a
-              href={`https://wa.me/542954808202?text=${encodeURIComponent("Hola, me interesa saber los días y horarios de atención de LA PARFUMERIE de Solange.")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 text-sm hover:text-[#D4AF37] transition-colors duration-200 underline underline-offset-2"
-            >
-              Consultanos por privado
-            </a>
+            {SITE_CONFIG.contact.phone ? (
+              <a
+                href={`https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent("Hola, me interesa saber los días y horarios de atención.")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-400 text-sm hover:text-gold transition-colors duration-200 underline underline-offset-2"
+              >
+                Consultanos por privado
+              </a>
+            ) : null}
           </div>
 
           {/* Contacto */}
           <div>
-            <h4 className="text-[#D4AF37] text-xs font-bold tracking-[0.2em] uppercase mb-4">
+            <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
               Contacto & Ubicación
             </h4>
             <div className="space-y-3">
-              <div className="flex items-start gap-2">
-                <MapPin size={16} className="text-[#D4AF37] mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-[#cccccc] text-sm">Ayala 604</p>
+              {SITE_CONFIG.contact.address && (
+                <div className="flex items-start gap-2">
+                  <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
                   <p className="text-gray-500 text-sm">{SITE_CONFIG.contact.address}</p>
                 </div>
-              </div>
+              )}
 
-              <a
-                href={`https://wa.me/${SITE_CONFIG.contact.phone}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-500 hover:text-[#D4AF37] transition-colors text-sm"
-              >
-                <img
-                  src="/what.png"
-                  alt="WhatsApp"
-                  className="w-4 h-4 rounded-full object-cover"
-                />
-                {SITE_CONFIG.contact.phoneDisplay}
-              </a>
+              {SITE_CONFIG.contact.phone && (
+                <a
+                  href={`https://wa.me/${SITE_CONFIG.contact.phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
+                >
+                  <img
+                    src="/what.png"
+                    alt="WhatsApp"
+                    className="w-4 h-4 rounded-full object-cover"
+                  />
+                  {SITE_CONFIG.contact.phoneDisplay}
+                </a>
+              )}
 
-              <a
-                href={SITE_CONFIG.social.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-500 hover:text-[#D4AF37] transition-colors text-sm"
-              >
-                <InstagramIcon size={16} className="text-[#D4AF37]" />
-                @laparfumerie.desolange
-              </a>
+              {SITE_CONFIG.social.instagram && (
+                <a
+                  href={SITE_CONFIG.social.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
+                >
+                  <InstagramIcon size={16} className="text-gold" />
+                  {SITE_CONFIG.social.instagram.replace("https://www.instagram.com/", "@").replace(/\/$/, "")}
+                </a>
+              )}
 
-              <a
-                href={SITE_CONFIG.social.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-gray-500 hover:text-[#D4AF37] transition-colors text-sm"
-              >
-                <span className="text-[#D4AF37]">
-                  <TikTokIcon size={16} />
-                </span>
-                @bagues.byromisolange
-              </a>
+              {SITE_CONFIG.social.tiktok && (
+                <a
+                  href={SITE_CONFIG.social.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
+                >
+                  <span className="text-gold">
+                    <TikTokIcon size={16} />
+                  </span>
+                  {SITE_CONFIG.social.tiktok.replace("https://www.tiktok.com/", "")}
+                </a>
+              )}
             </div>
           </div>
 
           {/* Novedades / Newsletter */}
           <div>
-            <h4 className="text-[#D4AF37] text-xs font-bold tracking-[0.2em] uppercase mb-4">
+            <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
               Novedades
             </h4>
             <div className="space-y-4">
@@ -122,7 +129,7 @@ export default function Footer() {
               </p>
               <button
                 onClick={() => setIsNewsletterOpen(true)}
-                className="w-full bg-[#1A1A1A] text-[#D4AF37] border border-[#D4AF37]/20 hover:border-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-all duration-300 font-bold py-3 text-xs tracking-widest uppercase"
+                className="w-full bg-luxury-gray text-gold border border-gold/20 hover:border-gold hover:bg-gold hover:text-black transition-all duration-300 font-bold py-3 text-xs tracking-widest uppercase"
               >
                 Suscribirme al Newsletter
               </button>
@@ -131,9 +138,9 @@ export default function Footer() {
         </div>
 
         {/* Divider */}
-        <div className="border-t border-[#1A1A1A] mt-12 pt-8 flex flex-col items-center gap-3 text-center">
-          <p className="text-[#888888] text-xs font-bold tracking-wider uppercase">
-            © {new Date().getFullYear()} La Parfumerie de Solange — Todos los
+        <div className="border-t border-luxury-gray mt-12 pt-8 flex flex-col items-center gap-3 text-center">
+          <p className="text-luxury-gray-light text-xs font-bold tracking-wider uppercase">
+            © {new Date().getFullYear()} {SITE_CONFIG.name} — Todos los
             derechos reservados.
           </p>
           <p className="text-gray-400 text-xs">
@@ -142,7 +149,7 @@ export default function Footer() {
               href="https://www.nodocore.com.ar/nodo-it"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#D4AF37] hover:font-bold transition-all"
+              className="text-gold hover:font-bold transition-all"
             >
               NODO Core
             </a>

@@ -37,27 +37,27 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <Link 
           href="/" 
-          className="inline-flex items-center gap-2 text-[#555555] hover:text-[#D4AF37] transition-colors text-[10px] tracking-[0.2em] uppercase mb-8 group"
+          className="inline-flex items-center gap-2 text-[#555555] hover:text-gold transition-colors text-[10px] tracking-[0.2em] uppercase mb-8 group"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           Volver a la tienda
         </Link>
 
         <div className="text-center mb-10">
-          <span className="text-[#D4AF37] font-serif text-2xl tracking-[0.15em] font-bold">
-            LA PARFUMERIE
+          <span className="text-gold font-serif text-2xl tracking-[0.15em] font-bold">
+            MI TIENDA
           </span>
           <p className="text-[#555555] text-xs tracking-[0.3em] uppercase mt-1">Panel Admin</p>
         </div>
 
         <form
           onSubmit={handleLogin}
-          className="bg-[#0D0D0D] border border-[#1A1A1A] p-8 space-y-5"
+          className="bg-luxury-black border border-luxury-gray p-8 space-y-5"
         >
           <h1 className="text-white font-serif text-xl mb-6">Acceso Administrativo</h1>
 
           <div>
-            <label className="text-[#888888] text-xs tracking-widest uppercase block mb-2">
+            <label className="text-luxury-gray-light text-xs tracking-widest uppercase block mb-2">
               Email
             </label>
             <input
@@ -65,13 +65,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#555555] px-4 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors text-sm"
-              placeholder="admin@laparfumerie.com"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-3 focus:outline-none focus:border-gold transition-colors text-sm"
+              placeholder="admin@mitienda.com"
             />
           </div>
 
           <div>
-            <label className="text-[#888888] text-xs tracking-widest uppercase block mb-2">
+            <label className="text-luxury-gray-light text-xs tracking-widest uppercase block mb-2">
               Contraseña
             </label>
             <div className="relative">
@@ -80,13 +80,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#555555] px-4 py-3 pr-11 focus:outline-none focus:border-[#D4AF37] transition-colors text-sm"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-3 pr-11 focus:outline-none focus:border-gold transition-colors text-sm"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555555] hover:text-[#D4AF37] transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555555] hover:text-gold transition-colors"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -103,7 +103,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#D4AF37] text-black font-bold py-3 tracking-widest text-sm uppercase hover:bg-[#E8CC6B] transition-colors disabled:opacity-70"
+            className="w-full bg-gold text-black font-bold py-3 tracking-widest text-sm uppercase hover:bg-gold-light transition-colors disabled:opacity-70"
           >
             {loading ? "Ingresando..." : "Ingresar"}
           </button>

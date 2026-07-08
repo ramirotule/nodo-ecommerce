@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Producto, FamiliaOlfativa } from "@/types";
+import { Producto } from "@/types";
 import CustomSelect from "@/components/ui/CustomSelect";
 
 import { 
@@ -24,19 +24,23 @@ interface Props {
   isEdit?: boolean;
 }
 
-const generos = ["Femenino", "Masculino", "Unisex", "Árabe"];
-const concentraciones = ["EDP", "EDT", "Extrait de Parfum", "Parfum", "EDC", "Aceite puro"];
-const categorias = ["Fragancias", "Cuidados de la Piel", "Bienestar", "Aromatizantes"];
 
 const supabase = createClient();
+
+function generateSlug(nombre: string, marca: string) {
+  return `${nombre}-${marca}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
 
 export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [familias, setFamilias] = useState<FamiliaOlfativa[]>([]);
-  const [loadingFamilias, setLoadingFamilias] = useState(true);
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [loadingSubcategorias, setLoadingSubcategorias] = useState(false);
@@ -51,10 +55,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     stock: producto.stock?.toString() || "0",
     imagen_url: producto.imagen_url || "",
     imagenes_adicionales: producto.imagenes_adicionales || [],
-    familia_olfativa_id: producto.familia_olfativa_id?.toString() || "",
-    genero: producto.genero || "Unisex",
-    concentracion: producto.concentracion || "EDP",
-    volumen_ml: producto.volumen_ml?.toString() || "",
     categoria_id: producto.categoria_id?.toString() || "",
     categoria_nombre: producto.categoria || "",
     subcategoria_id: producto.subcategoria_id?.toString() || "",
@@ -63,7 +63,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     nuevo: producto.nuevo || false,
     meta_titulo: producto.meta_titulo || "",
     meta_descripcion: producto.meta_descripcion || "",
-    inspired_in: producto.inspired_in || "",
   });
 
   const [uploading, setUploading] = useState(false);
@@ -72,21 +71,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const [isDeleteImagesModalOpen, setIsDeleteImagesModalOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchFamilias() {
-      setLoadingFamilias(true);
-      const { data, error } = await supabase
-        .from("familias_olfativas")
-        .select("*")
-        .order("nombre");
-      
-      if (error) {
-        console.error("Error cargando familias:", error);
-      } else {
-        setFamilias(data || []);
-      }
-      setLoadingFamilias(false);
-    }
-
     async function fetchCategorias() {
       const { data, error } = await supabase.from("categorias").select("id, nombre").order("nombre");
       
@@ -111,7 +95,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       }
     }
 
-    fetchFamilias();
     fetchCategorias();
   }, [producto.id, form.categoria_id]);
 
@@ -147,20 +130,18 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     setLoading(true);
     setError("");
 
-    const isFragancia = form.categoria_nombre.toLowerCase() === "fragancias";
+    const nombreTrimmed = form.nombre.trim();
+    const marcaTrimmed = form.marca.trim();
     const payload = {
-      nombre: form.nombre.trim(),
-      marca: form.marca.trim(),
+      nombre: nombreTrimmed,
+      marca: marcaTrimmed,
+      slug: generateSlug(nombreTrimmed, marcaTrimmed),
       descripcion: form.descripcion.trim(),
       descripcion_corta: form.descripcion_corta.trim() || null,
       precio_costo: form.precio_costo ? parseFloat(form.precio_costo) : null,
       precio_venta: parseFloat(form.precio_venta),
       stock: parseInt(form.stock) || 0,
       imagen_url: form.imagen_url.trim() || null,
-      familia_olfativa_id: isFragancia && form.familia_olfativa_id ? parseInt(form.familia_olfativa_id) : null,
-      genero: isFragancia ? form.genero : "Unisex",
-      concentracion: isFragancia ? (form.concentracion || null) : null,
-      volumen_ml: isFragancia && form.volumen_ml ? parseInt(form.volumen_ml) : null,
       categoria_id: form.categoria_id || null,
       subcategoria_id: form.subcategoria_id || null,
       activo: form.activo,
@@ -168,7 +149,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       nuevo: form.nuevo,
       meta_titulo: form.meta_titulo.trim() || null,
       meta_descripcion: form.meta_descripcion.trim() || null,
-      inspired_in: isFragancia ? (form.inspired_in.trim() || null) : null,
       imagenes_adicionales: form.imagenes_adicionales,
     };
 
@@ -209,8 +189,8 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Datos básicos */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
-          <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase mb-4">
+        <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase mb-4">
             Información del Producto
           </h2>
 
@@ -241,7 +221,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Nombre *
               </label>
               <input
@@ -249,11 +229,11 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 value={form.nombre}
                 onChange={(e) => update("nombre", e.target.value)}
                 required
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
               />
             </div>
             <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Marca *
               </label>
               <input
@@ -261,28 +241,13 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 value={form.marca}
                 onChange={(e) => update("marca", e.target.value)}
                 required
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
               />
             </div>
           </div>
 
-          {form.categoria_nombre.toLowerCase() === "fragancias" && (
-            <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
-                Inspirado en (opcional)
-              </label>
-              <input
-                type="text"
-                value={form.inspired_in}
-                onChange={(e) => update("inspired_in", e.target.value)}
-                placeholder="Ej: La Vie Est Belle"
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
-              />
-            </div>
-          )}
-
           <div>
-            <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
               Descripción *
             </label>
             <textarea
@@ -290,12 +255,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               onChange={(e) => update("descripcion", e.target.value)}
               required
               rows={4}
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors resize-none"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
             />
           </div>
 
           <div>
-            <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
               Descripción Corta
             </label>
             <input
@@ -303,59 +268,16 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               value={form.descripcion_corta}
               onChange={(e) => update("descripcion_corta", e.target.value)}
               maxLength={500}
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {form.categoria_nombre.toLowerCase() === "fragancias" && (
-              <>
-                <CustomSelect
-                  label="Género *"
-                  value={form.genero}
-                  onChange={(val) => update("genero", val)}
-                  options={generos.map((g) => ({ value: g, label: g }))}
-                />
-                <CustomSelect
-                  label="Concentración"
-                  value={form.concentracion}
-                  onChange={(val) => update("concentracion", val)}
-                  options={concentraciones.map((c) => ({ value: c, label: c }))}
-                />
-                <div>
-                  <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
-                    Volumen (ml)
-                  </label>
-                  <input
-                    type="number"
-                    value={form.volumen_ml}
-                    onChange={(e) => update("volumen_ml", e.target.value)}
-                    className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
-                    placeholder="100"
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {form.categoria_nombre.toLowerCase() === "fragancias" && (
-              <CustomSelect
-                label="Familia Olfativa"
-                value={form.familia_olfativa_id}
-                loading={loadingFamilias}
-                placeholder="Seleccionar familia..."
-                onChange={(val) => update("familia_olfativa_id", val)}
-                options={familias.map((f) => ({ value: f.id.toString(), label: f.nombre }))}
-              />
-            )}
-          </div>
         </div>
 
         {/* Gestión de Imágenes */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
+        <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase">
+            <h2 className="text-gold text-xs tracking-[0.2em] uppercase">
               Galería de Imágenes
             </h2>
             <div className="flex items-center gap-3">
@@ -369,7 +291,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                   Eliminar ({selectedImages.length})
                 </button>
               )}
-              <label className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${uploading ? "bg-[#1A1A1A] text-[#555555]" : "bg-[#D4AF37] text-black hover:bg-[#E8CC6B]"}`}>
+              <label className={`flex items-center gap-2 px-4 py-2 text-xs font-bold transition-colors cursor-pointer ${uploading ? "bg-luxury-gray text-[#555555]" : "bg-gold text-black hover:bg-gold-light"}`}>
                 {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
                 {uploading ? "Subiendo..." : "Subir Imágenes"}
                 <input
@@ -434,7 +356,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
             {/* Todas las imágenes (adicionales + principal si no está en la lista) */}
             {Array.from(new Set([form.imagen_url, ...form.imagenes_adicionales])).filter(img => img).map((img, idx) => (
-              <div key={idx} className={`group relative aspect-square bg-[#1A1A1A] border overflow-hidden rounded-sm transition-all ${selectedImages.includes(img) ? "border-red-500 ring-1 ring-red-500" : "border-[#2D2D2D]"}`}>
+              <div key={idx} className={`group relative aspect-square bg-luxury-gray border overflow-hidden rounded-sm transition-all ${selectedImages.includes(img) ? "border-red-500 ring-1 ring-red-500" : "border-luxury-gray-mid"}`}>
                 <Image
                   src={img}
                   alt={`Imagen ${idx}`}
@@ -454,13 +376,13 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                         setSelectedImages(prev => prev.filter(i => i !== img));
                       }
                     }}
-                    className="w-4 h-4 rounded border-[#D4AF37] text-[#D4AF37] focus:ring-[#D4AF37] bg-black/50"
+                    className="w-4 h-4 rounded border-gold text-gold focus:ring-gold bg-black/50"
                   />
                 </div>
 
                 {/* Overlay de Portada */}
                 {form.imagen_url === img && (
-                  <div className="absolute top-2 left-2 bg-[#D4AF37] text-black px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-tighter rounded-sm z-10">
+                  <div className="absolute top-2 left-2 bg-gold text-black px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-tighter rounded-sm z-10">
                     Portada
                   </div>
                 )}
@@ -471,7 +393,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                     <button
                       type="button"
                       onClick={() => update("imagen_url", img)}
-                      className={`p-1.5 rounded-full transition-colors ${form.imagen_url === img ? "text-[#D4AF37] bg-white" : "text-white bg-white/10 hover:bg-white/20"}`}
+                      className={`p-1.5 rounded-full transition-colors ${form.imagen_url === img ? "text-gold bg-white" : "text-white bg-white/10 hover:bg-white/20"}`}
                       title="Elegir como portada"
                     >
                       <Star size={14} fill={form.imagen_url === img ? "currentColor" : "none"} />
@@ -507,14 +429,14 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
             {/* Placeholder vacío si no hay imágenes */}
             {(!form.imagen_url && form.imagenes_adicionales.length === 0) && (
-              <div className="col-span-full py-12 flex flex-col items-center justify-center border border-dashed border-[#2D2D2D] text-[#333333]">
+              <div className="col-span-full py-12 flex flex-col items-center justify-center border border-dashed border-luxury-gray-mid text-[#333333]">
                 <ImagePlus size={32} className="mb-2 opacity-20" />
                 <p className="text-xs italic">No hay imágenes cargadas aún.</p>
               </div>
             )}
           </div>
 
-          <div className="pt-4 border-t border-[#1A1A1A]">
+          <div className="pt-4 border-t border-luxury-gray">
             <p className="text-[#555555] text-[10px] leading-relaxed italic">
               * La imagen marcada con la estrella dorada será la que se muestre en el catálogo principal. <br/>
               * Podés subir múltiples imágenes a la vez. El sistema optimizará la carga.
@@ -523,14 +445,14 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
         </div>
 
         {/* Precios */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
-          <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase mb-4">
+        <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase mb-4">
             Precios & Stock
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Precio Costo ($)
               </label>
               <input
@@ -538,12 +460,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 step="0.01"
                 value={form.precio_costo}
                 onChange={(e) => update("precio_costo", e.target.value)}
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Precio Venta ($) *
               </label>
               <input
@@ -552,12 +474,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 value={form.precio_venta}
                 onChange={(e) => update("precio_venta", e.target.value)}
                 required
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
                 placeholder="0.00"
               />
             </div>
             <div>
-              <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Stock *
               </label>
               <input
@@ -566,7 +488,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 onChange={(e) => update("stock", e.target.value)}
                 required
                 min="0"
-                className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
               />
             </div>
           </div>
@@ -589,8 +511,8 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
         </div>
 
         {/* Opciones */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6">
-          <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase mb-4">
+        <div className="bg-luxury-black border border-luxury-gray p-6">
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase mb-4">
             Visibilidad
           </h2>
           <div className="flex flex-wrap gap-6">
@@ -604,7 +526,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                   type="checkbox"
                   checked={form[key as keyof typeof form] as boolean}
                   onChange={(e) => update(key, e.target.checked)}
-                  className="accent-[#D4AF37] w-4 h-4"
+                  className="accent-gold w-4 h-4"
                 />
                 <span className="text-[#cccccc] text-sm">{label}</span>
               </label>
@@ -613,12 +535,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
         </div>
 
         {/* SEO */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-4">
-          <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase mb-4">
+        <div className="bg-luxury-black border border-luxury-gray p-6 space-y-4">
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase mb-4">
             SEO (opcional — se genera automáticamente)
           </h2>
           <div>
-            <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
               Meta Título ({form.meta_titulo.length}/160)
             </label>
             <input
@@ -626,11 +548,11 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               value={form.meta_titulo}
               onChange={(e) => update("meta_titulo", e.target.value)}
               maxLength={160}
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
             />
           </div>
           <div>
-            <label className="text-[#888888] text-xs uppercase tracking-widest block mb-1.5">
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
               Meta Descripción ({form.meta_descripcion.length}/320)
             </label>
             <textarea
@@ -638,7 +560,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               onChange={(e) => update("meta_descripcion", e.target.value)}
               maxLength={320}
               rows={3}
-              className="w-full bg-[#1A1A1A] border border-[#2D2D2D] text-white px-4 py-3 focus:outline-none focus:border-[#D4AF37] text-sm transition-colors resize-none"
+              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
             />
           </div>
         </div>
@@ -658,7 +580,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-[#D4AF37] text-black font-bold py-4 tracking-[0.2em] text-sm uppercase hover:bg-[#E8CC6B] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-gold text-black font-bold py-4 tracking-[0.2em] text-sm uppercase hover:bg-gold-light transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isEdit ? "GUARDAR CAMBIOS" : "CREAR PRODUCTO"}
           </button>
@@ -666,7 +588,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
             type="button"
             onClick={() => router.push("/dashboard")}
             disabled={loading}
-            className="px-8 py-4 bg-transparent border border-[#2D2D2D] text-[#888888] font-bold text-sm tracking-[0.2em] hover:text-white hover:border-white transition-all duration-300 disabled:opacity-50"
+            className="px-8 py-4 bg-transparent border border-luxury-gray-mid text-luxury-gray-light font-bold text-sm tracking-[0.2em] hover:text-white hover:border-white transition-all duration-300 disabled:opacity-50"
           >
             CANCELAR
           </button>
@@ -678,11 +600,11 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
-              <div className="w-16 h-16 border-4 border-[#D4AF37]/20 border-t-[#D4AF37] rounded-full animate-spin" />
-              <Loader2 className="absolute inset-0 m-auto text-[#D4AF37] animate-pulse" size={24} />
+              <div className="w-16 h-16 border-4 border-gold/20 border-t-gold rounded-full animate-spin" />
+              <Loader2 className="absolute inset-0 m-auto text-gold animate-pulse" size={24} />
             </div>
             <div className="flex flex-col items-center">
-              <p className="text-[#D4AF37] font-serif text-xl tracking-widest animate-pulse">
+              <p className="text-gold font-serif text-xl tracking-widest animate-pulse">
                 {isEdit ? "ACTUALIZANDO" : "CREANDO"}
               </p>
               <p className="text-[#555555] text-[10px] uppercase tracking-[0.3em] mt-1">
@@ -696,18 +618,18 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       {/* Modal de eliminación masiva de imágenes */}
       {isDeleteImagesModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-md p-6 md:p-8">
+          <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-md p-6 md:p-8">
             <div className="flex items-center gap-3 text-red-500 mb-4">
               <AlertTriangle size={24} />
               <h2 className="font-serif text-xl text-white">Confirmar eliminación</h2>
             </div>
-            <p className="text-[#888888] text-sm mb-6 leading-relaxed">
+            <p className="text-luxury-gray-light text-sm mb-6 leading-relaxed">
               ¿Estás seguro que deseas eliminar <strong className="text-white">{selectedImages.length} imágenes</strong> seleccionadas? Esta acción quitará las fotos de la galería del producto.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setIsDeleteImagesModalOpen(false)}
-                className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
               >
                 Cancelar
               </button>

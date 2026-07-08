@@ -3,13 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Pencil, Trash2, Check, X, Layers, Tag, ChevronRight, Flower, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Layers, Tag, ChevronRight, AlertTriangle } from "lucide-react";
 
 interface Categoria {
   id: string;
   nombre: string;
   slug: string;
   orden: number;
+  color: string | null;
+  icon: string | null;
 }
 
 interface Subcategoria {
@@ -21,16 +23,9 @@ interface Subcategoria {
   categoria_id: string;
 }
 
-interface FamiliaOlfativa {
-  id: number;
-  nombre: string;
-  descripcion: string | null;
-}
-
 interface Props {
   categorias: Categoria[];
   subcategorias: Subcategoria[];
-  familias: FamiliaOlfativa[];
 }
 
 const supabase = createClient();
@@ -44,29 +39,25 @@ function slugify(text: string) {
     .replace(/^-|-$/g, "");
 }
 
-export default function CategoriasClient({ categorias: initialCats, subcategorias: initialSubs, familias: initialFamilias }: Props) {
+export default function CategoriasClient({ categorias: initialCats, subcategorias: initialSubs }: Props) {
   const router = useRouter();
   const [categorias, setCategorias] = useState<Categoria[]>(initialCats);
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>(initialSubs);
-  const [familias, setFamilias] = useState<FamiliaOlfativa[]>(initialFamilias);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(initialCats[0]?.id ?? null);
 
   const [newCatName, setNewCatName] = useState("");
+  const [newCatColor, setNewCatColor] = useState("#D4AF37");
+  const [newCatIcon, setNewCatIcon] = useState("");
   const [savingCat, setSavingCat] = useState(false);
   const [editingCatId, setEditingCatId] = useState<string | null>(null);
   const [editCatName, setEditCatName] = useState("");
+  const [editCatColor, setEditCatColor] = useState("");
+  const [editCatIcon, setEditCatIcon] = useState("");
 
   const [newSubName, setNewSubName] = useState("");
   const [savingSub, setSavingSub] = useState(false);
   const [editingSubId, setEditingSubId] = useState<string | null>(null);
   const [editSubName, setEditSubName] = useState("");
-
-  const [newFamNombre, setNewFamNombre] = useState("");
-  const [newFamDesc, setNewFamDesc] = useState("");
-  const [savingFam, setSavingFam] = useState(false);
-  const [editingFamId, setEditingFamId] = useState<number | null>(null);
-  const [editFamNombre, setEditFamNombre] = useState("");
-  const [editFamDesc, setEditFamDesc] = useState("");
 
   const [error, setError] = useState("");
   const [confirmModal, setConfirmModal] = useState<{
@@ -91,15 +82,19 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
     setError("");
     const slug = slugify(nombre);
     const orden = categorias.length + 1;
+    const color = newCatColor || null;
+    const icon = newCatIcon.trim() || null;
     const { data, error: err } = await supabase
       .from("categorias")
-      .insert({ nombre, slug, orden })
+      .insert({ nombre, slug, orden, color, icon })
       .select()
       .single();
     if (err) { setError(err.message); setSavingCat(false); return; }
     setCategorias((prev) => [...prev, data]);
     setSelectedCatId(data.id);
     setNewCatName("");
+    setNewCatColor("#D4AF37");
+    setNewCatIcon("");
     setSavingCat(false);
     router.refresh();
   }
@@ -108,9 +103,11 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
     const nombre = editCatName.trim();
     if (!nombre) return;
     const slug = slugify(nombre);
-    const { error: err } = await supabase.from("categorias").update({ nombre, slug }).eq("id", id);
+    const color = editCatColor || null;
+    const icon = editCatIcon.trim() || null;
+    const { error: err } = await supabase.from("categorias").update({ nombre, slug, color, icon }).eq("id", id);
     if (err) { setError(err.message); return; }
-    setCategorias((prev) => prev.map((c) => c.id === id ? { ...c, nombre, slug } : c));
+    setCategorias((prev) => prev.map((c) => c.id === id ? { ...c, nombre, slug, color, icon } : c));
     setEditingCatId(null);
     router.refresh();
   }
@@ -186,60 +183,13 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
     setSubcategorias((prev) => prev.map((s) => s.id === sub.id ? { ...s, activo: !s.activo } : s));
   }
 
-  // ===================== FAMILIAS OLFATIVAS =====================
-
-  async function handleAddFam() {
-    const nombre = newFamNombre.trim();
-    if (!nombre) return;
-    setSavingFam(true);
-    setError("");
-    const { data, error: err } = await supabase
-      .from("familias_olfativas")
-      .insert({ nombre, descripcion: newFamDesc.trim() || null })
-      .select()
-      .single();
-    if (err) { setError(err.message); setSavingFam(false); return; }
-    setFamilias((prev) => [...prev, data].sort((a, b) => a.nombre.localeCompare(b.nombre)));
-    setNewFamNombre("");
-    setNewFamDesc("");
-    setSavingFam(false);
-    router.refresh();
-  }
-
-  async function handleSaveFam(id: number) {
-    const nombre = editFamNombre.trim();
-    if (!nombre) return;
-    const { error: err } = await supabase
-      .from("familias_olfativas")
-      .update({ nombre, descripcion: editFamDesc.trim() || null })
-      .eq("id", id);
-    if (err) { setError(err.message); return; }
-    setFamilias((prev) => prev.map((f) => f.id === id ? { ...f, nombre, descripcion: editFamDesc.trim() || null } : f));
-    setEditingFamId(null);
-    router.refresh();
-  }
-
-  function handleDeleteFam(id: number) {
-    setConfirmModal({
-      open: true,
-      message: "¿Eliminar esta familia olfativa? Los productos que la usen quedarán sin familia asignada.",
-      onConfirm: async () => {
-        setConfirmModal((prev) => ({ ...prev, open: false }));
-        const { error: err } = await supabase.from("familias_olfativas").delete().eq("id", id);
-        if (err) { setError(err.message); return; }
-        setFamilias((prev) => prev.filter((f) => f.id !== id));
-        router.refresh();
-      },
-    });
-  }
-
   return (
     <>
     <div className="max-w-5xl mx-auto space-y-6">
       <div className="mb-8">
-        <h1 className="font-serif text-3xl text-white">Categorías & Familias</h1>
+        <h1 className="font-serif text-3xl text-white">Categorías</h1>
         <p className="text-[#555555] text-xs tracking-widest uppercase mt-1">
-          Gestioná las categorías, subcategorías y familias olfativas del catálogo
+          Gestioná las categorías y subcategorías del catálogo
         </p>
       </div>
 
@@ -253,13 +203,13 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
         {/* Panel Categorías */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A]">
-          <div className="px-5 py-4 border-b border-[#1A1A1A] flex items-center gap-2">
-            <Layers size={14} className="text-[#D4AF37]" />
-            <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase">Categorías</h2>
+        <div className="bg-luxury-black border border-luxury-gray">
+          <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
+            <Layers size={14} className="text-gold" />
+            <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Categorías</h2>
           </div>
 
-          <div className="px-5 py-4 border-b border-[#1A1A1A]">
+          <div className="px-5 py-4 border-b border-luxury-gray space-y-2">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -267,19 +217,39 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                 onChange={(e) => setNewCatName(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAddCat()}
                 placeholder="Nueva categoría..."
-                className="flex-1 bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors"
               />
               <button
                 onClick={handleAddCat}
                 disabled={savingCat || !newCatName.trim()}
-                className="px-3 py-2 bg-[#D4AF37] text-black hover:bg-[#E8CC6B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 bg-gold text-black hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus size={16} />
               </button>
             </div>
+            <div className="flex gap-2 items-center">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[#555] text-[10px] uppercase tracking-widest">Color</span>
+                <input
+                  type="color"
+                  value={newCatColor}
+                  onChange={(e) => setNewCatColor(e.target.value)}
+                  className="w-8 h-7 cursor-pointer bg-transparent border-0 p-0"
+                  title="Color de la categoría"
+                />
+                <span className="text-[#555] text-[10px] font-mono">{newCatColor}</span>
+              </div>
+              <input
+                type="text"
+                value={newCatIcon}
+                onChange={(e) => setNewCatIcon(e.target.value)}
+                placeholder="Icono (ej: flower)"
+                className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#444] px-2 py-1 text-xs focus:outline-none focus:border-gold transition-colors"
+              />
+            </div>
           </div>
 
-          <ul className="divide-y divide-[#1A1A1A]">
+          <ul className="divide-y divide-luxury-gray">
             {categorias.length === 0 && (
               <li className="px-5 py-6 text-[#333] text-xs italic text-center">No hay categorías todavía.</li>
             )}
@@ -292,36 +262,64 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                   key={cat.id}
                   onClick={() => !isEditing && setSelectedCatId(cat.id)}
                   className={`px-5 py-3 flex items-center gap-3 cursor-pointer transition-colors group ${
-                    isSelected ? "bg-[#D4AF37]/5 border-l-2 border-[#D4AF37]" : "hover:bg-[#111] border-l-2 border-transparent"
+                    isSelected ? "bg-gold/5 border-l-2 border-gold" : "hover:bg-[#111] border-l-2 border-transparent"
                   }`}
                 >
                   {isEditing ? (
-                    <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        autoFocus
-                        type="text"
-                        value={editCatName}
-                        onChange={(e) => setEditCatName(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveCat(cat.id);
-                          if (e.key === "Escape") setEditingCatId(null);
-                        }}
-                        className="flex-1 bg-[#1A1A1A] border border-[#D4AF37] text-white px-2 py-1 text-sm focus:outline-none"
-                      />
-                      <button onClick={() => handleSaveCat(cat.id)} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
-                      <button onClick={() => setEditingCatId(null)} className="text-[#555] hover:text-white p-1"><X size={14} /></button>
+                    <div className="flex-1 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <input
+                          autoFocus
+                          type="text"
+                          value={editCatName}
+                          onChange={(e) => setEditCatName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSaveCat(cat.id);
+                            if (e.key === "Escape") setEditingCatId(null);
+                          }}
+                          className="flex-1 bg-luxury-gray border border-gold text-white px-2 py-1 text-sm focus:outline-none"
+                        />
+                        <button onClick={() => handleSaveCat(cat.id)} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
+                        <button onClick={() => setEditingCatId(null)} className="text-[#555] hover:text-white p-1"><X size={14} /></button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={editCatColor || '#D4AF37'}
+                          onChange={(e) => setEditCatColor(e.target.value)}
+                          className="w-7 h-6 cursor-pointer bg-transparent border-0 p-0"
+                          title="Color"
+                        />
+                        <input
+                          type="text"
+                          value={editCatIcon}
+                          onChange={(e) => setEditCatIcon(e.target.value)}
+                          placeholder="Icono"
+                          className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white px-2 py-1 text-xs focus:outline-none focus:border-gold"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <>
+                      {cat.color && (
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0 border border-luxury-gray-mid"
+                          style={{ backgroundColor: cat.color }}
+                          title={cat.color}
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isSelected ? "text-[#D4AF37]" : "text-white"}`}>{cat.nombre}</p>
+                        <p className={`text-sm font-medium truncate ${isSelected ? "text-gold" : "text-white"}`}>
+                          {cat.icon && <span className="mr-1 text-[#555] text-xs">{cat.icon}</span>}
+                          {cat.nombre}
+                        </p>
                         <p className="text-[#444] text-[10px] mt-0.5">{subCount} subcategoría{subCount !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.nombre); }} className="p-1.5 text-[#555] hover:text-[#D4AF37] transition-colors"><Pencil size={13} /></button>
+                        <button onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.nombre); setEditCatColor(cat.color ?? '#D4AF37'); setEditCatIcon(cat.icon ?? ''); }} className="p-1.5 text-[#555] hover:text-gold transition-colors"><Pencil size={13} /></button>
                         <button onClick={() => handleDeleteCat(cat.id)} className="p-1.5 text-[#555] hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                       </div>
-                      {isSelected && <ChevronRight size={14} className="text-[#D4AF37] shrink-0" />}
+                      {isSelected && <ChevronRight size={14} className="text-gold shrink-0" />}
                     </>
                   )}
                 </li>
@@ -331,16 +329,16 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
         </div>
 
         {/* Panel Subcategorías */}
-        <div className="bg-[#0D0D0D] border border-[#1A1A1A]">
-          <div className="px-5 py-4 border-b border-[#1A1A1A] flex items-center gap-2">
-            <Tag size={14} className="text-[#D4AF37]" />
-            <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase">
+        <div className="bg-luxury-black border border-luxury-gray">
+          <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
+            <Tag size={14} className="text-gold" />
+            <h2 className="text-gold text-xs tracking-[0.2em] uppercase">
               Subcategorías
               {selectedCat && <span className="ml-2 text-[#555] normal-case font-normal">— {selectedCat.nombre}</span>}
             </h2>
           </div>
 
-          <div className="px-5 py-4 border-b border-[#1A1A1A]">
+          <div className="px-5 py-4 border-b border-luxury-gray">
             <div className="flex gap-2">
               <input
                 type="text"
@@ -349,19 +347,19 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                 onKeyDown={(e) => e.key === "Enter" && handleAddSub()}
                 placeholder={selectedCat ? `Nueva subcategoría en ${selectedCat.nombre}...` : "Seleccioná una categoría primero"}
                 disabled={!selectedCatId}
-                className="flex-1 bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleAddSub}
                 disabled={savingSub || !newSubName.trim() || !selectedCatId}
-                className="px-3 py-2 bg-[#D4AF37] text-black hover:bg-[#E8CC6B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="px-3 py-2 bg-gold text-black hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <Plus size={16} />
               </button>
             </div>
           </div>
 
-          <ul className="divide-y divide-[#1A1A1A]">
+          <ul className="divide-y divide-luxury-gray">
             {!selectedCatId && (
               <li className="px-5 py-6 text-[#333] text-xs italic text-center">Seleccioná una categoría para ver sus subcategorías.</li>
             )}
@@ -383,7 +381,7 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                           if (e.key === "Enter") handleSaveSub(sub.id);
                           if (e.key === "Escape") setEditingSubId(null);
                         }}
-                        className="flex-1 bg-[#1A1A1A] border border-[#D4AF37] text-white px-2 py-1 text-sm focus:outline-none"
+                        className="flex-1 bg-luxury-gray border border-gold text-white px-2 py-1 text-sm focus:outline-none"
                       />
                       <button onClick={() => handleSaveSub(sub.id)} className="text-green-400 hover:text-green-300 p-1"><Check size={14} /></button>
                       <button onClick={() => setEditingSubId(null)} className="text-[#555] hover:text-white p-1"><X size={14} /></button>
@@ -403,7 +401,7 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                         >
                           {sub.activo ? "ON" : "OFF"}
                         </button>
-                        <button onClick={() => { setEditingSubId(sub.id); setEditSubName(sub.nombre); }} className="p-1.5 text-[#555] hover:text-[#D4AF37] transition-colors"><Pencil size={13} /></button>
+                        <button onClick={() => { setEditingSubId(sub.id); setEditSubName(sub.nombre); }} className="p-1.5 text-[#555] hover:text-gold transition-colors"><Pencil size={13} /></button>
                         <button onClick={() => handleDeleteSub(sub.id)} className="p-1.5 text-[#555] hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                       </div>
                     </>
@@ -415,117 +413,21 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
         </div>
       </div>
 
-      {/* ===== FILA 2: Familias Olfativas ===== */}
-      <div className="bg-[#0D0D0D] border border-[#1A1A1A]">
-        <div className="px-5 py-4 border-b border-[#1A1A1A] flex items-center gap-2">
-          <Flower size={14} className="text-[#D4AF37]" />
-          <h2 className="text-[#D4AF37] text-xs tracking-[0.2em] uppercase">Familias Olfativas</h2>
-        </div>
-
-        {/* Formulario nueva familia */}
-        <div className="px-5 py-4 border-b border-[#1A1A1A]">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input
-              type="text"
-              value={newFamNombre}
-              onChange={(e) => setNewFamNombre(e.target.value)}
-              placeholder="Nombre (ej: Floral)"
-              className="bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
-            />
-            <input
-              type="text"
-              value={newFamDesc}
-              onChange={(e) => setNewFamDesc(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleAddFam()}
-              placeholder="Descripción (ej: Rosas, jazmines, flores del jardín)"
-              className="sm:col-span-1 bg-[#1A1A1A] border border-[#2D2D2D] text-white placeholder-[#444] px-3 py-2 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
-            />
-            <button
-              onClick={handleAddFam}
-              disabled={savingFam || !newFamNombre.trim()}
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#D4AF37] text-black text-sm font-bold hover:bg-[#E8CC6B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              <Plus size={15} /> Agregar
-            </button>
-          </div>
-        </div>
-
-        {/* Lista */}
-        <div className="divide-y divide-[#1A1A1A]">
-          {familias.length === 0 && (
-            <p className="px-5 py-6 text-[#333] text-xs italic text-center">No hay familias olfativas todavía.</p>
-          )}
-          {familias.map((fam) => {
-            const isEditing = editingFamId === fam.id;
-            return (
-              <div key={fam.id} className="px-5 py-3 flex items-start gap-4 group hover:bg-[#111] transition-colors">
-                {isEditing ? (
-                  <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={editFamNombre}
-                      onChange={(e) => setEditFamNombre(e.target.value)}
-                      placeholder="Nombre"
-                      className="bg-[#1A1A1A] border border-[#D4AF37] text-white px-2 py-1.5 text-sm focus:outline-none"
-                    />
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={editFamDesc}
-                        onChange={(e) => setEditFamDesc(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveFam(fam.id);
-                          if (e.key === "Escape") setEditingFamId(null);
-                        }}
-                        placeholder="Descripción"
-                        className="flex-1 bg-[#1A1A1A] border border-[#D4AF37] text-white px-2 py-1.5 text-sm focus:outline-none"
-                      />
-                      <button onClick={() => handleSaveFam(fam.id)} className="text-green-400 hover:text-green-300 p-1.5"><Check size={14} /></button>
-                      <button onClick={() => setEditingFamId(null)} className="text-[#555] hover:text-white p-1.5"><X size={14} /></button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">{fam.nombre}</p>
-                      {fam.descripcion && (
-                        <p className="text-[#555] text-xs mt-0.5 truncate">{fam.descripcion}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                      <button
-                        onClick={() => { setEditingFamId(fam.id); setEditFamNombre(fam.nombre); setEditFamDesc(fam.descripcion ?? ""); }}
-                        className="p-1.5 text-[#555] hover:text-[#D4AF37] transition-colors"
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button onClick={() => handleDeleteFam(fam.id)} className="p-1.5 text-[#555] hover:text-red-400 transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
     </div>
 
     {/* Modal de confirmación */}
     {confirmModal.open && (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-        <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-md p-6 md:p-8">
+        <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-md p-6 md:p-8">
           <div className="flex items-center gap-3 text-red-500 mb-4">
             <AlertTriangle size={22} />
             <h2 className="font-serif text-xl text-white">Confirmar eliminación</h2>
           </div>
-          <p className="text-[#888888] text-sm mb-6 leading-relaxed">{confirmModal.message}</p>
+          <p className="text-luxury-gray-light text-sm mb-6 leading-relaxed">{confirmModal.message}</p>
           <div className="flex gap-3">
             <button
               onClick={closeConfirm}
-              className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+              className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
             >
               Cancelar
             </button>

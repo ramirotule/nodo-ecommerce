@@ -57,13 +57,13 @@ export default function RedesSocialesClient({ config: initial }: Props) {
     {
       key: "instagram" as const,
       label: "Instagram (URL completa)",
-      placeholder: "https://www.instagram.com/laparfumerie.desolange/",
+      placeholder: "https://www.instagram.com/mitienda/",
       icon: <span className="text-pink-400">✦</span>,
     },
     {
       key: "whatsapp" as const,
       label: "WhatsApp (número con código de país, sin +)",
-      placeholder: "5492954808202",
+      placeholder: "549XXXXXXXXXX",
       icon: <Phone size={16} className="text-green-400" />,
     },
     {
@@ -83,7 +83,7 @@ export default function RedesSocialesClient({ config: initial }: Props) {
   return (
     <>
       <div className="mb-8">
-        <p className="text-[#D4AF37] text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
+        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-1">Dashboard</p>
         <h1 className="text-white text-2xl font-serif">Redes Sociales</h1>
         <p className="text-[#555555] text-sm mt-1">
           Estos datos se usan en el sitio web (footer, banners, CTAs).
@@ -91,21 +91,21 @@ export default function RedesSocialesClient({ config: initial }: Props) {
       </div>
 
       <div className="max-w-lg">
-        <form onSubmit={handleSubmit} className="bg-[#0D0D0D] border border-[#1A1A1A] p-6 space-y-5">
-          <div className="flex items-center gap-3 pb-4 border-b border-[#1A1A1A]">
-            <Share2 size={18} className="text-[#D4AF37]" />
+        <form onSubmit={handleSubmit} className="bg-luxury-black border border-luxury-gray p-6 space-y-5">
+          <div className="flex items-center gap-3 pb-4 border-b border-luxury-gray">
+            <Share2 size={18} className="text-gold" />
             <h2 className="text-white text-sm font-semibold tracking-wider uppercase">Contacto y redes</h2>
           </div>
 
           {FIELDS.map(({ key, label, placeholder, icon }) => (
             <div key={key}>
-              <label className="block text-[#888888] text-xs uppercase tracking-wider mb-1.5 flex items-center gap-2">
+              <label className="block text-luxury-gray-light text-xs uppercase tracking-wider mb-1.5 flex items-center gap-2">
                 {icon} {label}
               </label>
               <input
                 value={form[key]}
                 onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                className="w-full bg-[#0D0D0D] border border-[#2D2D2D] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors"
+                className="w-full bg-luxury-black border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
                 placeholder={placeholder}
               />
             </div>
@@ -116,7 +116,7 @@ export default function RedesSocialesClient({ config: initial }: Props) {
           <button
             type="submit"
             disabled={loading}
-            className="flex items-center gap-2 bg-[#D4AF37] text-black font-bold px-6 py-3 text-sm tracking-wider hover:bg-[#E8CC6B] transition-colors disabled:opacity-50 w-full justify-center"
+            className="flex items-center gap-2 bg-gold text-black font-bold px-6 py-3 text-sm tracking-wider hover:bg-gold-light transition-colors disabled:opacity-50 w-full justify-center"
           >
             {saved ? (
               <><CheckCircle size={16} /> Guardado</>
@@ -129,7 +129,7 @@ export default function RedesSocialesClient({ config: initial }: Props) {
         </form>
 
         {/* Vista previa links activos */}
-        <div className="mt-4 bg-[#0D0D0D] border border-[#1A1A1A] p-4">
+        <div className="mt-4 bg-luxury-black border border-luxury-gray p-4">
           <p className="text-[#555555] text-xs mb-3 uppercase tracking-wider">Links activos</p>
           <div className="space-y-2">
             {FIELDS.map(({ key, label }) => (
@@ -138,7 +138,7 @@ export default function RedesSocialesClient({ config: initial }: Props) {
                   <span className="text-[#555555]">{label.split(" (")[0]}</span>
                   <a href={key === "whatsapp" ? `https://wa.me/${form[key]}` : form[key]}
                     target="_blank" rel="noopener noreferrer"
-                    className="text-[#D4AF37] hover:underline truncate max-w-[200px]">
+                    className="text-gold hover:underline truncate max-w-[200px]">
                     {key === "whatsapp" ? `wa.me/${form[key]}` : form[key].replace("https://", "")}
                   </a>
                 </div>

@@ -7,24 +7,6 @@ import { bienestar, aromatizantes, skincare } from "@/constants/navigation";
 import { Search, X } from "lucide-react";
 import CustomSelect from "@/components/ui/CustomSelect";
 
-const generos = [
-  { value: "Femenino", label: "FEMENINO" },
-  { value: "Masculino", label: "MASCULINO" },
-  { value: "Unisex", label: "UNISEX" },
-  { value: "Árabe", label: "ÁRABE" },
-];
-
-const familias = [
-  { value: "Floral", label: "FLORAL" },
-  { value: "Oriental", label: "ORIENTAL" },
-  { value: "Amaderado", label: "AMADERADO" },
-  { value: "Fresco", label: "FRESCO" },
-  { value: "Chipre", label: "CHIPRE" },
-  { value: "Fougère", label: "FOUGÈRE" },
-  { value: "Gourmand", label: "GOURMAND" },
-  { value: "Árabe / Oud", label: "ÁRABE / OUD" },
-];
-
 const colecciones = [
   { value: "nuevo", label: "NOVEDADES" },
   { value: "destacado", label: "DESTACADOS" },
@@ -77,7 +59,7 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
   return (
     <div className="w-full space-y-4 mb-10">
       {/* Contenedor Único de Filtros y Búsqueda */}
-      <div className="flex flex-col lg:flex-row gap-4 bg-[#0D0D0D] border border-[#1A1A1A] p-4 rounded-sm shadow-2xl items-end">
+      <div className="flex flex-col lg:flex-row gap-4 bg-luxury-black border border-luxury-gray p-4 rounded-sm shadow-2xl items-end">
         {/* Input de Búsqueda */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1 w-full">
           <input
@@ -85,7 +67,7 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             placeholder="¿Qué estás buscando?..."
-            className="w-full bg-black border border-[#2D2D2D] text-white text-sm px-10 py-3 focus:outline-none focus:border-[#D4AF37] transition-colors rounded-sm placeholder:text-gray-400 h-[46px]"
+            className="w-full bg-black border border-luxury-gray-mid text-white text-sm px-10 py-3 focus:outline-none focus:border-gold transition-colors rounded-sm placeholder:text-gray-400 h-[46px]"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={14} />
           {searchValue && (
@@ -104,46 +86,21 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
 
         {/* Grupo de Dropdowns Custom */}
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          {!(activeParams.seccion === "bienestar" ||
-             activeParams.seccion === "aromatizantes" ||
-             activeParams.seccion === "cuidados-piel") &&
-           (!activeParams.categoria || activeParams.categoria === "fragancias") && (
-            <>
-              <div className="min-w-[140px] flex-1 lg:flex-none">
-                <CustomSelect
-                  value={activeParams.genero || ""}
-                  onChange={(val) => updateParam("genero", val || null)}
-                  options={generos}
-                  placeholder="GÉNERO"
-                />
-              </div>
-
-              <div className="min-w-[160px] flex-1 lg:flex-none">
-                <CustomSelect
-                  value={activeParams.familia || ""}
-                  onChange={(val) => updateParam("familia", val || null)}
-                  options={familias}
-                  placeholder="FAMILIA"
-                />
-              </div>
-
-              <div className="min-w-[160px] flex-1 lg:flex-none">
-                <CustomSelect
-                  value={activeParams.nuevo === "true" ? "nuevo" : activeParams.destacado === "true" ? "destacado" : ""}
-                  onChange={(val) => {
-                    const params = new URLSearchParams(searchParams.toString());
-                    params.delete("nuevo");
-                    params.delete("destacado");
-                    if (val === "nuevo") params.set("nuevo", "true");
-                    if (val === "destacado") params.set("destacado", "true");
-                    router.push(`${pathname}?${params.toString()}`);
-                  }}
-                  options={colecciones}
-                  placeholder="COLECCIÓN"
-                />
-              </div>
-            </>
-          )}
+          <div className="min-w-[160px] flex-1 lg:flex-none">
+            <CustomSelect
+              value={activeParams.nuevo === "true" ? "nuevo" : activeParams.destacado === "true" ? "destacado" : ""}
+              onChange={(val) => {
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("nuevo");
+                params.delete("destacado");
+                if (val === "nuevo") params.set("nuevo", "true");
+                if (val === "destacado") params.set("destacado", "true");
+                router.push(`${pathname}?${params.toString()}`);
+              }}
+              options={colecciones}
+              placeholder="COLECCIÓN"
+            />
+          </div>
 
           <div className="min-w-[160px] flex-1 lg:flex-none">
             <CustomSelect
@@ -181,8 +138,8 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
               href={`/${activeParams.seccion}`}
               className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
                 !activeParams.categoria
-                  ? "bg-[#D4AF37] border-[#D4AF37] text-black font-bold"
-                  : "bg-black/40 border-[#2D2D2D] text-gray-300 hover:border-[#D4AF37] hover:text-white"
+                  ? "bg-gold border-gold text-black font-bold"
+                  : "bg-black/40 border-luxury-gray-mid text-gray-300 hover:border-gold hover:text-white"
               }`}
             >
               VER TODO
@@ -216,8 +173,8 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
                     href={buildCatUrl(parentSlug)}
                     className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
                       isParentActive
-                        ? "bg-[#D4AF37] border-[#D4AF37] text-black font-bold"
-                        : "bg-black/40 border-[#2D2D2D] text-gray-300 hover:border-[#D4AF37] hover:text-white"
+                        ? "bg-gold border-gold text-black font-bold"
+                        : "bg-black/40 border-luxury-gray-mid text-gray-300 hover:border-gold hover:text-white"
                     }`}
                   >
                     {item.nombre}
@@ -255,7 +212,7 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
             };
 
             return (
-              <div className="flex flex-wrap gap-2 pl-2 border-l border-[#D4AF37]/30">
+              <div className="flex flex-wrap gap-2 pl-2 border-l border-gold/30">
                 {activeParent.sub.map(s => {
                   const subSlug = s.href.split("/").pop() ?? "";
                   return (
@@ -264,8 +221,8 @@ export default function FiltrosCatalogo({ activeParams }: Props) {
                       href={buildCatUrl(subSlug)}
                       className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
                         currentCat === subSlug
-                          ? "bg-[#D4AF37] border-[#D4AF37] text-black font-bold"
-                          : "bg-black/40 border-[#2D2D2D] text-gray-300 hover:border-[#D4AF37] hover:text-white"
+                          ? "bg-gold border-gold text-black font-bold"
+                          : "bg-black/40 border-luxury-gray-mid text-gray-300 hover:border-gold hover:text-white"
                       }`}
                     >
                       {s.nombre}

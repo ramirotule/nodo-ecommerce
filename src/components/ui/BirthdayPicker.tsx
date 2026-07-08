@@ -42,7 +42,7 @@ export default function BirthdayPicker({ value, onChange, label }: Props) {
   return (
     <div className="space-y-1.5 w-full">
       {label && (
-        <label className="block text-[#888888] text-xs uppercase tracking-wider">
+        <label className="block text-luxury-gray-light text-xs uppercase tracking-wider">
           {label}
         </label>
       )}
@@ -68,7 +68,7 @@ export default function BirthdayPicker({ value, onChange, label }: Props) {
                 type="button"
                 onClick={decreaseMonth}
                 disabled={prevMonthButtonDisabled}
-                className="text-[#D4AF37] hover:bg-[#D4AF37]/10 p-1 disabled:opacity-30"
+                className="text-gold hover:bg-gold/10 p-1 disabled:opacity-30"
               >
                 <ChevronLeft size={16} />
               </button>
@@ -96,13 +96,13 @@ export default function BirthdayPicker({ value, onChange, label }: Props) {
                 type="button"
                 onClick={increaseMonth}
                 disabled={nextMonthButtonDisabled}
-                className="text-[#D4AF37] hover:bg-[#D4AF37]/10 p-1 disabled:opacity-30"
+                className="text-gold hover:bg-gold/10 p-1 disabled:opacity-30"
               >
                 <ChevronRight size={16} />
               </button>
             </div>
           )}
-          className="w-full bg-black border border-[#2D2D2D] text-white px-3 py-2.5 text-sm focus:outline-none focus:border-[#D4AF37] transition-colors cursor-pointer"
+          className="w-full bg-black border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors cursor-pointer"
           calendarClassName="custom-datepicker"
           wrapperClassName="w-full"
         />

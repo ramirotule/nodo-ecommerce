@@ -153,7 +153,7 @@ export default function OrdersClient({ initialOrders }: Props) {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-serif text-white flex items-center gap-2">
-            <ShoppingBag className="text-[#D4AF37]" />
+            <ShoppingBag className="text-gold" />
             Gestión de Pedidos
           </h1>
           <p className="text-[#555555] text-sm mt-1">
@@ -169,7 +169,7 @@ export default function OrdersClient({ initialOrders }: Props) {
               placeholder="Buscar por cliente o #..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-[#0D0D0D] border border-[#1A1A1A] text-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-[#D4AF37] w-full sm:w-64 transition-colors"
+              className="bg-luxury-black border border-luxury-gray text-white pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-gold w-full sm:w-64 transition-colors"
             />
           </div>
           <div className="w-full sm:w-48">
@@ -192,14 +192,14 @@ export default function OrdersClient({ initialOrders }: Props) {
           return (
             <div 
               key={order.id} 
-              className="bg-[#0D0D0D] border border-[#1A1A1A] overflow-hidden group hover:border-[#D4AF37]/30 transition-all duration-300 relative"
+              className="bg-luxury-black border border-luxury-gray overflow-hidden group hover:border-gold/30 transition-all duration-300 relative"
             >
               {/* Overlay de carga para toda la tarjeta */}
               {loadingId === order.id && (
                 <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-[1px]">
                   <div className="flex flex-col items-center gap-2">
-                    <Loader2 size={32} className="text-[#D4AF37] animate-spin" />
-                    <span className="text-[#D4AF37] text-xs font-medium uppercase tracking-widest">Actualizando...</span>
+                    <Loader2 size={32} className="text-gold animate-spin" />
+                    <span className="text-gold text-xs font-medium uppercase tracking-widest">Actualizando...</span>
                   </div>
                 </div>
               )}
@@ -226,7 +226,7 @@ export default function OrdersClient({ initialOrders }: Props) {
                   <div className="flex items-center gap-3">
                     <div className="text-right mr-2 hidden sm:block">
                       <p className="text-[#555555] text-[10px] uppercase tracking-widest">Total</p>
-                      <p className="text-[#D4AF37] font-bold text-lg">${order.total.toLocaleString('es-AR')}</p>
+                      <p className="text-gold font-bold text-lg">${order.total.toLocaleString('es-AR')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-40">
@@ -253,23 +253,23 @@ export default function OrdersClient({ initialOrders }: Props) {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                   {/* Info Cliente */}
                   <div className="space-y-3">
-                    <h4 className="text-[#333333] text-[10px] uppercase tracking-[0.2em] font-bold border-b border-[#1A1A1A] pb-2">Datos del Cliente</h4>
+                    <h4 className="text-[#333333] text-[10px] uppercase tracking-[0.2em] font-bold border-b border-luxury-gray pb-2">Datos del Cliente</h4>
                     <div className="space-y-2">
                       <div className="flex items-start gap-3 text-sm">
-                        <User size={16} className="text-[#D4AF37] mt-0.5 shrink-0" />
+                        <User size={16} className="text-gold mt-0.5 shrink-0" />
                         <div>
                           <p className="text-white font-medium">{order.cliente_nombre} {order.cliente_apellido}</p>
-                          <p className="text-[#888888] text-xs">{order.cliente_email}</p>
+                          <p className="text-luxury-gray-light text-xs">{order.cliente_email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 text-sm">
-                        <Phone size={16} className="text-[#D4AF37] shrink-0" />
-                        <p className="text-[#888888]">{order.cliente_telefono}</p>
+                        <Phone size={16} className="text-gold shrink-0" />
+                        <p className="text-luxury-gray-light">{order.cliente_telefono}</p>
                       </div>
                       {order.cliente_direccion && (
                         <div className="flex items-start gap-3 text-sm">
-                          <MapPin size={16} className="text-[#D4AF37] mt-0.5 shrink-0" />
-                          <p className="text-[#888888]">{order.cliente_direccion}</p>
+                          <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
+                          <p className="text-luxury-gray-light">{order.cliente_direccion}</p>
                         </div>
                       )}
                     </div>
@@ -277,12 +277,12 @@ export default function OrdersClient({ initialOrders }: Props) {
 
                   {/* Items del Pedido */}
                   <div className="lg:col-span-2 space-y-3">
-                    <h4 className="text-[#333333] text-[10px] uppercase tracking-[0.2em] font-bold border-b border-[#1A1A1A] pb-2">Productos</h4>
+                    <h4 className="text-[#333333] text-[10px] uppercase tracking-[0.2em] font-bold border-b border-luxury-gray pb-2">Productos</h4>
                     <div className="grid sm:grid-cols-2 gap-x-8 gap-y-2">
                       {order.items.map((item, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm py-1 border-b border-[#111111] last:border-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[#D4AF37] font-mono text-xs bg-[#D4AF37]/10 px-1.5 rounded">{item.cantidad}x</span>
+                            <span className="text-gold font-mono text-xs bg-gold/10 px-1.5 rounded">{item.cantidad}x</span>
                             <span className="text-gray-200 truncate max-w-[150px]">{item.nombre}</span>
                           </div>
                           <span className="text-[#555555] font-mono text-xs">${(item.precio * item.cantidad).toLocaleString('es-AR')}</span>
@@ -291,7 +291,7 @@ export default function OrdersClient({ initialOrders }: Props) {
                     </div>
                     
                     {order.cliente_notas && (
-                      <div className="mt-4 p-3 bg-[#111111] border-l-2 border-[#D4AF37] text-xs text-[#888888] italic">
+                      <div className="mt-4 p-3 bg-[#111111] border-l-2 border-gold text-xs text-luxury-gray-light italic">
                         &quot;{order.cliente_notas}&quot;
                       </div>
                     )}
@@ -300,10 +300,10 @@ export default function OrdersClient({ initialOrders }: Props) {
               </div>
 
               {/* Footer del pedido (Método de Pago) */}
-              <div className="bg-black/50 border-t border-[#1A1A1A] px-6 py-3 flex items-center justify-between">
+              <div className="bg-black/50 border-t border-luxury-gray px-6 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-[#333333] text-[10px] uppercase tracking-widest">Pago via:</span>
-                  <span className="text-[#888888] text-xs uppercase font-medium tracking-wider">{order.metodo_pago}</span>
+                  <span className="text-luxury-gray-light text-xs uppercase font-medium tracking-wider">{order.metodo_pago}</span>
                 </div>
                 <div className="flex items-center gap-4">
                   <span className={`text-[10px] uppercase font-bold px-2 py-0.5 border rounded ${status.color}`}>
@@ -316,8 +316,8 @@ export default function OrdersClient({ initialOrders }: Props) {
         })}
 
         {filteredOrders.length === 0 && (
-          <div className="text-center py-20 bg-[#0D0D0D] border border-[#1A1A1A]">
-            <ShoppingBag size={48} className="mx-auto mb-4 text-[#1A1A1A]" />
+          <div className="text-center py-20 bg-luxury-black border border-luxury-gray">
+            <ShoppingBag size={48} className="mx-auto mb-4 text-luxury-gray" />
             <p className="text-[#555555]">No se encontraron pedidos con estos criterios.</p>
           </div>
         )}
@@ -326,18 +326,18 @@ export default function OrdersClient({ initialOrders }: Props) {
       {/* Modal de confirmación de eliminación */}
       {deleteModal.isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="bg-[#0A0A0A] border border-[#2D2D2D] w-full max-w-md p-6 md:p-8">
+          <div className="bg-[#0A0A0A] border border-luxury-gray-mid w-full max-w-md p-6 md:p-8">
             <div className="flex items-center gap-3 text-red-500 mb-4">
               <AlertTriangle size={24} />
               <h2 className="font-serif text-xl text-white">Confirmar eliminación</h2>
             </div>
-            <p className="text-[#888888] text-sm mb-6 leading-relaxed">
-              ¿Estás seguro que deseas eliminar el pedido <strong className="text-[#D4AF37]">#{deleteModal.numero}</strong>? Esta acción no se puede deshacer y se perderá todo el historial de este pedido.
+            <p className="text-luxury-gray-light text-sm mb-6 leading-relaxed">
+              ¿Estás seguro que deseas eliminar el pedido <strong className="text-gold">#{deleteModal.numero}</strong>? Esta acción no se puede deshacer y se perderá todo el historial de este pedido.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteModal({ isOpen: false, id: "", numero: "" })}
-                className="flex-1 px-4 py-2.5 text-sm text-[#888888] hover:text-white border border-[#2D2D2D] hover:bg-[#1A1A1A] transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
                 disabled={loadingId === deleteModal.id}
               >
                 Cancelar

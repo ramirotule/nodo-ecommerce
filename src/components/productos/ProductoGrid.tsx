@@ -24,8 +24,8 @@ export default function ProductoGrid({
   if (productos.length === 0) {
     return (
       <div className="text-center py-20">
-        <div className="text-5xl mb-4 text-[#2D2D2D]">✦</div>
-        <p className="text-[#888888]">{emptyMessage}</p>
+        <div className="text-5xl mb-4 text-luxury-gray-mid">✦</div>
+        <p className="text-luxury-gray-light">{emptyMessage}</p>
       </div>
     );
   }
@@ -45,13 +45,13 @@ export default function ProductoGrid({
   return (
     <div className="flex flex-col gap-6">
       {/* View Toggle Bar */}
-      <div className="flex justify-end items-center border-b border-[#1A1A1A] pb-4 mb-2">
-        <div className="flex items-center bg-[#0D0D0D] p-1 rounded-lg border border-[#1A1A1A]">
+      <div className="flex justify-end items-center border-b border-luxury-gray pb-4 mb-2">
+        <div className="flex items-center bg-luxury-black p-1 rounded-lg border border-luxury-gray">
           <button
             onClick={() => setViewMode("large")}
             className={`p-2 rounded-md transition-all ${
               viewMode === "large"
-                ? "bg-black text-[#D4AF37] shadow-sm"
+                ? "bg-black text-gold shadow-sm"
                 : "text-gray-400 hover:text-white"
             }`}
             title="Vista Grande (3 por fila)"
@@ -62,7 +62,7 @@ export default function ProductoGrid({
             onClick={() => setViewMode("standard")}
             className={`p-2 rounded-md transition-all ${
               viewMode === "standard"
-                ? "bg-black text-[#D4AF37] shadow-sm"
+                ? "bg-black text-gold shadow-sm"
                 : "text-gray-400 hover:text-white"
             }`}
             title="Vista Estándar"
@@ -73,7 +73,7 @@ export default function ProductoGrid({
             onClick={() => setViewMode("compact")}
             className={`p-2 rounded-md transition-all ${
               viewMode === "compact"
-                ? "bg-black text-[#D4AF37] shadow-sm"
+                ? "bg-black text-gold shadow-sm"
                 : "text-gray-400 hover:text-white"
             }`}
             title="Vista Compacta (6 por fila)"
@@ -99,7 +99,7 @@ export default function ProductoGrid({
         <div className="flex flex-col items-center gap-2 pt-4">
           <button
             onClick={() => setVisible((v) => v + PAGE_SIZE)}
-            className="px-8 py-3 border border-[#D4AF37]/40 text-[#D4AF37] text-sm font-bold tracking-widest uppercase hover:bg-[#D4AF37]/10 transition-colors"
+            className="px-8 py-3 border border-gold/40 text-gold text-sm font-bold tracking-widest uppercase hover:bg-gold/10 transition-colors"
           >
             Ver más productos ({productos.length - visible} restantes)
           </button>
