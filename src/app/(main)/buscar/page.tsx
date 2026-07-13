@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
 import ProductoGrid from "@/components/productos/ProductoGrid";
+import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
 
 export const metadata: Metadata = {
   title: "Buscar Productos",
@@ -31,11 +32,14 @@ export default async function BuscarPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const productos = await buscarProductos(q || "");
+  const [productos, siteConfig] = await Promise.all([
+    buscarProductos(q || ""),
+    getSiteConfig(),
+  ]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="mb-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+      <div className="mb-6">
         <h1 className="font-serif text-4xl text-white mb-2">Resultados de búsqueda</h1>
       </div>
 
@@ -49,6 +53,7 @@ export default async function BuscarPage({
           <ProductoGrid
             productos={productos}
             emptyMessage={`No encontramos productos para "${q}". Probá con el nombre de la marca u otra palabra clave.`}
+            dolarEnabled={siteConfig.feature_precios_usd}
           />
         </>
       ) : (

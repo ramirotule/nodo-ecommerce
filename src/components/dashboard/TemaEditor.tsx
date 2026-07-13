@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
-import { Save, RotateCcw, X, Palette, Globe, Layout } from 'lucide-react'
+import { Save, RotateCcw, X, Palette, Globe, Sun, Moon } from 'lucide-react'
 import { ThemeConfig, THEME_DEFAULTS } from '@/lib/theme/defaults'
 import { saveThemeConfig, uploadBrandingAsset } from '@/app/dashboard/tema/actions'
 
@@ -10,49 +10,59 @@ interface TemaEditorProps {
   initialConfig: ThemeConfig
 }
 
-// Map from ThemeConfig flat key to CSS variable name
-const COLOR_VAR_MAP: Record<string, string> = {
+const DARK_COLOR_VAR_MAP: Record<string, string> = {
   color_primary: '--color-gold',
   color_primary_light: '--color-gold-light',
   color_primary_dark: '--color-gold-dark',
   color_bg: '--color-luxury-black',
   color_surface: '--color-luxury-gray',
   color_text: '--color-text',
+  color_nav_subcategory: '--color-nav-subcategory',
 }
 
-const COLOR_FIELDS: Array<{ key: keyof ThemeConfig; label: string; cssVar: string }> = [
-  { key: 'color_primary', label: 'Color principal (dorado)', cssVar: '--color-gold' },
-  { key: 'color_primary_light', label: 'Color principal claro', cssVar: '--color-gold-light' },
-  { key: 'color_primary_dark', label: 'Color principal oscuro', cssVar: '--color-gold-dark' },
-  { key: 'color_bg', label: 'Color de fondo', cssVar: '--color-luxury-black' },
-  { key: 'color_surface', label: 'Color de superficie', cssVar: '--color-luxury-gray' },
-  { key: 'color_text', label: 'Color de texto', cssVar: '--color-text' },
-]
-
-const NAV_MODULES: Array<{ slug: string; label: string }> = [
-  { slug: 'productos', label: 'Productos' },
-  { slug: 'carrousel', label: 'Carrusel de imágenes' },
-  { slug: 'pedidos', label: 'Pedidos' },
-  { slug: 'categorias', label: 'Categorías' },
-  { slug: 'datos-bancarios', label: 'Datos Bancarios' },
-  { slug: 'mis-datos', label: 'Mis Datos' },
-  { slug: 'tema', label: 'Editor de Tema' },
+const COLOR_FIELDS: Array<{ darkKey: keyof ThemeConfig; lightKey: keyof ThemeConfig; label: string }> = [
+  { darkKey: 'color_primary', lightKey: 'light_color_primary', label: 'Color principal' },
+  { darkKey: 'color_primary_light', lightKey: 'light_color_primary_light', label: 'Color Hover (Mouse encima)' },
+  { darkKey: 'color_primary_dark', lightKey: 'light_color_primary_dark', label: 'Color principal oscuro' },
+  { darkKey: 'color_bg', lightKey: 'light_color_bg', label: 'Color de fondo' },
+  { darkKey: 'color_surface', lightKey: 'light_color_surface', label: 'Color de superficie' },
+  { darkKey: 'color_text', lightKey: 'light_color_text', label: 'Color de texto' },
+  { darkKey: 'color_nav_subcategory', lightKey: 'light_color_nav_subcategory', label: 'Color subcategorías del menú' },
 ]
 
 const inputClass =
   'w-full bg-[#111111] border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444]'
 const labelClass = 'block text-luxury-gray-light text-xs uppercase tracking-wider mb-1.5'
 
+function buildLightCss(colors: Record<string, string>): string {
+  return `html[data-theme="light"],[data-theme="light"]{--color-gold:${colors.light_color_primary};--color-gold-light:${colors.light_color_primary_light};--color-gold-dark:${colors.light_color_primary_dark};--color-luxury-black:${colors.light_color_bg};--color-luxury-gray:${colors.light_color_surface};--color-text:${colors.light_color_text};--color-nav-subcategory:${colors.light_color_nav_subcategory};}`
+}
+
 export default function TemaEditor({ initialConfig }: TemaEditorProps) {
-  // Form state (flat ThemeConfig keys)
-  const [colors, setColors] = useState<Record<string, string>>(() => ({
+  const [siteTheme, setSiteTheme] = useState<'dark' | 'light'>(
+    (initialConfig.site_theme as 'dark' | 'light') ?? 'dark'
+  )
+  const [colorTab, setColorTab] = useState<'dark' | 'light'>('dark')
+
+  const [darkColors, setDarkColors] = useState<Record<string, string>>({
     color_primary: initialConfig.color_primary,
     color_primary_light: initialConfig.color_primary_light,
     color_primary_dark: initialConfig.color_primary_dark,
     color_bg: initialConfig.color_bg,
     color_surface: initialConfig.color_surface,
     color_text: initialConfig.color_text,
-  }))
+    color_nav_subcategory: initialConfig.color_nav_subcategory,
+  })
+
+  const [lightColors, setLightColors] = useState<Record<string, string>>({
+    light_color_primary: initialConfig.light_color_primary,
+    light_color_primary_light: initialConfig.light_color_primary_light,
+    light_color_primary_dark: initialConfig.light_color_primary_dark,
+    light_color_bg: initialConfig.light_color_bg,
+    light_color_surface: initialConfig.light_color_surface,
+    light_color_text: initialConfig.light_color_text,
+    light_color_nav_subcategory: initialConfig.light_color_nav_subcategory,
+  })
 
   const [siteName, setSiteName] = useState<string>(initialConfig.site_name)
   const [siteTagline, setSiteTagline] = useState<string>(initialConfig.site_tagline)
@@ -62,76 +72,122 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
   const [faviconFile, setFaviconFile] = useState<File | null>(null)
   const [logoError, setLogoError] = useState('')
   const [faviconError, setFaviconError] = useState('')
-
-  // Nav modules enabled — parse from JSON string
-  const [navModules, setNavModules] = useState<string[]>(() => {
-    try {
-      return JSON.parse(initialConfig.nav_modules_enabled) as string[]
-    } catch {
-      return NAV_MODULES.map((m) => m.slug)
-    }
-  })
-
   const [saving, setSaving] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [uploadingFavicon, setUploadingFavicon] = useState(false)
 
-  // Store original CSS var values on mount for revert
   const originalCssVars = useRef<Record<string, string>>({})
 
+  // Inject live light-mode style tag
+  const lightStyleRef = useRef<HTMLStyleElement | null>(null)
+
   useEffect(() => {
-    COLOR_FIELDS.forEach(({ cssVar }) => {
+    // Store original CSS vars
+    Object.values(DARK_COLOR_VAR_MAP).forEach((cssVar) => {
       originalCssVars.current[cssVar] =
         getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim()
     })
-    // Apply initial config values as live preview on mount
-    Object.entries(COLOR_VAR_MAP).forEach(([key, cssVar]) => {
+    // Apply dark mode colors on mount
+    Object.entries(DARK_COLOR_VAR_MAP).forEach(([key, cssVar]) => {
       const value = initialConfig[key as keyof ThemeConfig]
-      if (value) {
-        document.documentElement.style.setProperty(cssVar, value)
-      }
+      if (value) document.documentElement.style.setProperty(cssVar, value)
     })
+
+    // Create a style element for live light-mode preview
+    const el = document.createElement('style')
+    el.id = 'live-light-theme'
+    el.textContent = buildLightCss({
+      light_color_primary: initialConfig.light_color_primary,
+      light_color_primary_light: initialConfig.light_color_primary_light,
+      light_color_primary_dark: initialConfig.light_color_primary_dark,
+      light_color_bg: initialConfig.light_color_bg,
+      light_color_surface: initialConfig.light_color_surface,
+      light_color_text: initialConfig.light_color_text,
+      light_color_nav_subcategory: initialConfig.light_color_nav_subcategory,
+    })
+    document.head.appendChild(el)
+    lightStyleRef.current = el
+
+    return () => {
+      el.remove()
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleColorChange(key: string, value: string) {
-    setColors((prev) => ({ ...prev, [key]: value }))
-    const cssVar = COLOR_VAR_MAP[key]
-    if (cssVar) {
-      document.documentElement.style.setProperty(cssVar, value)
-    }
+  function handleDarkColorChange(key: string, value: string) {
+    setDarkColors((prev) => ({ ...prev, [key]: value }))
+    const cssVar = DARK_COLOR_VAR_MAP[key]
+    if (cssVar) document.documentElement.style.setProperty(cssVar, value)
+  }
+
+  function handleLightColorChange(key: string, value: string) {
+    setLightColors((prev) => {
+      const next = { ...prev, [key]: value }
+      if (lightStyleRef.current) {
+        lightStyleRef.current.textContent = buildLightCss(next)
+      }
+      return next
+    })
   }
 
   function handleResetDefaults() {
-    const defaultColors: Record<string, string> = {
+    const defaultDark: Record<string, string> = {
       color_primary: THEME_DEFAULTS.color_primary,
       color_primary_light: THEME_DEFAULTS.color_primary_light,
       color_primary_dark: THEME_DEFAULTS.color_primary_dark,
       color_bg: THEME_DEFAULTS.color_bg,
       color_surface: THEME_DEFAULTS.color_surface,
       color_text: THEME_DEFAULTS.color_text,
+      color_nav_subcategory: THEME_DEFAULTS.color_nav_subcategory,
     }
-    setColors(defaultColors)
-    Object.entries(COLOR_VAR_MAP).forEach(([key, cssVar]) => {
-      const value = defaultColors[key]
+    const defaultLight: Record<string, string> = {
+      light_color_primary: THEME_DEFAULTS.light_color_primary,
+      light_color_primary_light: THEME_DEFAULTS.light_color_primary_light,
+      light_color_primary_dark: THEME_DEFAULTS.light_color_primary_dark,
+      light_color_bg: THEME_DEFAULTS.light_color_bg,
+      light_color_surface: THEME_DEFAULTS.light_color_surface,
+      light_color_text: THEME_DEFAULTS.light_color_text,
+      light_color_nav_subcategory: THEME_DEFAULTS.light_color_nav_subcategory,
+    }
+    setDarkColors(defaultDark)
+    setLightColors(defaultLight)
+    Object.entries(DARK_COLOR_VAR_MAP).forEach(([key, cssVar]) => {
+      const value = defaultDark[key]
       if (value) document.documentElement.style.setProperty(cssVar, value)
     })
+    if (lightStyleRef.current) {
+      lightStyleRef.current.textContent = buildLightCss(defaultLight)
+    }
     toast('Valores restaurados a los predeterminados. Guardá para aplicar.', { icon: '↩' })
   }
 
   function handleCancel() {
-    // Revert CSS vars to original computed values
     Object.entries(originalCssVars.current).forEach(([cssVar, value]) => {
       if (value) document.documentElement.style.setProperty(cssVar, value)
     })
-    setColors({
+    const origDark = {
       color_primary: initialConfig.color_primary,
       color_primary_light: initialConfig.color_primary_light,
       color_primary_dark: initialConfig.color_primary_dark,
       color_bg: initialConfig.color_bg,
       color_surface: initialConfig.color_surface,
       color_text: initialConfig.color_text,
-    })
+      color_nav_subcategory: initialConfig.color_nav_subcategory,
+    }
+    const origLight = {
+      light_color_primary: initialConfig.light_color_primary,
+      light_color_primary_light: initialConfig.light_color_primary_light,
+      light_color_primary_dark: initialConfig.light_color_primary_dark,
+      light_color_bg: initialConfig.light_color_bg,
+      light_color_surface: initialConfig.light_color_surface,
+      light_color_text: initialConfig.light_color_text,
+      light_color_nav_subcategory: initialConfig.light_color_nav_subcategory,
+    }
+    setDarkColors(origDark)
+    setLightColors(origLight)
+    if (lightStyleRef.current) {
+      lightStyleRef.current.textContent = buildLightCss(origLight)
+    }
     setSiteName(initialConfig.site_name)
     setSiteTagline(initialConfig.site_tagline)
     setLogoFile(null)
@@ -196,19 +252,14 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
     }
   }
 
-  function toggleNavModule(slug: string) {
-    setNavModules((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
-    )
-  }
-
   async function handleSave() {
     setSaving(true)
     const partial: Partial<ThemeConfig> = {
-      ...colors,
+      ...darkColors,
+      ...lightColors,
       site_name: siteName,
       site_tagline: siteTagline,
-      nav_modules_enabled: JSON.stringify(navModules),
+      site_theme: siteTheme,
     } as Partial<ThemeConfig>
 
     const result = await saveThemeConfig(partial)
@@ -220,6 +271,9 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
       toast.error(result.error ?? 'Error al guardar los cambios.')
     }
   }
+
+  const activeColors = colorTab === 'dark' ? darkColors : lightColors
+  const handleColorChange = colorTab === 'dark' ? handleDarkColorChange : handleLightColorChange
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -238,12 +292,42 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
           <Palette size={14} className="text-gold" />
           <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Colores de Marca</h2>
         </div>
+
+        {/* Tabs Oscuro / Claro */}
+        <div className="flex border-b border-luxury-gray">
+          <button
+            type="button"
+            onClick={() => setColorTab('dark')}
+            className={`flex items-center gap-2 px-5 py-3 text-xs font-bold tracking-wider border-b-2 transition-colors ${
+              colorTab === 'dark'
+                ? 'border-gold text-gold'
+                : 'border-transparent text-luxury-gray-light hover:text-white'
+            }`}
+          >
+            <Moon size={13} />
+            Modo Oscuro
+          </button>
+          <button
+            type="button"
+            onClick={() => setColorTab('light')}
+            className={`flex items-center gap-2 px-5 py-3 text-xs font-bold tracking-wider border-b-2 transition-colors ${
+              colorTab === 'light'
+                ? 'border-gold text-gold'
+                : 'border-transparent text-luxury-gray-light hover:text-white'
+            }`}
+          >
+            <Sun size={13} />
+            Modo Claro
+          </button>
+        </div>
+
         <div className="px-5 py-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {COLOR_FIELDS.map(({ key, label }) => {
-              const value = colors[key as string] ?? '#000000'
+            {COLOR_FIELDS.map(({ darkKey, lightKey, label }) => {
+              const stateKey = colorTab === 'dark' ? darkKey : lightKey
+              const value = activeColors[stateKey as string] ?? '#000000'
               return (
-                <div key={key} className="space-y-2">
+                <div key={stateKey} className="space-y-2">
                   <label className={labelClass}>{label}</label>
                   <div className="flex items-center gap-3">
                     <div
@@ -253,7 +337,7 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
                     <input
                       type="color"
                       value={value}
-                      onChange={(e) => handleColorChange(key as string, e.target.value)}
+                      onChange={(e) => handleColorChange(stateKey as string, e.target.value)}
                       className="w-10 h-8 cursor-pointer bg-transparent border-0 p-0"
                       title={label}
                     />
@@ -276,6 +360,45 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
         </div>
       </section>
 
+      {/* ===== SECCIÓN: MODO VISUAL ===== */}
+      <section className="bg-luxury-black border border-luxury-gray">
+        <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
+          {siteTheme === 'dark' ? <Moon size={14} className="text-gold" /> : <Sun size={14} className="text-gold" />}
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Modo Visual del Sitio</h2>
+        </div>
+        <div className="px-5 py-5">
+          <p className="text-[#555555] text-xs mb-4">
+            Define el tema visual del sitio público para todos los visitantes.
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSiteTheme('dark')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold tracking-wider border transition-all ${
+                siteTheme === 'dark'
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-transparent text-luxury-gray-light border-luxury-gray-mid hover:border-gold/40 hover:text-white'
+              }`}
+            >
+              <Moon size={13} />
+              Oscuro
+            </button>
+            <button
+              type="button"
+              onClick={() => setSiteTheme('light')}
+              className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold tracking-wider border transition-all ${
+                siteTheme === 'light'
+                  ? 'bg-gold text-black border-gold'
+                  : 'bg-transparent text-luxury-gray-light border-luxury-gray-mid hover:border-gold/40 hover:text-white'
+              }`}
+            >
+              <Sun size={13} />
+              Claro
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* ===== SECCIÓN: IDENTIDAD ===== */}
       <section className="bg-luxury-black border border-luxury-gray">
         <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
@@ -283,7 +406,6 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
           <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Identidad del Sitio</h2>
         </div>
         <div className="px-5 py-5 space-y-5">
-          {/* Site name */}
           <div>
             <label className={labelClass}>Nombre del sitio</label>
             <input
@@ -294,7 +416,6 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
               placeholder="Ej: Mi Tienda"
             />
           </div>
-          {/* Tagline */}
           <div>
             <label className={labelClass}>Tagline</label>
             <input
@@ -368,40 +489,6 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
               )}
             </div>
             {faviconError && <p className="text-red-400 text-xs mt-1">{faviconError}</p>}
-          </div>
-        </div>
-      </section>
-
-      {/* ===== SECCIÓN: MÓDULOS DE NAVEGACIÓN ===== */}
-      <section className="bg-luxury-black border border-luxury-gray">
-        <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
-          <Layout size={14} className="text-gold" />
-          <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Módulos del Panel</h2>
-        </div>
-        <div className="px-5 py-5">
-          <p className="text-[#555555] text-xs mb-4">
-            Seleccioná qué secciones se muestran en la barra lateral del panel de administración.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {NAV_MODULES.map(({ slug, label }) => {
-              const enabled = navModules.includes(slug)
-              return (
-                <label
-                  key={slug}
-                  className="flex items-center gap-3 cursor-pointer group select-none"
-                >
-                  <input
-                    type="checkbox"
-                    checked={enabled}
-                    onChange={() => toggleNavModule(slug)}
-                    className="w-4 h-4 accent-gold cursor-pointer"
-                  />
-                  <span className={`text-sm transition-colors ${enabled ? 'text-white' : 'text-[#555]'}`}>
-                    {label}
-                  </span>
-                </label>
-              )
-            })}
           </div>
         </div>
       </section>

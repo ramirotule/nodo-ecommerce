@@ -3,14 +3,24 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useDolar } from "@/context/DolarContext";
 import { calculateInstallment, formatPrice } from "@/lib/price-utils";
-import { SITE_CONFIG } from "@/constants/site";
 
-export default function CartDrawer() {
+interface Props {
+  freeShippingFrom?: number
+}
+
+export default function CartDrawer({ freeShippingFrom }: Props) {
   const { items, count, total, drawerOpen, closeDrawer, removeItem, updateCantidad } =
     useCart();
+  const { rate } = useDolar();
+
+  function toARS(usd: number) {
+    return rate ? usd * rate : usd;
+  }
 
   // Lock body scroll when open
   useEffect(() => {
@@ -62,22 +72,22 @@ export default function CartDrawer() {
         </div>
 
         {/* Shipping Progress Bar */}
-        {count > 0 && (
+        {count > 0 && freeShippingFrom && freeShippingFrom > 0 && (
           <div className="px-5 py-3 bg-[#111111] border-b border-luxury-gray">
             <div className="flex justify-between items-center mb-1.5">
               <span className="text-[10px] uppercase tracking-widest text-luxury-gray-light">
-                {total >= SITE_CONFIG.shipping.freeThreshold 
-                  ? "¡Tenés envío gratis!" 
-                  : `Te faltan ${formatPrice(SITE_CONFIG.shipping.freeThreshold - total)} para el envío gratis`}
+                {toARS(total) >= freeShippingFrom
+                  ? "¡Tenés envío gratis!"
+                  : `Te faltan ${formatPrice(freeShippingFrom - toARS(total))} para el envío gratis`}
               </span>
               <span className="text-[10px] font-bold text-gold">
-                {Math.min(100, Math.round((total / SITE_CONFIG.shipping.freeThreshold) * 100))}%
+                {Math.min(100, Math.round((toARS(total) / freeShippingFrom) * 100))}%
               </span>
             </div>
             <div className="h-1 w-full bg-luxury-gray rounded-full overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-gold transition-all duration-500 ease-out"
-                style={{ width: `${Math.min(100, (total / SITE_CONFIG.shipping.freeThreshold) * 100)}%` }}
+                style={{ width: `${Math.min(100, (toARS(total) / freeShippingFrom) * 100)}%` }}
               />
             </div>
           </div>
@@ -114,9 +124,7 @@ export default function CartDrawer() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#333333] text-xl">
-                        ✦
-                      </div>
+                      <NoImagePlaceholder width={64} height={64} className="w-full h-full object-cover" />
                     )}
                   </div>
 
@@ -126,7 +134,7 @@ export default function CartDrawer() {
                       {item.marca}
                     </p>
                     <div className="flex items-center gap-2">
-                      <p className="text-white text-sm font-medium leading-snug truncate">
+                      <p className="text-white text-sm font-product font-medium leading-snug truncate">
                         {item.nombre}
                       </p>
                       {item.por_pedido && (
@@ -136,11 +144,11 @@ export default function CartDrawer() {
                       )}
                     </div>
                     <p className="text-gold text-sm font-bold mt-0.5">
-                      {formatPrice(item.precio_venta)}
-                      <span className="text-[10px] ml-1 font-normal text-gray-500 italic">contado/transf.</span>
+                      {formatPrice(toARS(item.precio_venta))}
+                      <span className="text-[10px] ml-1 font-normal text-luxury-gray-light italic">contado/transf.</span>
                     </p>
-                    <p className="text-gray-500 text-[10px]">
-                      o 3 cuotas de {formatPrice(calculateInstallment(item.precio_venta))}
+                    <p className="text-luxury-gray-light text-[10px]">
+                      o 3 cuotas de {formatPrice(calculateInstallment(toARS(item.precio_venta)))}
                     </p>
 
                     {/* Quantity controls */}
@@ -166,7 +174,7 @@ export default function CartDrawer() {
                   {/* Remove */}
                   <button
                     onClick={() => removeItem(item.id)}
-                    className="text-[#333333] hover:text-red-400 transition-colors self-start mt-0.5"
+                    className="text-red-500 hover:text-red-400 transition-colors self-start mt-0.5 cursor-pointer"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -180,29 +188,29 @@ export default function CartDrawer() {
         {items.length > 0 && (
           <div className="border-t border-luxury-gray px-5 py-5 space-y-4 bg-black/40">
             <div className="space-y-1">
-              <div className="flex items-center justify-between text-[#555555] text-xs">
+              <div className="flex items-center justify-between text-luxury-gray-light text-xs">
                 <span>Precio de lista</span>
-                <span className="line-through">{formatPrice(total * 1.2236)}</span>
+                <span className="line-through">{formatPrice(toARS(total) * 1.2236)}</span>
               </div>
-              
-              <div className="flex items-center justify-between text-green-500/90 text-xs font-medium">
+
+              <div className="flex items-center justify-between text-green-400 text-xs font-medium">
                 <span>Ahorro por efectivo/transf.</span>
-                <span>-{formatPrice(total * 1.2236 - total)}</span>
+                <span>-{formatPrice(toARS(total) * 1.2236 - toARS(total))}</span>
               </div>
 
               <div className="flex items-end justify-between pt-2">
                 <div className="flex flex-col">
                   <span className="text-luxury-gray-light text-xs uppercase tracking-wider font-semibold">Total Especial</span>
-                  <span className="text-[#555555] text-[10px] italic">Efectivo / Transferencia</span>
+                  <span className="text-luxury-gray-light text-[10px] italic">Efectivo / Transferencia</span>
                 </div>
                 <span className="text-yellow-400 font-black text-3xl tracking-tighter">
-                  {formatPrice(total)}
+                  {formatPrice(toARS(total))}
                 </span>
               </div>
             </div>
 
-            <p className="text-center text-[#555555] text-[10px] bg-[#111111] py-2 border border-luxury-gray">
-              O 3 cuotas sin interés de <span className="text-white font-medium">{formatPrice(calculateInstallment(total))}</span>
+            <p className="text-center text-luxury-gray-light text-[10px] bg-[#111111] py-2 border border-luxury-gray">
+              O 3 cuotas sin interés de <span className="text-white font-medium">{formatPrice(calculateInstallment(toARS(total)))}</span>
             </p>
             <Link
               href="/checkout"
@@ -214,7 +222,7 @@ export default function CartDrawer() {
             </Link>
             <button
               onClick={closeDrawer}
-              className="w-full text-[#555555] hover:text-white text-xs py-1 transition-colors"
+              className="w-full text-luxury-gray-light hover:text-white text-xs py-1 transition-colors"
             >
               Seguir comprando
             </button>

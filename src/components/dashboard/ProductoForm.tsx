@@ -43,6 +43,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const [success, setSuccess] = useState("");
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string}[]>([]);
+  const [proveedoresDb, setProveedoresDb] = useState<{id: string, nombre: string}[]>([]);
   const [loadingSubcategorias, setLoadingSubcategorias] = useState(false);
 
   const [form, setForm] = useState({
@@ -58,9 +59,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     categoria_id: producto.categoria_id?.toString() || "",
     categoria_nombre: producto.categoria || "",
     subcategoria_id: producto.subcategoria_id?.toString() || "",
+    moneda: (producto.moneda as 'ARS' | 'USD') || 'ARS',
+    proveedor_id: producto.proveedor_id?.toString() || "",
     activo: producto.activo !== undefined ? producto.activo : true,
     destacado: producto.destacado || false,
     nuevo: producto.nuevo || false,
+    pedido: producto.pedido || false,
     meta_titulo: producto.meta_titulo || "",
     meta_descripcion: producto.meta_descripcion || "",
   });
@@ -121,6 +125,18 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     fetchSubcategorias();
   }, [form.categoria_id]);
 
+  useEffect(() => {
+    async function fetchProveedores() {
+      const { data } = await supabase
+        .from('proveedores')
+        .select('id, nombre')
+        .eq('activo', true)
+        .order('nombre')
+      setProveedoresDb(data || [])
+    }
+    fetchProveedores()
+  }, [])
+
   function update(key: string, value: string | boolean) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -144,9 +160,12 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       imagen_url: form.imagen_url.trim() || null,
       categoria_id: form.categoria_id || null,
       subcategoria_id: form.subcategoria_id || null,
+      moneda: form.moneda,
+      proveedor_id: form.proveedor_id || null,
       activo: form.activo,
       destacado: form.destacado,
       nuevo: form.nuevo,
+      pedido: form.pedido,
       meta_titulo: form.meta_titulo.trim() || null,
       meta_descripcion: form.meta_descripcion.trim() || null,
       imagenes_adicionales: form.imagenes_adicionales,
@@ -167,7 +186,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
     setSuccess(isEdit ? "Producto actualizado correctamente." : "Producto creado correctamente.");
     router.refresh();
-    setTimeout(() => router.push("/dashboard"), 1500);
+    setTimeout(() => router.back(), 1500);
   }
 
   const margen =
@@ -213,8 +232,26 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 value={form.subcategoria_id}
                 loading={loadingSubcategorias}
                 placeholder="Seleccionar subcategoría..."
-                onChange={(val) => setForm(prev => ({ ...prev, subcategoria_id: val }))}
-                options={subcategoriasDb.map((s) => ({ value: s.id, label: s.nombre }))}
+                onChange={(val) => setForm(prev => ({ ...prev, subcategoria_id: val === "__none__" ? "" : val }))}
+                options={[
+                  { value: "__none__", label: "— Sin subcategoría —" },
+                  ...subcategoriasDb.map((s) => ({ value: s.id, label: s.nombre })),
+                ]}
+              />
+            </div>
+          )}
+
+          {proveedoresDb.length > 0 && (
+            <div className="mb-4">
+              <CustomSelect
+                label="Proveedor"
+                value={form.proveedor_id}
+                placeholder="Seleccionar proveedor..."
+                onChange={(val) => setForm(prev => ({ ...prev, proveedor_id: val === "__none__" ? "" : val }))}
+                options={[
+                  { value: "__none__", label: "— Sin proveedor —" },
+                  ...proveedoresDb.map((p) => ({ value: p.id, label: p.nombre })),
+                ]}
               />
             </div>
           )}
@@ -248,12 +285,11 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
           <div>
             <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-              Descripción *
+              Descripción
             </label>
             <textarea
               value={form.descripcion}
               onChange={(e) => update("descripcion", e.target.value)}
-              required
               rows={4}
               className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
             />
@@ -466,7 +502,28 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
             </div>
             <div>
               <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Precio Venta ($) *
+                Moneda
+              </label>
+              <div className="flex gap-2">
+                {(['ARS', 'USD'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => update("moneda", m)}
+                    className={`flex-1 py-3 text-sm font-bold tracking-wider border transition-colors ${
+                      form.moneda === m
+                        ? 'bg-gold border-gold text-black'
+                        : 'bg-luxury-gray border-luxury-gray-mid text-luxury-gray-light hover:border-gold'
+                    }`}
+                  >
+                    {m === 'ARS' ? '$ Pesos' : 'US$ Dólares'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+                Precio Venta ({form.moneda === 'USD' ? 'US$' : '$'}) *
               </label>
               <input
                 type="number"
@@ -520,6 +577,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               { key: "activo", label: "Activo (visible en tienda)" },
               { key: "destacado", label: "Destacado en Home" },
               { key: "nuevo", label: "Marcar como Nuevo" },
+              { key: "pedido", label: "Se trae por pedido (48hs)" },
             ].map(({ key, label }) => (
               <label key={key} className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -586,7 +644,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
           </button>
           <button
             type="button"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.back()}
             disabled={loading}
             className="px-8 py-4 bg-transparent border border-luxury-gray-mid text-luxury-gray-light font-bold text-sm tracking-[0.2em] hover:text-white hover:border-white transition-all duration-300 disabled:opacity-50"
           >

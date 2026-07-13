@@ -3,10 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { MapPin } from "lucide-react";
+import { MapPin, Mail, Clock } from "lucide-react";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import { SITE_CONFIG } from "@/constants/site";
 import NewsletterModal from "../ui/NewsletterModal";
+
+interface ContactConfig {
+  whatsapp?: string
+  instagram?: string
+  tiktok?: string
+  facebook?: string
+  contact_address?: string
+  contact_horarios?: string
+  contact_email?: string
+}
 
 const TikTokIcon = ({ size = 16 }: { size?: number }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
@@ -14,49 +24,38 @@ const TikTokIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
-export default function Footer() {
+export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
+
+  const phone = contact.whatsapp || SITE_CONFIG.contact.phone
+  const address = contact.contact_address || SITE_CONFIG.contact.address
+  const horarios = contact.contact_horarios || ''
+  const email = contact.contact_email || SITE_CONFIG.contact.email
+  const instagram = contact.instagram || SITE_CONFIG.social.instagram
+  const tiktok = contact.tiktok || SITE_CONFIG.social.tiktok
 
   return (
     <footer className="bg-black border-t border-luxury-gray mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-          {/* Catálogo */}
-          <div>
-            <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
-              Catálogo
-            </h4>
-            <ul className="space-y-2">
-              {[
-                { label: "Fragancias", href: "/productos" },
-                { label: "Bienestar", href: "/bienestar" },
-                { label: "Aromatizantes", href: "/aromatizantes" },
-              ].map((item) => (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className="text-gray-400 text-sm hover:text-gold transition-colors"
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
           {/* Horarios */}
           <div>
             <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
-              🕒 Horarios de Atención
+              Horarios de Atención
             </h4>
-            {SITE_CONFIG.contact.phone ? (
+            {horarios ? (
+              <div className="flex items-start gap-2 text-gray-400 text-sm">
+                <Clock size={15} className="text-gold mt-0.5 shrink-0" />
+                <p className="whitespace-pre-line">{horarios}</p>
+              </div>
+            ) : phone ? (
               <a
-                href={`https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent("Hola, me interesa saber los días y horarios de atención.")}`}
+                href={`https://wa.me/${phone}?text=${encodeURIComponent("Hola, me interesa saber los días y horarios de atención.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-gray-400 text-sm hover:text-gold transition-colors duration-200 underline underline-offset-2"
               >
-                Consultanos por privado
+                Consultanos por WhatsApp
               </a>
             ) : null}
           </div>
@@ -67,52 +66,56 @@ export default function Footer() {
               Contacto & Ubicación
             </h4>
             <div className="space-y-3">
-              {SITE_CONFIG.contact.address && (
+              {address && (
                 <div className="flex items-start gap-2">
                   <MapPin size={16} className="text-gold mt-0.5 shrink-0" />
-                  <p className="text-gray-500 text-sm">{SITE_CONFIG.contact.address}</p>
+                  <p className="text-gray-500 text-sm">{address}</p>
                 </div>
               )}
 
-              {SITE_CONFIG.contact.phone && (
+              {email && (
                 <a
-                  href={`https://wa.me/${SITE_CONFIG.contact.phone}`}
+                  href={`mailto:${email}`}
+                  className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
+                >
+                  <Mail size={15} className="text-gold shrink-0" />
+                  {email}
+                </a>
+              )}
+
+              {phone && (
+                <a
+                  href={`https://wa.me/${phone}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
                 >
-                  <img
-                    src="/what.png"
-                    alt="WhatsApp"
-                    className="w-4 h-4 rounded-full object-cover"
-                  />
-                  {SITE_CONFIG.contact.phoneDisplay}
+                  <img src="/what.png" alt="WhatsApp" className="w-4 h-4 rounded-full object-cover" />
+                  {phone}
                 </a>
               )}
 
-              {SITE_CONFIG.social.instagram && (
+              {instagram && (
                 <a
-                  href={SITE_CONFIG.social.instagram}
+                  href={instagram}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
                 >
                   <InstagramIcon size={16} className="text-gold" />
-                  {SITE_CONFIG.social.instagram.replace("https://www.instagram.com/", "@").replace(/\/$/, "")}
+                  {instagram.replace("https://www.instagram.com/", "@").replace(/\/$/, "")}
                 </a>
               )}
 
-              {SITE_CONFIG.social.tiktok && (
+              {tiktok && (
                 <a
-                  href={SITE_CONFIG.social.tiktok}
+                  href={tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-gray-500 hover:text-gold transition-colors text-sm"
                 >
-                  <span className="text-gold">
-                    <TikTokIcon size={16} />
-                  </span>
-                  {SITE_CONFIG.social.tiktok.replace("https://www.tiktok.com/", "")}
+                  <span className="text-gold"><TikTokIcon size={16} /></span>
+                  {tiktok.replace("https://www.tiktok.com/", "")}
                 </a>
               )}
             </div>
@@ -140,8 +143,7 @@ export default function Footer() {
         {/* Divider */}
         <div className="border-t border-luxury-gray mt-12 pt-8 flex flex-col items-center gap-3 text-center">
           <p className="text-luxury-gray-light text-xs font-bold tracking-wider uppercase">
-            © {new Date().getFullYear()} {SITE_CONFIG.name} — Todos los
-            derechos reservados.
+            © {new Date().getFullYear()} {SITE_CONFIG.name} — Todos los derechos reservados.
           </p>
           <p className="text-gray-400 text-xs">
             Página web desarrollada por{" "}

@@ -3,19 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Great_Vibes, Cinzel } from "next/font/google";
-import { createClient } from "@/lib/supabase/client";
-
-const greatVibes = Great_Vibes({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const cinzel = Cinzel({
-  subsets: ["latin"],
-  display: "swap",
-});
 
 interface Slide {
   imagen_url: string;
@@ -29,31 +16,15 @@ const DEFAULT_SLIDES: Slide[] = [
   { imagen_url: "/slide/2.jpeg", titulo: null, subtitulo: null, href: null },
 ];
 
-export default function HeroSlider() {
-  const [slides, setSlides] = useState<Slide[]>(DEFAULT_SLIDES);
+interface Props {
+  initialSlides?: Slide[];
+}
+
+export default function HeroSlider({ initialSlides }: Props) {
+  const [slides] = useState<Slide[]>(initialSlides ?? DEFAULT_SLIDES);
   const [current, setCurrent] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase
-      .from("configuracion")
-      .select("valor")
-      .eq("clave", "hero_slides")
-      .single()
-      .then(({ data, error }) => {
-        if (error || !data?.valor) return;
-        try {
-          const parsed: Slide[] = JSON.parse(data.valor);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setSlides(parsed);
-          }
-        } catch {
-          // keep defaults
-        }
-      });
-  }, []);
 
   const total = slides.length;
 

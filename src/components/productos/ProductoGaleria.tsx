@@ -39,7 +39,7 @@ export default function ProductoGaleria({
   return (
     <div className="flex flex-col gap-3">
       {/* Imagen principal */}
-      <div className="relative aspect-square bg-luxury-black border border-luxury-gray overflow-hidden group">
+      <div className="product-image-frame relative aspect-square bg-luxury-black border border-luxury-gray-mid overflow-hidden group">
         <Image
           src={todas[current]}
           alt={`${nombre} ${marca}`}
@@ -64,14 +64,14 @@ export default function ProductoGaleria({
             <button
               onClick={prev}
               aria-label="Imagen anterior"
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 text-white hover:text-gold transition-colors opacity-0 group-hover:opacity-100"
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-luxury-black border border-luxury-gray text-luxury-gray-light hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100"
             >
               <ChevronLeft size={20} />
             </button>
             <button
               onClick={next}
               aria-label="Imagen siguiente"
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 text-white hover:text-gold transition-colors opacity-0 group-hover:opacity-100"
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-luxury-black border border-luxury-gray text-luxury-gray-light hover:text-gold hover:border-gold transition-colors opacity-0 group-hover:opacity-100"
             >
               <ChevronRight size={20} />
             </button>
@@ -86,7 +86,7 @@ export default function ProductoGaleria({
             <button
               key={i}
               onClick={() => setCurrent(i)}
-              className={`shrink-0 w-16 h-16 border transition-all overflow-hidden bg-luxury-black ${
+              className={`product-image-frame shrink-0 w-16 h-16 border transition-all overflow-hidden bg-luxury-black ${
                 i === current
                   ? "border-gold"
                   : "border-luxury-gray hover:border-[#555]"

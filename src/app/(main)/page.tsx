@@ -5,6 +5,8 @@ import ProductoGrid from "@/components/productos/ProductoGrid";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import { MapPin, ChevronRight, Award } from "lucide-react";
 import HeroSlider from "@/components/home/HeroSlider";
+import MarcasCarousel from "@/components/home/MarcasCarousel";
+import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
 
 async function getProductosDestacados(): Promise<Producto[]> {
   try {
@@ -38,21 +40,53 @@ async function getProductosNuevos(): Promise<Producto[]> {
   }
 }
 
+async function getHeroSlides() {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("configuracion")
+      .select("valor")
+      .eq("clave", "hero_slides")
+      .single();
+    if (!data?.valor) return null;
+    const parsed = JSON.parse(data.valor);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+async function getMarcas() {
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("marcas")
+      .select("id, nombre, logo_url")
+      .eq("activo", true)
+      .order("nombre", { ascending: true });
+    return data ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function HomePage() {
-  const [destacados, nuevos] = await Promise.all([
+  const [destacados, nuevos, marcas, siteConfig, heroSlides] = await Promise.all([
     getProductosDestacados(),
     getProductosNuevos(),
+    getMarcas(),
+    getSiteConfig(),
+    getHeroSlides(),
   ]);
 
   return (
     <>
       {/* HERO */}
-      <HeroSlider />
+      <HeroSlider initialSlides={heroSlides ?? undefined} />
 
       {/* NOVEDADES */}
       {nuevos.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <section className="w-full px-4 sm:px-6 lg:px-8 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
               <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
@@ -69,13 +103,13 @@ export default async function HomePage() {
               Ver todos <ChevronRight size={16} />
             </Link>
           </div>
-          <ProductoGrid productos={nuevos} />
+          <ProductoGrid productos={nuevos} dolarEnabled={siteConfig.feature_precios_usd} showViewToggle={false} />
         </section>
       )}
 
       {/* DESTACADOS */}
       {destacados.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+        <section className="w-full px-4 sm:px-6 lg:px-8 py-20">
           <div className="flex items-center justify-between mb-10">
             <div>
               <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
@@ -92,8 +126,13 @@ export default async function HomePage() {
               Ver todos <ChevronRight size={16} />
             </Link>
           </div>
-          <ProductoGrid productos={destacados} />
+          <ProductoGrid productos={destacados} dolarEnabled={siteConfig.feature_precios_usd} showViewToggle={false} />
         </section>
+      )}
+
+      {/* MARCAS */}
+      {siteConfig.feature_marcas_carousel && marcas.length > 0 && (
+        <MarcasCarousel marcas={marcas} />
       )}
     </>
   );

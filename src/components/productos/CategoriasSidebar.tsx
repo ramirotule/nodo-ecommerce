@@ -14,15 +14,6 @@ export default function CategoriasSidebar() {
         </h3>
       </div>
 
-      {/* Banner decorativo */}
-      <div className="p-6 bg-gradient-to-b from-[#111111] to-black border border-luxury-gray text-center">
-        <p className="text-[10px] text-gold tracking-[0.2em] uppercase mb-2 font-bold">
-          Calidad Premium
-        </p>
-        <p className="text-[9px] text-[#666666] leading-relaxed uppercase tracking-widest">
-          Todos nuestros productos son seleccionados cuidadosamente para garantizar la mejor experiencia.
-        </p>
-      </div>
     </div>
   );
 }

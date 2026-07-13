@@ -15,17 +15,17 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/login");
+  if (!user) redirect("/admin");
 
   const { data: perfil } = await supabase
     .from("perfiles")
-    .select("rol")
+    .select("rol, preferred_theme")
     .eq("id", user.id)
     .single();
 
   if (!perfil || perfil.rol !== "admin") {
     await supabase.auth.signOut();
-    redirect("/login");
+    redirect("/admin");
   }
 
   const { data: configRow } = await supabase
@@ -45,8 +45,10 @@ export default async function DashboardLayout({
     enabledModules = [];
   }
 
+  const preferredTheme = (perfil?.preferred_theme ?? 'dark') as 'dark' | 'light';
+
   return (
-    <DashboardShell user={user} nombreCompleto={nombreCompleto} enabledModules={enabledModules}>
+    <DashboardShell user={user} nombreCompleto={nombreCompleto} enabledModules={enabledModules} preferredTheme={preferredTheme}>
       {children}
     </DashboardShell>
   );

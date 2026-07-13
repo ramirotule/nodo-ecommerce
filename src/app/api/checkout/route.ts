@@ -19,7 +19,9 @@ interface CheckoutBody {
   email?: string;
   direccion?: string;
   notas?: string;
-  metodo_pago: "efectivo" | "transferencia" | "mercadopago";
+  metodo_pago: "efectivo" | "transferencia" | "getnet";
+  cuotas?: number;
+  total?: number;
 }
 
 function getSupabase() {
@@ -41,13 +43,18 @@ function generarNumeroPedido(): string {
 export async function POST(req: NextRequest) {
   try {
     const body: CheckoutBody = await req.json();
-    const { items, nombre, apellido, telefono, email, direccion, notas, metodo_pago } = body;
+    const { items, nombre, apellido, telefono, email, direccion, notas, metodo_pago, cuotas, total } = body;
 
     if (!items?.length || !nombre?.trim() || !apellido?.trim() || !telefono?.trim() || !metodo_pago) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
     }
 
+    if (metodo_pago === "getnet" && !cuotas) {
+      return NextResponse.json({ error: "Seleccioná la cantidad de cuotas" }, { status: 400 });
+    }
+
     const subtotal = items.reduce((s, i) => s + i.precio_venta * i.cantidad, 0);
+    const finalTotal = total ?? subtotal;
     const supabase = getSupabase();
 
     const { data: pedido, error } = await supabase
@@ -70,8 +77,9 @@ export async function POST(req: NextRequest) {
           cantidad: i.cantidad,
         })),
         subtotal,
-        total: subtotal,
+        total: finalTotal,
         metodo_pago,
+        cuotas: cuotas ?? null,
         estado: "pendiente",
       })
       .select()
@@ -89,61 +97,113 @@ export async function POST(req: NextRequest) {
     }
 
     const orderId = pedido.id as string;
-    const baseUrl = req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const baseUrl =
+      req.headers.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-    // --- MercadoPago ---
-    if (metodo_pago === "mercadopago") {
-      const mpToken = process.env.MP_ACCESS_TOKEN;
-      if (!mpToken) {
-        return NextResponse.json({ error: "MercadoPago no está configurado aún." }, { status: 500 });
+    // --- Getnet ---
+    if (metodo_pago === "getnet") {
+      const getnetApiUrl = process.env.GETNET_API_URL;
+      const getnetClientId = process.env.GETNET_CLIENT_ID;
+      const getnetClientSecret = process.env.GETNET_CLIENT_SECRET;
+      const getnetSellerId = process.env.GETNET_SELLER_ID;
+
+      if (!getnetApiUrl || !getnetClientId || !getnetClientSecret || !getnetSellerId) {
+        console.error("[checkout] Getnet env vars not configured");
+        return NextResponse.json(
+          { error: "El pago con tarjeta no está disponible en este momento." },
+          { status: 500 }
+        );
       }
 
-      const mpRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${mpToken}`,
-        },
-        body: JSON.stringify({
-          items: items.map((i) => ({
-            id: i.id,
-            title: `${i.nombre} — ${i.marca}`,
-            quantity: i.cantidad,
-            unit_price: i.precio_venta,
-            currency_id: "ARS",
-          })),
-          payer: {
-            name: nombre,
-            surname: apellido,
-            email: email || "comprador@mitienda.com",
+      try {
+        // Step 1: get OAuth token
+        const tokenRes = await fetch(`${getnetApiUrl}/v1/oauth/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            Authorization: `Basic ${Buffer.from(`${getnetClientId}:${getnetClientSecret}`).toString("base64")}`,
           },
-          back_urls: {
-            success: `${baseUrl}/checkout/confirmacion?id=${orderId}&mp=success`,
-            failure: `${baseUrl}/checkout?error=pago_fallido`,
-            pending: `${baseUrl}/checkout/confirmacion?id=${orderId}&mp=pending`,
-          },
-          auto_return: "approved",
-          external_reference: orderId,
-          statement_descriptor: "Mi Tienda",
-        }),
-      });
+          body: new URLSearchParams({
+            grant_type: "client_credentials",
+            scope: "oob",
+          }),
+        });
 
-      if (!mpRes.ok) {
-        const errText = await mpRes.text();
-        console.error("[checkout] MP error:", errText);
-        return NextResponse.json({ error: "Error al crear el pago en MercadoPago" }, { status: 502 });
+        if (!tokenRes.ok) {
+          const errText = await tokenRes.text();
+          console.error("[checkout] Getnet token error:", errText);
+          return NextResponse.json(
+            { error: "Error al conectar con Getnet. Intentá nuevamente." },
+            { status: 502 }
+          );
+        }
+
+        const { access_token } = await tokenRes.json();
+
+        // Step 2: create payment link
+        const amountCents = Math.round(finalTotal * 100);
+        const paymentRes = await fetch(`${getnetApiUrl}/v1/seller/${getnetSellerId}/paymentlink`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${access_token}`,
+          },
+          body: JSON.stringify({
+            amount: amountCents,
+            currency: "BRL", // Getnet Argentina uses ARS — update if needed
+            order_id: orderId,
+            customer: {
+              first_name: nombre.trim(),
+              last_name: apellido.trim(),
+              email: email?.trim() || "comprador@mitienda.com",
+              phone_number: telefono.trim(),
+            },
+            items: items.map((i) => ({
+              name: `${i.nombre} — ${i.marca}`,
+              quantity: i.cantidad,
+              amount: Math.round(i.precio_venta * 100),
+            })),
+            back_url: `${baseUrl}/checkout/confirmacion?id=${orderId}`,
+            cancel_url: `${baseUrl}/checkout?error=pago_fallido`,
+          }),
+        });
+
+        if (!paymentRes.ok) {
+          const errText = await paymentRes.text();
+          console.error("[checkout] Getnet payment link error:", errText);
+          return NextResponse.json(
+            { error: "Error al generar el link de pago. Intentá nuevamente." },
+            { status: 502 }
+          );
+        }
+
+        const paymentData = await paymentRes.json();
+        const paymentUrl: string = paymentData.payment_url ?? paymentData.url ?? paymentData.link;
+
+        if (!paymentUrl) {
+          console.error("[checkout] Getnet: no payment URL in response", paymentData);
+          return NextResponse.json(
+            { error: "No se pudo obtener el link de pago." },
+            { status: 502 }
+          );
+        }
+
+        await supabase
+          .from("pedidos")
+          .update({ getnet_payment_id: paymentData.payment_id ?? paymentData.id ?? null })
+          .eq("id", orderId);
+
+        return NextResponse.json({ orderId, redirectUrl: paymentUrl });
+      } catch (err) {
+        console.error("[checkout] Getnet unexpected error:", err);
+        return NextResponse.json(
+          { error: "Error al procesar el pago con Getnet." },
+          { status: 500 }
+        );
       }
-
-      const mpData = await mpRes.json();
-      const initPoint: string =
-        process.env.NODE_ENV === "production" ? mpData.init_point : mpData.sandbox_init_point;
-
-      await supabase.from("pedidos").update({ mp_preference_id: mpData.id }).eq("id", orderId);
-
-      return NextResponse.json({ orderId, redirectUrl: initPoint });
     }
 
-    // Efectivo o transferencia
+    // Efectivo or transferencia → confirm page
     return NextResponse.json({
       orderId,
       redirectUrl: `${baseUrl}/checkout/confirmacion?id=${orderId}`,

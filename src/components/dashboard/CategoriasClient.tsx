@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Pencil, Trash2, Check, X, Layers, Tag, ChevronRight, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X, Layers, Tag, ChevronRight, AlertTriangle, GripVertical, ArrowUpAZ } from "lucide-react";
 
 interface Categoria {
   id: string;
@@ -12,6 +12,7 @@ interface Categoria {
   orden: number;
   color: string | null;
   icon: string | null;
+  activo: boolean;
 }
 
 interface Subcategoria {
@@ -41,8 +42,18 @@ function slugify(text: string) {
 
 export default function CategoriasClient({ categorias: initialCats, subcategorias: initialSubs }: Props) {
   const router = useRouter();
-  const [categorias, setCategorias] = useState<Categoria[]>(initialCats);
-  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>(initialSubs);
+  const [categorias, setCategorias] = useState<Categoria[]>(
+    [...initialCats].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  );
+  const [subcategorias, setSubcategorias] = useState<Subcategoria[]>(
+    [...initialSubs].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  );
+
+  const dragSrcIdx = useRef<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const dragSubSrcIdx = useRef<number | null>(null);
+  const [dragSubOverIdx, setDragSubOverIdx] = useState<number | null>(null);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(initialCats[0]?.id ?? null);
 
   const [newCatName, setNewCatName] = useState("");
@@ -183,6 +194,109 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
     setSubcategorias((prev) => prev.map((s) => s.id === sub.id ? { ...s, activo: !s.activo } : s));
   }
 
+  // ===================== DRAG & DROP (categorías) =====================
+
+  function handleDragStart(e: React.DragEvent, i: number) {
+    dragSrcIdx.current = i;
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    setDragOverIdx(i);
+  }
+
+  async function handleToggleCatActivo(cat: Categoria) {
+    const { error: err } = await supabase.from("categorias").update({ activo: !cat.activo }).eq("id", cat.id);
+    if (err) { setError(err.message); return; }
+    setCategorias((prev) => prev.map((c) => c.id === cat.id ? { ...c, activo: !c.activo } : c));
+  }
+
+  async function handleSortAlpha() {
+    const sorted = [...categorias].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    setCategorias(sorted);
+    await Promise.all(
+      sorted.map((cat, idx) =>
+        supabase.from("categorias").update({ orden: idx + 1 }).eq("id", cat.id)
+      )
+    );
+    router.refresh();
+  }
+
+  async function handleDragEnd() {
+    const src = dragSrcIdx.current;
+    const dst = dragOverIdx;
+    dragSrcIdx.current = null;
+    setDragOverIdx(null);
+    if (src === null || dst === null || src === dst) return;
+
+    const reordered = [...categorias];
+    const [moved] = reordered.splice(src, 1);
+    reordered.splice(dst, 0, moved);
+    setCategorias(reordered);
+
+    await Promise.all(
+      reordered.map((cat, idx) =>
+        supabase.from("categorias").update({ orden: idx + 1 }).eq("id", cat.id)
+      )
+    );
+    router.refresh();
+  }
+
+  // ===================== DRAG & DROP (subcategorías) =====================
+
+  function handleSubDragStart(e: React.DragEvent, i: number) {
+    dragSubSrcIdx.current = i;
+    e.dataTransfer.effectAllowed = "move";
+  }
+
+  function handleSubDragOver(e: React.DragEvent, i: number) {
+    e.preventDefault();
+    setDragSubOverIdx(i);
+  }
+
+  async function handleSortSubAlpha() {
+    if (!selectedCatId) return;
+    const currentSubs = subcategorias.filter((s) => s.categoria_id === selectedCatId);
+    const sorted = [...currentSubs].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    setSubcategorias((prev) => [
+      ...prev.filter((s) => s.categoria_id !== selectedCatId),
+      ...sorted,
+    ]);
+    await Promise.all(
+      sorted.map((sub, idx) =>
+        supabase.from("subcategorias").update({ orden: idx + 1 }).eq("id", sub.id)
+      )
+    );
+    router.refresh();
+  }
+
+  async function handleSubDragEnd() {
+    const src = dragSubSrcIdx.current;
+    const dst = dragSubOverIdx;
+    dragSubSrcIdx.current = null;
+    setDragSubOverIdx(null);
+    if (src === null || dst === null || src === dst) return;
+
+    const currentSubs = subcategorias.filter((s) => s.categoria_id === selectedCatId);
+    const reordered = [...currentSubs];
+    const [moved] = reordered.splice(src, 1);
+    reordered.splice(dst, 0, moved);
+
+    // Merge reordered subs back into the full subcategorias array
+    setSubcategorias((prev) => [
+      ...prev.filter((s) => s.categoria_id !== selectedCatId),
+      ...reordered,
+    ]);
+
+    await Promise.all(
+      reordered.map((sub, idx) =>
+        supabase.from("subcategorias").update({ orden: idx + 1 }).eq("id", sub.id)
+      )
+    );
+    router.refresh();
+  }
+
   return (
     <>
     <div className="max-w-5xl mx-auto space-y-6">
@@ -206,7 +320,15 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
         <div className="bg-luxury-black border border-luxury-gray">
           <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
             <Layers size={14} className="text-gold" />
-            <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Categorías</h2>
+            <h2 className="text-gold text-xs tracking-[0.2em] uppercase flex-1">Categorías</h2>
+            <button
+              onClick={handleSortAlpha}
+              title="Ordenar A-Z y guardar"
+              className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-[#555] hover:text-gold transition-colors px-2 py-1 border border-transparent hover:border-luxury-gray-mid"
+            >
+              <ArrowUpAZ size={13} />
+              A-Z
+            </button>
           </div>
 
           <div className="px-5 py-4 border-b border-luxury-gray space-y-2">
@@ -253,17 +375,21 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
             {categorias.length === 0 && (
               <li className="px-5 py-6 text-[#333] text-xs italic text-center">No hay categorías todavía.</li>
             )}
-            {categorias.map((cat) => {
+            {categorias.map((cat, index) => {
               const subCount = subcategorias.filter((s) => s.categoria_id === cat.id).length;
               const isSelected = cat.id === selectedCatId;
               const isEditing = editingCatId === cat.id;
               return (
                 <li
                   key={cat.id}
+                  draggable={!isEditing}
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
                   onClick={() => !isEditing && setSelectedCatId(cat.id)}
                   className={`px-5 py-3 flex items-center gap-3 cursor-pointer transition-colors group ${
                     isSelected ? "bg-gold/5 border-l-2 border-gold" : "hover:bg-[#111] border-l-2 border-transparent"
-                  }`}
+                  } ${dragOverIdx === index ? "border-gold opacity-70" : ""}`}
                 >
                   {isEditing ? (
                     <div className="flex-1 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -301,21 +427,27 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                     </div>
                   ) : (
                     <>
-                      {cat.color && (
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0 border border-luxury-gray-mid"
-                          style={{ backgroundColor: cat.color }}
-                          title={cat.color}
-                        />
-                      )}
+                      <GripVertical size={14} className="text-[#333] shrink-0 cursor-grab active:cursor-grabbing" />
+                      <div
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: 'var(--color-gold)' }}
+                      />
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${isSelected ? "text-gold" : "text-white"}`}>
+                        <p className={`text-sm font-medium truncate ${isSelected ? "text-gold" : cat.activo ? "text-white" : "text-[#444] line-through"}`}>
                           {cat.icon && <span className="mr-1 text-[#555] text-xs">{cat.icon}</span>}
                           {cat.nombre}
                         </p>
                         <p className="text-[#444] text-[10px] mt-0.5">{subCount} subcategoría{subCount !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleToggleCatActivo(cat)}
+                          className={`px-2 py-1 text-[10px] uppercase tracking-widest font-bold border transition-colors ${
+                            cat.activo ? "border-green-500/30 text-green-500 hover:bg-green-500/10" : "border-[#333] text-[#555] hover:text-white"
+                          }`}
+                        >
+                          {cat.activo ? "ON" : "OFF"}
+                        </button>
                         <button onClick={() => { setEditingCatId(cat.id); setEditCatName(cat.nombre); setEditCatColor(cat.color ?? '#D4AF37'); setEditCatIcon(cat.icon ?? ''); }} className="p-1.5 text-[#555] hover:text-gold transition-colors"><Pencil size={13} /></button>
                         <button onClick={() => handleDeleteCat(cat.id)} className="p-1.5 text-[#555] hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
                       </div>
@@ -332,10 +464,20 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
         <div className="bg-luxury-black border border-luxury-gray">
           <div className="px-5 py-4 border-b border-luxury-gray flex items-center gap-2">
             <Tag size={14} className="text-gold" />
-            <h2 className="text-gold text-xs tracking-[0.2em] uppercase">
+            <h2 className="text-gold text-xs tracking-[0.2em] uppercase flex-1">
               Subcategorías
               {selectedCat && <span className="ml-2 text-[#555] normal-case font-normal">— {selectedCat.nombre}</span>}
             </h2>
+            {selectedCatId && (
+              <button
+                onClick={handleSortSubAlpha}
+                title="Ordenar A-Z y guardar"
+                className="flex items-center gap-1 text-[10px] uppercase tracking-widest text-[#555] hover:text-gold transition-colors px-2 py-1 border border-transparent hover:border-luxury-gray-mid"
+              >
+                <ArrowUpAZ size={13} />
+                A-Z
+              </button>
+            )}
           </div>
 
           <div className="px-5 py-4 border-b border-luxury-gray">
@@ -366,10 +508,19 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
             {selectedCatId && subsForSelected.length === 0 && (
               <li className="px-5 py-6 text-[#333] text-xs italic text-center">No hay subcategorías para esta categoría.</li>
             )}
-            {subsForSelected.map((sub) => {
+            {subsForSelected.map((sub, subIndex) => {
               const isEditing = editingSubId === sub.id;
               return (
-                <li key={sub.id} className="px-5 py-3 flex items-center gap-3 group hover:bg-[#111] transition-colors">
+                <li
+                  key={sub.id}
+                  draggable={!isEditing}
+                  onDragStart={(e) => handleSubDragStart(e, subIndex)}
+                  onDragOver={(e) => handleSubDragOver(e, subIndex)}
+                  onDragEnd={handleSubDragEnd}
+                  className={`px-5 py-3 flex items-center gap-3 group hover:bg-[#111] transition-colors ${
+                    dragSubOverIdx === subIndex ? "border-l-2 border-gold opacity-70" : ""
+                  }`}
+                >
                   {isEditing ? (
                     <div className="flex-1 flex items-center gap-2">
                       <input
@@ -388,6 +539,7 @@ export default function CategoriasClient({ categorias: initialCats, subcategoria
                     </div>
                   ) : (
                     <>
+                      <GripVertical size={14} className="text-[#333] shrink-0 cursor-grab active:cursor-grabbing" />
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm truncate ${sub.activo ? "text-white" : "text-[#444] line-through"}`}>{sub.nombre}</p>
                         <p className="text-[#444] text-[10px] mt-0.5">{sub.slug}</p>

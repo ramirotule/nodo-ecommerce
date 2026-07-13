@@ -7,19 +7,23 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   Package,
-  Building2,
   UserCircle,
   LogOut,
   Menu,
   X,
   ShoppingBag,
   Bell,
-  Trash2,
   ChevronRight,
   Globe,
   Layers,
   GalleryHorizontal,
+  Images,
   Palette,
+  Tag,
+  Sun,
+  Moon,
+  Settings,
+  Truck,
 } from "lucide-react";
 
 const NAV = [
@@ -34,9 +38,16 @@ const NAV = [
       p.startsWith("/dashboard/editar"),
   },
   {
+    slug: "imagenes",
+    href: "/dashboard/imagenes",
+    label: "Imágenes",
+    icon: Images,
+    match: (p: string) => p.startsWith("/dashboard/imagenes"),
+  },
+  {
     slug: "carrousel",
     href: "/dashboard/carrousel",
-    label: "Carrusel",
+    label: "Carrousel",
     icon: GalleryHorizontal,
     match: (p: string) => p.startsWith("/dashboard/carrousel"),
   },
@@ -55,18 +66,25 @@ const NAV = [
     match: (p: string) => p.startsWith("/dashboard/categorias"),
   },
   {
-    slug: "datos-bancarios",
-    href: "/dashboard/datos-bancarios",
-    label: "Datos Bancarios",
-    icon: Building2,
-    match: (p: string) => p.startsWith("/dashboard/datos-bancarios"),
+    slug: "marcas",
+    href: "/dashboard/marcas",
+    label: "Marcas",
+    icon: Tag,
+    match: (p: string) => p.startsWith("/dashboard/marcas"),
   },
   {
-    slug: "mis-datos",
-    href: "/dashboard/mis-datos",
-    label: "Mis Datos",
-    icon: UserCircle,
-    match: (p: string) => p.startsWith("/dashboard/mis-datos"),
+    slug: "proveedores",
+    href: "/dashboard/proveedores",
+    label: "Proveedores",
+    icon: Truck,
+    match: (p: string) => p.startsWith("/dashboard/proveedores"),
+  },
+  {
+    slug: "configuracion",
+    href: "/dashboard/configuracion",
+    label: "Configuración",
+    icon: Settings,
+    match: (p: string) => p.startsWith("/dashboard/configuracion"),
   },
   {
     slug: "tema",
@@ -82,15 +100,40 @@ interface Props {
   nombreCompleto: string;
   children: React.ReactNode;
   enabledModules?: string[];
+  preferredTheme?: 'dark' | 'light';
 }
 
-export default function DashboardShell({ user, nombreCompleto, children, enabledModules }: Props) {
+// Migrate old slugs to new consolidated 'configuracion' slug
+const SLUG_MIGRATIONS: Record<string, string> = {
+  'configuracion-sitio': 'configuracion',
+  'mis-datos': 'configuracion',
+  'datos-bancarios': 'configuracion',
+}
+
+function normalizeModules(modules: string[] | undefined): string[] | undefined {
+  if (!modules) return undefined
+  const normalized = modules.map((s) => SLUG_MIGRATIONS[s] ?? s)
+  return [...new Set(normalized)]
+}
+
+export default function DashboardShell({ user, nombreCompleto, children, enabledModules, preferredTheme = 'dark' }: Props) {
+  const resolvedModules = normalizeModules(enabledModules)
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarLightbox, setAvatarLightbox] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>(preferredTheme);
+
+  async function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    if (authUser) {
+      await supabase.from('perfiles').update({ preferred_theme: next }).eq('id', authUser.id);
+    }
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -165,7 +208,7 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Avatar + Bienvenida */}
-      <div className="px-5 pt-5 pb-4 border-b border-luxury-gray">
+      <div className="px-5 pt-5 pb-4 border-b border-luxury-gray-mid">
         <button
           type="button"
           onClick={() => avatarUrl && setAvatarLightbox(true)}
@@ -187,15 +230,15 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
         <p className="text-gold text-sm font-semibold mt-0.5 leading-tight truncate">
           {displayName}
         </p>
-        <p className="text-luxury-gray-mid text-[10px] tracking-widest uppercase mt-1">
+        <p className="text-luxury-gray-light text-[10px] tracking-widest uppercase mt-1">
           Dashboard
         </p>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {(enabledModules && enabledModules.length > 0
-          ? NAV.filter((item) => enabledModules.includes(item.slug))
+        {(resolvedModules && resolvedModules.length > 0
+          ? NAV.filter((item) => resolvedModules.includes(item.slug))
           : NAV
         ).map((item) => {
           const active = item.match(pathname);
@@ -208,7 +251,7 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
               className={`flex items-center gap-3 px-3 py-2.5 text-sm transition-all duration-150 ${
                 active
                   ? "bg-gold/10 border-l-2 border-gold text-gold pl-2.5"
-                  : "text-luxury-gray-light hover:text-white hover:bg-[#111111] border-l-2 border-transparent"
+                  : "text-luxury-gray-light hover:text-gold hover:bg-gold/5 border-l-2 border-transparent"
               }`}
             >
               <Icon size={15} />
@@ -219,8 +262,8 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
       </nav>
 
       {/* Email al pie */}
-      <div className="px-5 py-4 border-t border-luxury-gray">
-        <p className="text-[#333333] text-xs truncate">{user.email}</p>
+      <div className="px-5 py-4 border-t border-luxury-gray-mid">
+        <p className="text-luxury-gray-light text-xs truncate">{user.email}</p>
       </div>
     </div>
   );
@@ -249,9 +292,9 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
         />
       </div>
     )}
-    <div className="min-h-screen bg-[#050505] flex">
+    <div className="min-h-screen bg-luxury-black flex" data-theme={theme}>
       {/* Sidebar desktop */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 bg-black border-r border-luxury-gray fixed top-0 left-0 h-full z-30">
+      <aside className="hidden md:flex flex-col w-56 shrink-0 bg-luxury-gray border-r border-luxury-gray-mid fixed top-0 left-0 h-full z-30">
         {sidebarContent}
       </aside>
 
@@ -265,13 +308,13 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
 
       {/* Sidebar mobile panel */}
       <aside
-        className={`fixed top-0 left-0 h-full w-56 bg-black border-r border-luxury-gray z-50 md:hidden transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full w-56 bg-luxury-gray border-r border-luxury-gray-mid z-50 md:hidden transition-transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <button
           onClick={() => setSidebarOpen(false)}
-          className="absolute top-4 right-4 text-[#555555] hover:text-white"
+          className="absolute top-4 right-4 text-luxury-gray-light hover:text-gold"
         >
           <X size={18} />
         </button>
@@ -281,7 +324,7 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
       {/* Main area */}
       <div className="flex-1 flex flex-col min-w-0 md:pl-56">
         {/* Top bar (desktop + mobile) */}
-        <header className="bg-black border-b border-luxury-gray px-4 py-3 flex items-center justify-between">
+        <header className="bg-luxury-gray border-b border-luxury-gray-mid px-4 py-3 flex items-center justify-between">
           {/* Mobile: hamburger + logo */}
           <div className="flex items-center gap-3 md:hidden">
             <button
@@ -316,6 +359,16 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
                   {pendingOrders.filter(o => !dismissedIds.includes(o.id)).length}
                 </span>
               )}
+            </button>
+
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center gap-2 border border-luxury-gray-mid hover:border-gold/50 text-luxury-gray-light hover:text-gold hover:bg-gold/5 text-xs px-3 py-2 transition-all duration-200"
+              title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            >
+              {theme === 'dark' ? <Sun size={13} /> : <Moon size={13} />}
+              <span className="hidden sm:inline">{theme === 'dark' ? 'Claro' : 'Oscuro'}</span>
             </button>
 
             {/* Ver mi web */}
@@ -353,11 +406,11 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
             />
             
             <div className="absolute inset-y-0 right-0 max-w-full flex">
-              <div className="w-screen max-w-md transform transition-transform duration-300 ease-in-out bg-luxury-black border-l border-luxury-gray shadow-2xl flex flex-col">
+              <div className="w-screen max-w-md transform transition-transform duration-300 ease-in-out bg-luxury-black border-l border-luxury-gray-mid shadow-2xl flex flex-col">
                 {/* Header */}
-                <div className="px-6 py-5 border-b border-luxury-gray flex items-center justify-between bg-black">
+                <div className="px-6 py-5 border-b border-luxury-gray-mid flex items-center justify-between bg-luxury-gray">
                   <div>
-                    <h2 className="text-white font-bold text-base tracking-widest uppercase flex items-center gap-2">
+                    <h2 className="text-text font-bold text-base tracking-widest uppercase flex items-center gap-2">
                       <Bell size={18} className="text-gold" />
                       Centro de Novedades
                     </h2>
@@ -437,7 +490,7 @@ export default function DashboardShell({ user, nombreCompleto, children, enabled
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-luxury-gray bg-black">
+                <div className="p-6 border-t border-luxury-gray-mid bg-luxury-gray">
                   <button 
                     onClick={() => {
                       const allIds = pendingOrders.map(o => o.id);

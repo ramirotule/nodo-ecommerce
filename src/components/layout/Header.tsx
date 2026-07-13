@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { Search, Menu, X, ChevronDown, ShoppingBag } from "lucide-react";
+import { Search, Menu, X, ChevronDown, ShoppingBag, Sun, Moon } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useCatalogo } from "@/context/CatalogoContext";
 import { SITE_CONFIG } from "@/constants/site";
+import DolarWidget from "@/components/ui/DolarWidget";
 
 const SKINCARE_SUBITEMS: Record<string, string[]> = {
   "cuidado-facial": ["Limpieza", "Serum", "Crema", "Tratamiento", "Suncare", "Rutinas"],
@@ -51,6 +52,13 @@ interface NavCategoria {
 
 interface Props {
   navCategorias: NavCategoria[];
+  showCatalogo?: boolean;
+  showFaq?: boolean;
+  showNosotros?: boolean;
+  showQuickSearch?: boolean;
+  showDolarWidget?: boolean;
+  logoUrl?: string;
+  customerUser?: { name: string; email: string } | null;
 }
 
 const WhatsAppIcon = ({ className }: { className?: string }) => (
@@ -59,10 +67,25 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export default function Header({ navCategorias }: Props) {
+export default function Header({ navCategorias, showCatalogo = false, showFaq = true, showNosotros = true, showQuickSearch = true, showDolarWidget = false, logoUrl, customerUser }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("site-theme") as "dark" | "light" | null;
+    const initial = stored ?? (document.documentElement.getAttribute("data-theme") as "dark" | "light") ?? "dark";
+    setTheme(initial);
+    document.documentElement.setAttribute("data-theme", initial);
+  }, []);
+
+  function toggleTheme() {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("site-theme", next);
+  }
   const [, startTransition] = useTransition();
   const pathname = usePathname();
   const router = useRouter();
@@ -85,16 +108,16 @@ export default function Header({ navCategorias }: Props) {
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-luxury-gray">
       <div className="w-full px-2 sm:px-4 lg:px-6">
-        <div className="flex items-center gap-12 lg:gap-20 pt-1 pb-6 md:pt-2 md:pb-8">
+        <div className="flex items-center gap-4 lg:gap-8 pt-1 pb-6 md:pt-2 md:pb-8">
           {/* Logo */}
           <div className="shrink-0 py-2">
             <Link href="/">
               <Image
-                src="/logo2.png"
+                src={logoUrl || (theme === "light" ? "/logo_transparent_light.png" : "/logo_transparent_dark.png")}
                 alt="Logo"
                 width={300}
                 height={300}
-                className="h-20 md:h-32 lg:h-44 w-auto object-contain transition-transform hover:scale-105"
+                className="h-16 md:h-24 lg:h-32 w-auto object-contain transition-transform hover:scale-105"
                 priority
               />
             </Link>
@@ -103,49 +126,107 @@ export default function Header({ navCategorias }: Props) {
           {/* Columna derecha */}
           <div className="flex-1 flex flex-col gap-6 xl:gap-8">
             {/* Fila 1: Utilidades */}
-            <div className="hidden md:flex items-center justify-end gap-6 border-b border-luxury-gray/50 pb-4">
+            <div className="hidden md:flex items-center gap-4 border-b border-luxury-gray/50 pb-4">
+              {/* Buscador */}
+              <form onSubmit={handleSearch} className="flex-1">
+                <div className="flex items-center border border-luxury-gray-mid bg-luxury-gray/30 hover:border-gold/40 focus-within:border-gold/60 transition-colors px-3 py-1.5 gap-2">
+                  <Search size={13} className="text-luxury-gray-light shrink-0" />
+                  <input
+                    type="text"
+                    value={busqueda}
+                    onChange={(e) => setBusqueda(e.target.value)}
+                    placeholder="Buscar productos..."
+                    className="flex-1 bg-transparent text-white text-xs placeholder-[#555] focus:outline-none"
+                  />
+                </div>
+              </form>
+
+              {/* Links derecha */}
+              <div className="flex items-center gap-5 shrink-0">
               <Link
                 href={SITE_CONFIG.contact.phone ? `https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent(SITE_CONFIG.contact.emprenderMsg)}` : "#"}
                 target={SITE_CONFIG.contact.phone ? "_blank" : undefined}
                 rel="noopener noreferrer"
-                className="text-[11px] tracking-[0.2em] text-gold hover:text-white transition-colors font-bold uppercase flex items-center gap-2 group"
+                className="text-[11px] tracking-[0.2em] text-luxury-gray-light hover:text-white transition-colors font-bold uppercase flex items-center gap-2 group"
               >
                 <WhatsAppIcon className="w-3 h-3 transition-transform group-hover:scale-110" />
                 Contacto
               </Link>
+              {showCatalogo && (
+                <button
+                  onClick={openCatalogo}
+                  className="text-[11px] tracking-[0.2em] text-luxury-gray-light hover:text-white transition-colors font-bold uppercase"
+                >
+                  Catálogo
+                </button>
+              )}
+              {showNosotros && (
+                <Link
+                  href="/quienes-somos"
+                  className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/quienes-somos" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
+                >
+                  Nosotros
+                </Link>
+              )}
+              {showFaq && (
+                <Link
+                  href="/preguntas-frecuentes"
+                  className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
+                >
+                  Preguntas Frecuentes
+                </Link>
+              )}
+              {customerUser ? (
+                <Link
+                  href="/cuenta"
+                  className="text-[11px] tracking-[0.2em] text-gold hover:text-white transition-colors font-bold uppercase"
+                >
+                  Hola, {customerUser.name.split(" ")[0]}
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="text-[11px] tracking-[0.2em] text-gold hover:text-white transition-colors font-bold uppercase"
+                >
+                  Iniciar Sesión
+                </Link>
+              )}
               <button
-                onClick={openCatalogo}
-                className="text-[11px] tracking-[0.2em] text-luxury-gray-light hover:text-white transition-colors font-bold uppercase"
+                onClick={toggleTheme}
+                className="text-luxury-gray-light hover:text-gold transition-colors"
+                title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+                aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
               >
-                Catálogo
+                {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
               </button>
-              <Link
-                href="/quienes-somos"
-                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/quienes-somos" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
+              {showDolarWidget && <DolarWidget />}
+
+              {/* Carrito */}
+              <button
+                onClick={openDrawer}
+                aria-label="Ver carrito"
+                className="relative text-white hover:text-gold transition-all flex items-center gap-1.5 group"
               >
-                Nosotros
-              </Link>
-              <Link
-                href="/preguntas-frecuentes"
-                className={`text-[11px] tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-luxury-gray-light hover:text-white"}`}
-              >
-                Preguntas Frecuentes
-              </Link>
-              <Link
-                href="/login"
-                className="text-[11px] tracking-[0.2em] text-gold border border-gold/50 px-3 py-1 rounded hover:bg-gold hover:text-black transition-all font-bold uppercase"
-              >
-                Acceso Emprendedores
-              </Link>
+                <div className="relative">
+                  <ShoppingBag size={16} className="group-hover:scale-110 transition-transform" />
+                  {count > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[11px] tracking-widest font-medium uppercase">Carrito</span>
+              </button>
+              </div>
             </div>
 
             {/* Fila 2: Navegación + Acciones */}
             <div className="flex items-center justify-between">
               {/* Nav Desktop */}
-              <nav className="hidden lg:flex items-center gap-x-6 xl:gap-x-10">
+              <nav className="hidden lg:flex items-center gap-x-3 xl:gap-x-5">
                 <Link
                   href="/"
-                  className={`text-xs tracking-[0.2em] transition-colors font-bold uppercase ${pathname === "/" ? "text-gold" : "text-white hover:text-gold"}`}
+                  className={`text-xs tracking-wider transition-colors font-bold uppercase ${pathname === "/" ? "text-gold" : "text-white hover:text-gold"}`}
                 >
                   INICIO
                 </Link>
@@ -157,26 +238,19 @@ export default function Header({ navCategorias }: Props) {
                     onMouseEnter={() => setOpenDropdown(cat.id)}
                     onMouseLeave={() => setOpenDropdown(null)}
                   >
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === cat.id ? null : cat.id)}
-                      className="flex items-center gap-1.5 text-xs tracking-[0.2em] text-white hover:text-gold transition-colors font-bold uppercase"
+                    <Link
+                      href={`/productos?categoria=${cat.slug}`}
+                      className={`flex items-center gap-1 text-xs tracking-wider transition-colors font-bold uppercase ${pathname.includes(`categoria=${cat.slug}`) ? "text-gold" : "text-white hover:text-gold"}`}
                     >
                       {cat.nombre}
                       {cat.subcategorias.length > 0 && (
                         <ChevronDown size={12} className={`transition-transform ${openDropdown === cat.id ? "rotate-180" : ""}`} />
                       )}
-                    </button>
+                    </Link>
 
                     {openDropdown === cat.id && cat.subcategorias.length > 0 && (
                       <div className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 z-50 ${cat.slug === "fragancias" || cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? "w-[280px]" : "w-[200px]"}`}>
-                        <div className="bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 p-5 flex flex-col gap-2">
-                          <Link
-                            href={`/productos?categoria=${cat.slug}`}
-                            className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-2 mb-1 hover:text-gold transition-colors block"
-                          >
-                            VER TODO
-                          </Link>
-
+                        <div className="bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 p-5 flex flex-col gap-1">
                           {cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
                             cat.subcategorias.map((sub) => {
                               const subitems = MEGA_MENU_SUBITEMS[sub.slug] ?? [];
@@ -184,7 +258,7 @@ export default function Header({ navCategorias }: Props) {
                                 <div key={sub.id} className="mt-1">
                                   <Link
                                     href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                    className="block text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 mb-2 hover:text-gold transition-colors"
+                                    className="block text-white font-serif font-light text-[15px] border-b border-luxury-gray-mid pb-1 mb-2 hover:text-(--color-gold) transition-colors"
                                   >
                                     {sub.nombre}
                                   </Link>
@@ -192,7 +266,7 @@ export default function Header({ navCategorias }: Props) {
                                     <Link
                                       key={item}
                                       href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
-                                      className="block text-xs text-[#cccccc] hover:text-gold transition-colors py-1 pl-2"
+                                      className="block text-sm font-serif font-light text-[#cccccc] hover:text-gold transition-colors py-1 pl-2"
                                     >
                                       {item}
                                     </Link>
@@ -205,7 +279,7 @@ export default function Header({ navCategorias }: Props) {
                               <Link
                                 key={sub.id}
                                 href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                className="text-[#715F24] text-xs font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 hover:text-gold transition-colors block"
+                                className="text-white font-serif font-light text-[15px] border-b border-luxury-gray-mid pb-1 hover:text-(--color-gold) transition-colors block"
                               >
                                 {sub.nombre}
                               </Link>
@@ -218,38 +292,31 @@ export default function Header({ navCategorias }: Props) {
                 ))}
               </nav>
 
-              {/* Acciones */}
-              <div className="flex flex-1 justify-end items-center gap-4 xl:gap-6">
-                <button
-                  onClick={openQuickSearch}
-                  className="hidden md:flex items-center gap-2 border border-gold/40 bg-gold/5 hover:bg-gold/10 px-3 py-1.5 transition-colors group"
-                  aria-label="Búsqueda rápida"
-                >
-                  <Search size={13} className="text-gold" />
-                  <span className="text-[11px] font-mono text-luxury-gray-light group-hover:text-[#aaa] transition-colors">Búsqueda rápida</span>
-                  <kbd className="px-1.5 py-0.5 border border-gold/60 rounded text-gold bg-gold/10 text-[11px] font-mono animate-pulse shadow-[0_0_8px_rgba(212,175,55,0.3)]">
-                    ctrl+K
-                  </kbd>
-                </button>
-
+              {/* Acciones mobile */}
+              <div className="flex lg:hidden flex-1 justify-end items-center gap-4">
                 <button
                   onClick={openDrawer}
                   aria-label="Ver carrito"
-                  className="relative text-white hover:text-gold transition-all flex items-center gap-2 group p-1"
+                  className="relative text-white hover:text-gold transition-all p-1"
                 >
                   <div className="relative">
-                    <ShoppingBag size={20} className="group-hover:scale-110 transition-transform" />
+                    <ShoppingBag size={20} />
                     {count > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
                         {count > 9 ? "9+" : count}
                       </span>
                     )}
                   </div>
-                  <span className="text-[9px] tracking-widest font-medium uppercase hidden xl:inline">Carrito</span>
                 </button>
-
                 <button
-                  className="lg:hidden text-white hover:text-gold transition-colors shrink-0"
+                  onClick={toggleTheme}
+                  className="text-luxury-gray-light hover:text-gold transition-colors"
+                  aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+                >
+                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+                <button
+                  className="text-white hover:text-gold transition-colors"
                   onClick={() => setMenuOpen(!menuOpen)}
                   aria-label="Menú"
                 >
@@ -263,7 +330,7 @@ export default function Header({ navCategorias }: Props) {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden bg-luxury-black border-t border-luxury-gray px-4 py-6">
+        <div className="lg:hidden bg-luxury-black border-t border-luxury-gray px-4 py-6">
           <nav className="flex flex-col gap-4">
             <Link href="/" onClick={() => setMenuOpen(false)} className="text-sm tracking-wider text-white hover:text-gold transition-colors">
               INICIO
@@ -288,7 +355,7 @@ export default function Header({ navCategorias }: Props) {
                             <Link
                               href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
                               onClick={() => setMenuOpen(false)}
-                              className="block text-gold text-[10px] font-bold tracking-[0.2em] uppercase border-b border-luxury-gray-mid pb-1 mb-1 hover:opacity-80 transition-opacity"
+                              className="block text-white font-serif font-light text-[15px] border-b border-luxury-gray-mid pb-1 mb-1 hover:text-(--color-gold) transition-colors"
                             >
                               {sub.nombre}
                             </Link>
@@ -297,7 +364,7 @@ export default function Header({ navCategorias }: Props) {
                                 key={item}
                                 href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
                                 onClick={() => setMenuOpen(false)}
-                                className="block text-xs text-[#cccccc] hover:text-gold py-0.5 pl-2 transition-colors"
+                                className="block font-serif font-light text-sm text-[#cccccc] hover:text-gold py-0.5 pl-2 transition-colors"
                               >
                                 {item}
                               </Link>
@@ -311,7 +378,7 @@ export default function Header({ navCategorias }: Props) {
                           key={sub.id}
                           href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
                           onClick={() => setMenuOpen(false)}
-                          className="block text-xs text-[#cccccc] hover:text-gold py-1 transition-colors"
+                          className="block font-serif font-light text-[15px] text-white hover:text-(--color-gold) py-1 transition-colors"
                         >
                           {sub.nombre}
                         </Link>
@@ -322,33 +389,49 @@ export default function Header({ navCategorias }: Props) {
               </div>
             ))}
 
-            <button
-              onClick={() => { setMenuOpen(false); openCatalogo(); }}
-              className="text-sm tracking-wider text-white hover:text-gold transition-colors text-left border-t border-luxury-gray-mid pt-4"
-            >
-              CATÁLOGO
-            </button>
-            <Link
-              href="/quienes-somos"
-              onClick={() => setMenuOpen(false)}
-              className={`text-sm tracking-wider transition-colors ${pathname === "/quienes-somos" ? "text-gold" : "text-white hover:text-gold"}`}
-            >
-              NOSOTROS
-            </Link>
-            <Link
-              href="/preguntas-frecuentes"
-              onClick={() => setMenuOpen(false)}
-              className={`text-sm tracking-wider transition-colors ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-white hover:text-gold"}`}
-            >
-              FAQ
-            </Link>
-            <Link
-              href="/login"
-              onClick={() => setMenuOpen(false)}
-              className="text-sm tracking-wider text-gold font-bold transition-colors"
-            >
-              INGRESAR (EMPRENDEDORES)
-            </Link>
+            {showCatalogo && (
+              <button
+                onClick={() => { setMenuOpen(false); openCatalogo(); }}
+                className="text-sm tracking-wider text-white hover:text-gold transition-colors text-left border-t border-luxury-gray-mid pt-4"
+              >
+                CATÁLOGO
+              </button>
+            )}
+            {showNosotros && (
+              <Link
+                href="/quienes-somos"
+                onClick={() => setMenuOpen(false)}
+                className={`text-sm tracking-wider transition-colors ${pathname === "/quienes-somos" ? "text-gold" : "text-white hover:text-gold"}`}
+              >
+                NOSOTROS
+              </Link>
+            )}
+            {showFaq && (
+              <Link
+                href="/preguntas-frecuentes"
+                onClick={() => setMenuOpen(false)}
+                className={`text-sm tracking-wider transition-colors ${pathname === "/preguntas-frecuentes" ? "text-gold" : "text-white hover:text-gold"}`}
+              >
+                FAQ
+              </Link>
+            )}
+            {customerUser ? (
+              <Link
+                href="/cuenta"
+                onClick={() => setMenuOpen(false)}
+                className="text-sm tracking-wider text-gold font-bold transition-colors"
+              >
+                HOLA, {customerUser.name.split(" ")[0].toUpperCase()}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMenuOpen(false)}
+                className="text-sm tracking-wider text-gold font-bold transition-colors"
+              >
+                INICIAR SESIÓN
+              </Link>
+            )}
 
             <div className="border-t border-luxury-gray-mid pt-4">
               <form onSubmit={handleSearch} className="flex gap-2">

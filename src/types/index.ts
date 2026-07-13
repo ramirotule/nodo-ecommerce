@@ -15,9 +15,13 @@ export interface Producto {
   categorias?: { nombre: string };
   subcategoria_id?: string;
   subcategorias?: { nombre: string };
+  moneda?: 'ARS' | 'USD';
+  proveedor_id?: string;
+  proveedores?: { nombre: string };
   activo: boolean;
   destacado: boolean;
   nuevo: boolean;
+  pedido?: boolean;
   meta_titulo?: string;
   meta_descripcion?: string;
   created_at: string;

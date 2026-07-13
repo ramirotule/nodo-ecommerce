@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { X, Mail, CheckCircle2 } from "lucide-react";
 
-export default function NewsletterModal() {
+interface Props {
+  title?: string
+  body?: string
+  footer?: string
+}
+
+export default function NewsletterModal({ title, body, footer }: Props) {
   const [isVisible, setIsVisible] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [email, setEmail] = useState("");
@@ -79,11 +85,10 @@ export default function NewsletterModal() {
 
               <div className="space-y-2">
                 <h2 className="text-3xl md:text-4xl font-serif text-white tracking-tight">
-                  Unite a la <span className="text-gold">Elite</span>
+                  {title ?? 'Unite a la Elite'}
                 </h2>
                 <p className="text-zinc-400 text-sm md:text-base max-w-xs mx-auto">
-                  Suscribite para recibir lanzamientos exclusivos, ofertas
-                  privadas y novedades del mundo de la alta perfumería.
+                  {body ?? 'Suscribite para recibir lanzamientos exclusivos, ofertas privadas y novedades.'}
                 </p>
               </div>
 
@@ -107,7 +112,7 @@ export default function NewsletterModal() {
               </form>
 
               <p className="text-[10px] text-zinc-600 uppercase tracking-widest">
-                Sin spam. Solo exclusividad.
+                {footer ?? 'Sin spam. Solo exclusividad.'}
               </p>
             </div>
           ) : (

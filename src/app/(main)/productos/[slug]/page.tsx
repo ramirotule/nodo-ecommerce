@@ -9,7 +9,9 @@ import { ChevronRight, MapPin } from "lucide-react";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import AddToCartButton from "@/components/cart/AddToCartButton";
 import ProductoGaleria from "@/components/productos/ProductoGaleria";
-import { calculateListPrice, calculateInstallment, formatPrice } from "@/lib/price-utils";
+import { formatPrice } from "@/lib/price-utils";
+import PrecioDetalleBlock from "@/components/productos/PrecioDetalleBlock";
+import SimuladorCuotas from "@/components/productos/SimuladorCuotas";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -140,33 +142,17 @@ export default async function ProductoPage({ params }: Props) {
             <h1 className="font-serif text-3xl md:text-4xl text-white mb-1 leading-tight">
               {producto.nombre}
             </h1>
-            <div className="mb-8 p-6 bg-[#141414] border-l-4 border-gold flex flex-col gap-1">
-              <div className="flex flex-col">
-                <span className="text-luxury-gray-light text-xs uppercase tracking-widest mb-1">
-                  Precio de lista
-                </span>
-                <span className="text-[#cccccc] font-medium text-2xl">
-                  {formatPrice(calculateListPrice(producto.precio_venta))}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2 text-luxury-gray-light mt-1">
-                <span className="font-semibold text-lg">
-                  3 cuotas sin interés de {formatPrice(calculateInstallment(producto.precio_venta))}
-                </span>
-              </div>
+            <PrecioDetalleBlock precioVenta={producto.precio_venta} moneda={producto.moneda} />
+            <SimuladorCuotas precioVenta={producto.precio_venta} moneda={producto.moneda} />
 
-              <div className="mt-6 pt-6 border-t border-luxury-gray-mid">
-                <span className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-2">Precio Especial Contado / Transferencia</span>
-                <span className="text-white font-bold text-5xl block">
-                  {formatPrice(producto.precio_venta)}
+            {/* Stock / Disponibilidad */}
+            <div className="mb-6 flex flex-col gap-2">
+              {producto.pedido ? (
+                <span className="flex items-center gap-1.5 text-amber-400 text-sm">
+                  <span className="w-2 h-2 bg-amber-400 rounded-full" />
+                  Este producto se trae por pedido — demora 48hs.
                 </span>
-              </div>
-            </div>
-
-            {/* Stock */}
-            <div className="mb-6">
-              {producto.stock > 0 ? (
+              ) : producto.stock > 0 ? (
                 <span className="flex items-center gap-1.5 text-green-600 text-sm">
                   <span className="w-2 h-2 bg-green-600 rounded-full" />
                   En stock ({producto.stock} disponibles)
@@ -174,7 +160,7 @@ export default async function ProductoPage({ params }: Props) {
               ) : (
                 <span className="flex items-center gap-1.5 text-gray-500 text-sm">
                   <span className="w-2 h-2 bg-gray-400 rounded-full" />
-                  Sin stock — Se trae por pedido
+                  Sin stock
                 </span>
               )}
             </div>
@@ -207,14 +193,16 @@ export default async function ProductoPage({ params }: Props) {
             </div>
 
             {/* Local info */}
-            <div className="border-t border-gray-100 pt-4 flex items-start gap-2 text-gray-400 text-xs">
-              <MapPin size={12} className="mt-0.5 text-gold shrink-0" />
-              <span>
-                Disponible en tienda física
-                {" · "}
-                <span className="text-gold">Envío gratis</span>
-              </span>
-            </div>
+            {!producto.pedido && (
+              <div className="border-t border-gray-100 pt-4 flex items-start gap-2 text-gray-400 text-xs">
+                <MapPin size={12} className="mt-0.5 text-gold shrink-0" />
+                <span>
+                  Disponible en tienda física
+                  {" · "}
+                  <span className="text-gold">Envío gratis</span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

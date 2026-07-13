@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
 import { Search, X, ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatPrice } from "@/lib/price-utils";
+import { useDolar } from "@/context/DolarContext";
 import type { Producto } from "@/types";
 
 const DEBOUNCE_MS = 300;
@@ -34,6 +36,7 @@ async function searchProducts(query: string): Promise<Producto[]> {
 }
 
 export default function QuickSearchModal() {
+  const { rate: dolarRate } = useDolar();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<Producto[]>([]);
@@ -199,9 +202,7 @@ export default function QuickSearchModal() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#333]">
-                        <Search className="w-4 h-4" />
-                      </div>
+                      <NoImagePlaceholder width={48} height={48} className="w-full h-full object-cover" />
                     )}
                   </div>
 
@@ -213,9 +214,20 @@ export default function QuickSearchModal() {
 
                   {/* Price */}
                   <div className="text-right shrink-0">
-                    <p className="text-gold text-sm font-bold">
-                      {formatPrice(product.precio_venta)}
-                    </p>
+                    {dolarRate ? (
+                      <>
+                        <p className="text-gold text-sm font-bold">
+                          {formatPrice(Math.round(product.precio_venta * dolarRate))}
+                        </p>
+                        <p className="text-zinc-400 text-xs font-bold">
+                          US$ {product.precio_venta.toLocaleString('es-AR')}
+                        </p>
+                      </>
+                    ) : (
+                      <p className="text-gold text-sm font-bold">
+                        {formatPrice(product.precio_venta)}
+                      </p>
+                    )}
                   </div>
 
                   <ArrowRight className="w-3.5 h-3.5 text-[#444] shrink-0" />

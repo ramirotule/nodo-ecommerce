@@ -8,6 +8,8 @@ import { LayoutGrid, Grid3X3, Grid2X2 } from "lucide-react";
 interface Props {
   productos: Producto[];
   emptyMessage?: string;
+  dolarEnabled?: boolean;
+  showViewToggle?: boolean;
 }
 
 type ViewMode = "large" | "standard" | "compact";
@@ -17,6 +19,8 @@ const PAGE_SIZE = 24;
 export default function ProductoGrid({
   productos,
   emptyMessage = "No se encontraron productos.",
+  dolarEnabled = false,
+  showViewToggle = true,
 }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("standard");
   const [visible, setVisible] = useState(PAGE_SIZE);
@@ -45,7 +49,7 @@ export default function ProductoGrid({
   return (
     <div className="flex flex-col gap-6">
       {/* View Toggle Bar */}
-      <div className="flex justify-end items-center border-b border-luxury-gray pb-4 mb-2">
+      {showViewToggle && <div className="flex justify-end items-center border-b border-luxury-gray pb-4 mb-2">
         <div className="flex items-center bg-luxury-black p-1 rounded-lg border border-luxury-gray">
           <button
             onClick={() => setViewMode("large")}
@@ -81,7 +85,7 @@ export default function ProductoGrid({
             <Grid3X3 size={18} />
           </button>
         </div>
-      </div>
+      </div>}
 
       {/* Grid */}
       <div className={`grid transition-all duration-300 ${getGridClasses()}`}>
@@ -91,6 +95,7 @@ export default function ProductoGrid({
             producto={producto}
             isCompact={viewMode === "compact"}
             priority={i < 8}
+            dolarEnabled={dolarEnabled}
           />
         ))}
       </div>

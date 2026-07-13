@@ -1,60 +1,142 @@
 "use client";
 
-import { useState } from "react";
+export const dynamic = "force-dynamic";
+
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
+type Mode = "login" | "register";
+
 export default function LoginPage() {
+  const [mode, setMode] = useState<Mode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/cuenta";
   const supabase = createClient();
 
-  async function handleLogin(e: React.FormEvent) {
+  useEffect(() => {
+    const stored = localStorage.getItem("site-theme") as "dark" | "light" | null;
+    const t = stored ?? (document.documentElement.getAttribute("data-theme") as "dark" | "light") ?? "dark";
+    setTheme(t);
+  }, []);
+
+  function switchMode(next: Mode) {
+    setMode(next);
+    setError("");
+    setSuccess("");
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      setError("Credenciales incorrectas. Verificá tu email y contraseña.");
+    if (mode === "login") {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError("Credenciales incorrectas. Verificá tu email y contraseña.");
+        setLoading(false);
+        return;
+      }
+      router.push(redirectTo);
+      router.refresh();
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: name } },
+      });
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      setSuccess("Revisá tu email para confirmar tu cuenta.");
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
-    router.refresh();
   }
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="inline-flex items-center gap-2 text-[#555555] hover:text-gold transition-colors text-[10px] tracking-[0.2em] uppercase mb-8 group"
         >
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
           Volver a la tienda
         </Link>
 
-        <div className="text-center mb-10">
-          <span className="text-gold font-serif text-2xl tracking-[0.15em] font-bold">
-            MI TIENDA
-          </span>
-          <p className="text-[#555555] text-xs tracking-[0.3em] uppercase mt-1">Panel Admin</p>
+        <div className="flex flex-col items-center mb-10">
+          <Image
+            src={theme === "light" ? "/logo_transparent_light.png" : "/logo_transparent_dark.png"}
+            alt="Logo"
+            width={160}
+            height={80}
+            className="h-32 w-auto object-contain"
+            priority
+          />
+          <p className="text-[#555555] text-xs tracking-[0.3em] uppercase mt-2">Acceso de Clientes</p>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex border border-luxury-gray mb-0">
+          <button
+            type="button"
+            onClick={() => switchMode("login")}
+            className={`flex-1 py-3 text-xs tracking-[0.2em] uppercase font-bold transition-colors ${
+              mode === "login"
+                ? "bg-gold text-black"
+                : "bg-luxury-black text-luxury-gray-light hover:text-white"
+            }`}
+          >
+            Iniciar sesión
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("register")}
+            className={`flex-1 py-3 text-xs tracking-[0.2em] uppercase font-bold transition-colors ${
+              mode === "register"
+                ? "bg-gold text-black"
+                : "bg-luxury-black text-luxury-gray-light hover:text-white"
+            }`}
+          >
+            Crear cuenta
+          </button>
         </div>
 
         <form
-          onSubmit={handleLogin}
-          className="bg-luxury-black border border-luxury-gray p-8 space-y-5"
+          onSubmit={handleSubmit}
+          className="bg-luxury-black border border-t-0 border-luxury-gray p-8 space-y-5"
         >
-          <h1 className="text-white font-serif text-xl mb-6">Acceso Administrativo</h1>
+          {mode === "register" && (
+            <div>
+              <label className="text-luxury-gray-light text-xs tracking-widest uppercase block mb-2">
+                Nombre
+              </label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-3 focus:outline-none focus:border-gold transition-colors text-sm"
+                placeholder="Tu nombre"
+              />
+            </div>
+          )}
 
           <div>
             <label className="text-luxury-gray-light text-xs tracking-widest uppercase block mb-2">
@@ -66,7 +148,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="w-full bg-luxury-gray border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-3 focus:outline-none focus:border-gold transition-colors text-sm"
-              placeholder="admin@mitienda.com"
+              placeholder="tu@email.com"
             />
           </div>
 
@@ -100,12 +182,24 @@ export default function LoginPage() {
             </p>
           )}
 
+          {success && (
+            <p className="text-green-400 text-xs bg-green-400/10 border border-green-400/20 px-3 py-2">
+              {success}
+            </p>
+          )}
+
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-gold text-black font-bold py-3 tracking-widest text-sm uppercase hover:bg-gold-light transition-colors disabled:opacity-70"
           >
-            {loading ? "Ingresando..." : "Ingresar"}
+            {loading
+              ? mode === "login"
+                ? "Ingresando..."
+                : "Creando cuenta..."
+              : mode === "login"
+              ? "Ingresar"
+              : "Crear cuenta"}
           </button>
         </form>
       </div>

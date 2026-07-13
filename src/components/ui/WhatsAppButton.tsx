@@ -4,15 +4,17 @@ import { SITE_CONFIG } from "@/constants/site";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 
-export default function WhatsAppButton() {
+interface Props {
+  phone?: string
+}
+
+export default function WhatsAppButton({ phone }: Props) {
   const { drawerOpen } = useCart();
 
-  // No mostrar el botón cuando el carrito está abierto
-  if (drawerOpen) {
-    return null;
-  }
+  const resolvedPhone = phone || SITE_CONFIG.contact.phone
+  if (drawerOpen || !resolvedPhone) return null;
 
-  const whatsappUrl = `https://wa.me/${SITE_CONFIG.contact.phone}?text=${encodeURIComponent(SITE_CONFIG.contact.whatsappMsg)}`;
+  const whatsappUrl = `https://wa.me/${resolvedPhone}?text=${encodeURIComponent(SITE_CONFIG.contact.whatsappMsg)}`;
 
   return (
     <a

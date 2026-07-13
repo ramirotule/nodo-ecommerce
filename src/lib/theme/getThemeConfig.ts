@@ -1,10 +1,14 @@
-import { unstable_cache } from 'next/cache'
+import { cacheTag, cacheLife } from 'next/cache'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { THEME_DEFAULTS, ThemeConfig } from './defaults'
 
 const THEME_KEYS = Object.keys(THEME_DEFAULTS) as (keyof ThemeConfig)[]
 
-async function fetchThemeConfig(): Promise<ThemeConfig> {
+export async function getThemeConfig(): Promise<ThemeConfig> {
+  'use cache'
+  cacheTag('theme-config')
+  cacheLife('hours')
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
@@ -33,9 +37,3 @@ async function fetchThemeConfig(): Promise<ThemeConfig> {
     return { ...THEME_DEFAULTS }
   }
 }
-
-export const getThemeConfig = unstable_cache(
-  fetchThemeConfig,
-  ['theme-config'],
-  { tags: ['theme-config'], revalidate: 3600 }
-)

@@ -32,6 +32,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
         precio_venta: 8500,
         stock: 10,
         categoria: "General",
+        subcategoria: "Femeninos",
         activo: "SI"
       },
     ];
@@ -71,14 +72,13 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
     reader.readAsBinaryString(file);
   };
 
-  const generateSlug = (nombre: string, marca: string) => {
-    return `${nombre}-${marca}`
+  const baseSlug = (nombre: string, marca: string) =>
+    `${nombre}-${marca}`
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "");
-  };
 
   const processImport = async () => {
     if (data.length === 0) return;
@@ -86,26 +86,50 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      // 1. Obtener categorías para mapeo
-      const { data: categoriasDb } = await supabase.from("categorias").select("id, nombre");
+      // 1. Obtener categorías y slugs existentes
+      const [{ data: categoriasDb }, { data: subcategoriasDb }, { data: existingSlugs }] = await Promise.all([
+        supabase.from("categorias").select("id, nombre"),
+        supabase.from("subcategorias").select("id, nombre"),
+        supabase.from("productos").select("slug"),
+      ]);
 
       const categoriaMap = new Map(categoriasDb?.map(c => [c.nombre.toLowerCase(), c.id]));
+      const subcategoriaMap = new Map(subcategoriasDb?.map(s => [s.nombre.toLowerCase(), s.id]));
+
+      // Set de slugs ya usados (DB + los que vamos generando en este lote)
+      const usedSlugs = new Set<string>((existingSlugs ?? []).map(r => r.slug));
+
+      function uniqueSlug(nombre: string, marca: string): string {
+        const base = baseSlug(nombre, marca);
+        if (!usedSlugs.has(base)) {
+          usedSlugs.add(base);
+          return base;
+        }
+        let i = 2;
+        while (usedSlugs.has(`${base}-${i}`)) i++;
+        const slug = `${base}-${i}`;
+        usedSlugs.add(slug);
+        return slug;
+      }
 
       // 2. Preparar datos para inserción
       const productosToInsert = data.map(item => {
         const catNombre = String(item.categoria || "").toLowerCase();
+        const subNombre = String(item.subcategoria || "").toLowerCase();
         const catId = categoriaMap.get(catNombre) || null;
+        const subId = subcategoriaMap.get(subNombre) || null;
 
         return {
           nombre: item.nombre,
           marca: item.marca,
-          slug: generateSlug(item.nombre, item.marca),
+          slug: uniqueSlug(String(item.nombre), String(item.marca)),
           descripcion: item.descripcion || "",
           precio_costo: Number(item.precio_costo) || 0,
           precio_venta: Number(item.precio_venta) || 0,
           stock: Number(item.stock) || 0,
           imagen_url: item.imagen_url || null,
           categoria_id: catId,
+          subcategoria_id: subId,
           activo: item.activo === "SI" || item.activo === true,
           destacado: item.destacado === "SI" || item.destacado === true,
           nuevo: item.nuevo === "SI" || item.nuevo === true,

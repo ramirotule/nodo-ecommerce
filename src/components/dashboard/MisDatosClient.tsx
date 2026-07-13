@@ -1,8 +1,174 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { User, Phone, Save, CheckCircle, Camera, Loader2, X } from "lucide-react";
+import { User, Phone, Save, CheckCircle, Camera, Loader2, X, ZoomIn, ZoomOut } from "lucide-react";
+
+// ─── Avatar Crop Modal ────────────────────────────────────────────────────────
+
+const CROP_SIZE = 280;   // display size of the crop area in px
+const OUTPUT_SIZE = 400; // canvas output resolution in px
+
+interface CropState {
+  file: File;
+  src: string;
+  naturalW: number;
+  naturalH: number;
+  scale: number;   // display scale applied to the image
+  offsetX: number; // current drag offset in display px
+  offsetY: number;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function AvatarCropModal({
+  cropState,
+  onConfirm,
+  onCancel,
+}: {
+  cropState: CropState;
+  onConfirm: (state: CropState) => void;
+  onCancel: () => void;
+}) {
+  const [state, setState] = useState<CropState>(cropState);
+  const dragging = useRef(false);
+  const dragOrigin = useRef({ mx: 0, my: 0, ox: 0, oy: 0 });
+
+  const imgW = state.naturalW * state.scale;
+  const imgH = state.naturalH * state.scale;
+  const minX = CROP_SIZE - imgW;
+  const minY = CROP_SIZE - imgH;
+
+  function applyOffset(ox: number, oy: number) {
+    setState((prev) => ({
+      ...prev,
+      offsetX: clamp(ox, Math.min(minX, 0), 0),
+      offsetY: clamp(oy, Math.min(minY, 0), 0),
+    }));
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    dragging.current = true;
+    dragOrigin.current = { mx: e.clientX, my: e.clientY, ox: state.offsetX, oy: state.offsetY };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragOrigin.current.mx;
+    const dy = e.clientY - dragOrigin.current.my;
+    applyOffset(dragOrigin.current.ox + dx, dragOrigin.current.oy + dy);
+  }
+
+  function onPointerUp() {
+    dragging.current = false;
+  }
+
+  function changeZoom(delta: number) {
+    setState((prev) => {
+      const newScale = clamp(prev.scale + delta, 0.5, 4);
+      const newImgW = prev.naturalW * newScale;
+      const newImgH = prev.naturalH * newScale;
+      // Keep center locked when zooming
+      const cx = prev.offsetX - CROP_SIZE / 2;
+      const cy = prev.offsetY - CROP_SIZE / 2;
+      const ratio = newScale / prev.scale;
+      const newOx = clamp(cx * ratio + CROP_SIZE / 2, CROP_SIZE - newImgW, 0);
+      const newOy = clamp(cy * ratio + CROP_SIZE / 2, CROP_SIZE - newImgH, 0);
+      return { ...prev, scale: newScale, offsetX: newOx, offsetY: newOy };
+    });
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4">
+      <div className="bg-luxury-black border border-luxury-gray w-full max-w-sm shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-luxury-gray">
+          <h2 className="text-gold text-xs tracking-[0.2em] uppercase">Ajustar foto</h2>
+          <button onClick={onCancel} className="text-[#555] hover:text-white transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Crop area */}
+        <div className="flex flex-col items-center gap-5 px-5 py-6">
+          <p className="text-[#555] text-xs text-center">
+            Arrastrá la imagen para encuadrar tu foto dentro del círculo.
+          </p>
+
+          {/* Circle crop container */}
+          <div
+            className="relative overflow-hidden rounded-full border-2 border-gold/60 cursor-grab active:cursor-grabbing select-none"
+            style={{ width: CROP_SIZE, height: CROP_SIZE }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={state.src}
+              alt="Recorte"
+              draggable={false}
+              style={{
+                position: "absolute",
+                left: state.offsetX,
+                top: state.offsetY,
+                width: imgW,
+                height: imgH,
+                userSelect: "none",
+                pointerEvents: "none",
+              }}
+            />
+          </div>
+
+          {/* Zoom controls */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => changeZoom(-0.1)}
+              className="p-2 border border-luxury-gray-mid text-luxury-gray-light hover:text-white hover:border-gold/40 transition-colors"
+              title="Alejar"
+            >
+              <ZoomOut size={15} />
+            </button>
+            <span className="text-xs text-[#555] w-12 text-center font-mono">
+              {Math.round(state.scale * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={() => changeZoom(0.1)}
+              className="p-2 border border-luxury-gray-mid text-luxury-gray-light hover:text-white hover:border-gold/40 transition-colors"
+              title="Acercar"
+            >
+              <ZoomIn size={15} />
+            </button>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-3 px-5 py-4 border-t border-luxury-gray">
+          <button
+            type="button"
+            onClick={() => onConfirm(state)}
+            className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-gold-light transition-colors"
+          >
+            Usar esta foto
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex items-center gap-2 border border-luxury-gray-mid text-luxury-gray-light hover:text-white px-4 py-2 text-xs transition-colors"
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   config: Record<string, string>;
@@ -43,6 +209,7 @@ export default function MisDatosClient({ config: initial }: Props) {
   const [avatarLoading, setAvatarLoading] = useState(false);
   const [avatarError, setAvatarError] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [cropState, setCropState] = useState<CropState | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const supabase = createClient();
@@ -54,36 +221,87 @@ export default function MisDatosClient({ config: initial }: Props) {
     });
   }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
 
+    const src = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const naturalW = img.naturalWidth;
+      const naturalH = img.naturalHeight;
+      // Scale so the smaller dimension fills the crop circle
+      const scale = CROP_SIZE / Math.min(naturalW, naturalH);
+      const imgW = naturalW * scale;
+      const imgH = naturalH * scale;
+      // Center image
+      const offsetX = (CROP_SIZE - imgW) / 2;
+      const offsetY = (CROP_SIZE - imgH) / 2;
+      setCropState({ file, src, naturalW, naturalH, scale, offsetX, offsetY });
+    };
+    img.src = src;
+  }
+
+  const uploadCroppedAvatar = useCallback(async (state: CropState) => {
+    setCropState(null);
     setAvatarLoading(true);
     setAvatarError("");
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setAvatarError("No autenticado"); setAvatarLoading(false); return; }
+    // Draw cropped image on canvas
+    const canvas = document.createElement("canvas");
+    canvas.width = OUTPUT_SIZE;
+    canvas.height = OUTPUT_SIZE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) { setAvatarError("Error al procesar la imagen."); setAvatarLoading(false); return; }
 
-    const ext = file.name.split(".").pop();
-    const path = `${user.id}/avatar.${ext}`;
+    const img = new Image();
+    img.onload = async () => {
+      // Clip to circle
+      ctx.beginPath();
+      ctx.arc(OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, OUTPUT_SIZE / 2, 0, Math.PI * 2);
+      ctx.clip();
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, file, { upsert: true });
+      // Map display coords → canvas coords
+      const ratio = OUTPUT_SIZE / CROP_SIZE;
+      ctx.drawImage(
+        img,
+        state.offsetX * ratio,
+        state.offsetY * ratio,
+        state.naturalW * state.scale * ratio,
+        state.naturalH * state.scale * ratio
+      );
 
-    if (uploadError) { setAvatarError(uploadError.message); setAvatarLoading(false); return; }
+      canvas.toBlob(async (blob) => {
+        if (!blob) { setAvatarError("Error al recortar la imagen."); setAvatarLoading(false); return; }
 
-    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setAvatarError("No autenticado."); setAvatarLoading(false); return; }
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { avatar_url: `${publicUrl}?t=${Date.now()}` },
-    });
+        const path = `${user.id}/avatar.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
 
-    if (updateError) { setAvatarError(updateError.message); setAvatarLoading(false); return; }
+        if (uploadError) { setAvatarError(uploadError.message); setAvatarLoading(false); return; }
 
-    setAvatarUrl(`${publicUrl}?t=${Date.now()}`);
-    setAvatarLoading(false);
-  }
+        const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+        const finalUrl = `${publicUrl}?t=${Date.now()}`;
+
+        const { error: updateError } = await supabase.auth.updateUser({
+          data: { avatar_url: finalUrl },
+        });
+
+        if (updateError) { setAvatarError(updateError.message); setAvatarLoading(false); return; }
+
+        setAvatarUrl(finalUrl);
+        setAvatarLoading(false);
+        // Revoke object URL
+        URL.revokeObjectURL(state.src);
+      }, "image/jpeg", 0.92);
+    };
+    img.src = state.src;
+  }, [supabase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -111,6 +329,18 @@ export default function MisDatosClient({ config: initial }: Props) {
 
   return (
     <>
+      {/* Avatar crop modal */}
+      {cropState && (
+        <AvatarCropModal
+          cropState={cropState}
+          onConfirm={uploadCroppedAvatar}
+          onCancel={() => {
+            URL.revokeObjectURL(cropState.src);
+            setCropState(null);
+          }}
+        />
+      )}
+
       {/* Snackbar */}
       <div
         className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-luxury-gray border border-gold/40 text-white px-4 py-3 text-sm shadow-xl transition-all duration-300 ${

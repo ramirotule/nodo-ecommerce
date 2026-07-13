@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -14,36 +15,53 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
-import { calculateListPrice, formatPrice } from "@/lib/price-utils";
+import { useDolar } from "@/context/DolarContext";
+import { formatPrice } from "@/lib/price-utils";
 import { SITE_CONFIG } from "@/constants/site";
 
-type MetodoPago = "efectivo" | "transferencia" | "mercadopago";
+type MetodoPago = "efectivo" | "transferencia" | "getnet";
 
 const METODOS = [
   {
     id: "efectivo" as MetodoPago,
     label: "Efectivo",
-    desc: "Pagás en persona al retirar o al momento de la entrega",
+    desc: "Precio especial contado. Pagás en persona al retirar o en la entrega.",
     icon: Banknote,
   },
   {
     id: "transferencia" as MetodoPago,
     label: "Transferencia Bancaria",
-    desc: "Te enviamos los datos bancarios para que realices la transferencia",
+    desc: "Precio contado. Abonás el 70% como seña y el resto al retirar.",
     icon: Building2,
   },
   {
-    id: "mercadopago" as MetodoPago,
-    label: "MercadoPago",
-    desc: "Tarjeta de crédito, débito, cuenta MP o cuotas",
+    id: "getnet" as MetodoPago,
+    label: "Tarjeta de crédito en cuotas",
+    desc: "Pagá en cuotas con tu tarjeta a través de Getnet.",
     icon: CreditCard,
   },
+];
+
+const CUOTAS = [
+  { n: 1,  factor: 0.96, label: "1 pago" },
+  { n: 2,  factor: 0.93, label: "2 cuotas" },
+  { n: 3,  factor: 0.91, label: "3 cuotas" },
+  { n: 4,  factor: 0.89, label: "4 cuotas" },
+  { n: 5,  factor: 0.86, label: "5 cuotas" },
+  { n: 6,  factor: 0.83, label: "6 cuotas" },
+  { n: 7,  factor: 0.79, label: "7 cuotas" },
+  { n: 8,  factor: 0.76, label: "8 cuotas" },
+  { n: 9,  factor: 0.73, label: "9 cuotas" },
+  { n: 10, factor: 0.70, label: "10 cuotas" },
+  { n: 11, factor: 0.67, label: "11 cuotas" },
+  { n: 12, factor: 0.64, label: "12 cuotas" },
 ];
 
 export default function CheckoutPage() {
   const { items, total, clearCart, openDrawer } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { rate } = useDolar();
   const errorParam = searchParams.get("error");
 
   const [nombre, setNombre] = useState("");
@@ -53,8 +71,11 @@ export default function CheckoutPage() {
   const [direccion, setDireccion] = useState("");
   const [notas, setNotas] = useState("");
   const [metodo, setMetodo] = useState<MetodoPago>("efectivo");
+  const [cuotasGetnet, setCuotasGetnet] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(errorParam === "pago_fallido" ? "El pago fue rechazado. Intentá nuevamente." : "");
+  const [error, setError] = useState(
+    errorParam === "pago_fallido" ? "El pago fue rechazado. Intentá nuevamente." : ""
+  );
   const [submitted, setSubmitted] = useState(false);
 
   // Redirect to catalog if cart is empty
@@ -64,14 +85,34 @@ export default function CheckoutPage() {
     }
   }, [items.length, loading, router]);
 
-  const isMercadoPago = metodo === "mercadopago";
-  
-  const checkoutItems = items.map(item => ({
-    ...item,
-    precio_unidad: isMercadoPago ? calculateListPrice(item.precio_venta) : item.precio_venta
-  }));
+  // Reset cuotas when switching away from getnet
+  useEffect(() => {
+    if (metodo !== "getnet") setCuotasGetnet(null);
+  }, [metodo]);
 
-  const finalTotal = checkoutItems.reduce((acc, item) => acc + (item.precio_unidad * item.cantidad), 0);
+  // --- Price calculations ---
+  const baseTotal = total; // contado price (ARS)
+
+  const getnetCuota = cuotasGetnet !== null
+    ? CUOTAS.find((c) => c.n === cuotasGetnet) ?? null
+    : null;
+
+  const getnetTotal = getnetCuota ? Math.round(baseTotal / getnetCuota.factor) : null;
+  const getnetCuotaImporte = getnetTotal && getnetCuota
+    ? Math.round(getnetTotal / getnetCuota.n)
+    : null;
+
+  const sena = Math.round(baseTotal * 0.7);
+  const restoTransferencia = baseTotal - sena;
+
+  // The final amount sent to the API depends on method
+  const finalTotal =
+    metodo === "getnet" && getnetTotal !== null
+      ? getnetTotal
+      : baseTotal;
+
+  const isGetnet = metodo === "getnet";
+  const isTransferencia = metodo === "transferencia";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -82,6 +123,13 @@ export default function CheckoutPage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+
+    if (isGetnet && !cuotasGetnet) {
+      setError("Seleccioná la cantidad de cuotas.");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -90,9 +138,11 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: checkoutItems.map(i => ({
+          items: items.map((i) => ({
             ...i,
-            precio_venta: i.precio_unidad // Override with the calculated price for the method
+            precio_venta: isGetnet && getnetTotal
+              ? Math.round((i.precio_venta / baseTotal) * getnetTotal)
+              : i.precio_venta,
           })),
           nombre,
           apellido,
@@ -101,7 +151,8 @@ export default function CheckoutPage() {
           direccion,
           notas,
           metodo_pago: metodo,
-          total: finalTotal
+          cuotas: cuotasGetnet ?? undefined,
+          total: finalTotal,
         }),
       });
 
@@ -124,9 +175,9 @@ export default function CheckoutPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Botón Volver */}
+      {/* Back button */}
       <div className="mb-8">
-        <button 
+        <button
           onClick={openDrawer}
           className="group flex items-center gap-2 text-xs text-gray-400 hover:text-gold transition-colors uppercase tracking-widest font-bold"
         >
@@ -141,53 +192,59 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
         {/* Form */}
         <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-8">
-          {/* Datos personales */}
+          {/* Personal data */}
           <section>
             <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-luxury-gray">
               Tus datos
             </h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+                <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                   Nombre *
                 </label>
                 <input
                   value={nombre}
                   onChange={(e) => setNombre(e.target.value)}
-                  className={`w-full bg-black border ${submitted && !nombre ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
+                  className={`w-full bg-black border ${submitted && !nombre ? "border-red-500" : "border-luxury-gray"} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="María"
                 />
-                {submitted && !nombre && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
+                {submitted && !nombre && (
+                  <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>
+                )}
               </div>
               <div>
-                <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+                <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                   Apellido *
                 </label>
                 <input
                   value={apellido}
                   onChange={(e) => setApellido(e.target.value)}
-                  className={`w-full bg-black border ${submitted && !apellido ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
+                  className={`w-full bg-black border ${submitted && !apellido ? "border-red-500" : "border-luxury-gray"} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="González"
                 />
-                {submitted && !apellido && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
+                {submitted && !apellido && (
+                  <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
               <div>
-                <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+                <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                   Teléfono / WhatsApp *
                 </label>
                 <input
                   value={telefono}
                   onChange={(e) => setTelefono(e.target.value)}
                   type="tel"
-                  className={`w-full bg-black border ${submitted && !telefono ? 'border-red-500' : 'border-luxury-gray'} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
+                  className={`w-full bg-black border ${submitted && !telefono ? "border-red-500" : "border-luxury-gray"} text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors`}
                   placeholder="2954 000000"
                 />
-                {submitted && !telefono && <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>}
+                {submitted && !telefono && (
+                  <p className="text-red-500 text-[10px] mt-1">Campo requerido</p>
+                )}
               </div>
               <div>
-                <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+                <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                   Email
                 </label>
                 <input
@@ -200,31 +257,31 @@ export default function CheckoutPage() {
               </div>
             </div>
             <div className="mt-4">
-              <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+              <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                 Dirección / Barrio (para envío)
               </label>
-                <input
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
-                  className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
-                  placeholder="Calle 123, Barrio Norte — o 'Retiro en tienda'"
-                />
+              <input
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
+                placeholder="Calle 123, Barrio Norte — o 'Retiro en tienda'"
+              />
             </div>
             <div className="mt-4">
-              <label className="block text-gray-500 text-xs uppercase tracking-wider mb-1.5">
+              <label className="block text-gray-400 text-xs uppercase tracking-wider mb-1.5">
                 Notas del pedido
               </label>
-                <textarea
-                  value={notas}
-                  onChange={(e) => setNotas(e.target.value)}
-                  rows={2}
-                  className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors resize-none"
-                  placeholder="Indicaciones especiales, horario preferido, etc."
-                />
+              <textarea
+                value={notas}
+                onChange={(e) => setNotas(e.target.value)}
+                rows={2}
+                className="w-full bg-black border border-luxury-gray text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors resize-none"
+                placeholder="Indicaciones especiales, horario preferido, etc."
+              />
             </div>
           </section>
 
-          {/* Método de pago */}
+          {/* Payment method */}
           <section>
             <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-4 pb-3 border-b border-luxury-gray">
               Forma de pago
@@ -255,9 +312,7 @@ export default function CheckoutPage() {
                         selected ? "border-gold" : "border-[#333333]"
                       }`}
                     >
-                      {selected && (
-                        <div className="w-2.5 h-2.5 rounded-full bg-gold" />
-                      )}
+                      {selected && <div className="w-2.5 h-2.5 rounded-full bg-gold" />}
                     </div>
                     <Icon
                       size={18}
@@ -273,6 +328,70 @@ export default function CheckoutPage() {
                 );
               })}
             </div>
+
+            {/* Cuotas selector — only for getnet */}
+            {isGetnet && (
+              <div className="mt-5 p-4 border border-luxury-gray bg-luxury-black">
+                <p className="text-white text-xs font-bold tracking-[0.15em] uppercase mb-4">
+                  Seleccioná la cantidad de cuotas
+                </p>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                  {CUOTAS.map(({ n, factor, label }) => {
+                    const totalCuota = Math.round(baseTotal / factor);
+                    const importe = Math.round(totalCuota / n);
+                    const isSelected = cuotasGetnet === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setCuotasGetnet(isSelected ? null : n)}
+                        className={`flex flex-col items-center p-2.5 border text-center transition-all ${
+                          isSelected
+                            ? "border-gold bg-gold/10 text-gold"
+                            : "border-luxury-gray-mid hover:border-gold/50 text-luxury-gray-light hover:text-white"
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase tracking-wider mb-1">{label}</span>
+                        <span className="text-sm font-bold">{formatPrice(importe)}</span>
+                        <span className="text-[10px] opacity-60">c/u</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {submitted && isGetnet && !cuotasGetnet && (
+                  <p className="text-red-500 text-[10px] mt-2">Seleccioná la cantidad de cuotas</p>
+                )}
+              </div>
+            )}
+
+            {/* Transferencia: seña info */}
+            {isTransferencia && (
+              <div className="mt-4 p-4 border border-gold/30 bg-gold/5">
+                <p className="text-gold text-xs font-semibold uppercase tracking-wider mb-2">Detalle de seña</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total del pedido</span>
+                    <span className="text-white font-medium">{formatPrice(baseTotal)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold">
+                    <span className="text-gold">Seña (70%) — a transferir ahora</span>
+                    <span className="text-gold">{formatPrice(sena)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 pt-1 border-t border-luxury-gray">
+                    <span>Resto al retirar</span>
+                    <span>{formatPrice(restoTransferencia)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Efectivo: dolar rate info */}
+            {metodo === "efectivo" && rate && (
+              <div className="mt-4 p-3 border border-luxury-gray bg-luxury-black text-xs text-gray-400 flex items-center gap-2">
+                <Banknote size={13} className="text-gold shrink-0" />
+                Cotización dólar blue utilizada: <span className="text-white font-medium ml-1">${rate.toLocaleString("es-AR")}</span>
+              </div>
+            )}
           </section>
 
           {error && (
@@ -292,10 +411,15 @@ export default function CheckoutPage() {
                 <Loader2 size={16} className="animate-spin" />
                 Procesando...
               </>
-            ) : metodo === "mercadopago" ? (
+            ) : isGetnet ? (
               <>
                 <CreditCard size={16} />
-                Pagar con MercadoPago
+                Pagar con Getnet
+              </>
+            ) : isTransferencia ? (
+              <>
+                <Building2 size={16} />
+                Confirmar y recibir datos bancarios
               </>
             ) : (
               <>
@@ -306,13 +430,14 @@ export default function CheckoutPage() {
           </button>
         </form>
 
+        {/* Order summary */}
         <aside className="lg:col-span-2">
           <div className="bg-luxury-black border border-luxury-gray p-6 sticky top-32 shadow-sm">
             <h2 className="text-white text-xs font-bold tracking-[0.2em] uppercase mb-6 pb-3 border-b border-luxury-gray">
               Tu pedido
             </h2>
             <ul className="space-y-4 mb-6">
-              {checkoutItems.map((item) => (
+              {items.map((item) => (
                 <li key={item.id} className="flex gap-4 items-center">
                   <div className="w-20 h-20 bg-luxury-gray border border-luxury-gray-mid shrink-0 overflow-hidden">
                     {item.imagen_url ? (
@@ -324,20 +449,16 @@ export default function CheckoutPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-200 text-sm">
-                        ✦
-                      </div>
+                      <NoImagePlaceholder width={80} height={80} className="w-full h-full object-cover" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium leading-tight">{item.nombre}</p>
                     <p className="text-gray-400 text-xs mt-1">{item.marca}</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-gold text-xs font-bold">
-                        {item.cantidad} unidades
-                      </span>
-                      <span className="text-gray-500 text-[10px]">
-                        x {formatPrice(item.precio_unidad)}
+                      <span className="text-gold text-xs font-bold">{item.cantidad} unidades</span>
+                      <span className="text-gray-400 text-[10px]">
+                        x {formatPrice(item.precio_venta)}
                       </span>
                     </div>
                   </div>
@@ -346,46 +467,74 @@ export default function CheckoutPage() {
             </ul>
 
             <div className="border-t border-luxury-gray pt-5 space-y-3">
+              {/* Shipping */}
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="text-white">
-                  {formatPrice(isMercadoPago ? finalTotal : finalTotal * 1.2236)}
-                </span>
-              </div>
-              
-              <div className="flex justify-between text-sm">
-                <div className="flex flex-col">
-                  <span className="text-gray-500">Envío</span>
-                </div>
-                {finalTotal >= SITE_CONFIG.shipping.freeThreshold ? (
+                <span className="text-gray-400">Envío</span>
+                {baseTotal >= SITE_CONFIG.shipping.freeThreshold ? (
                   <span className="text-green-500 text-xs font-bold uppercase tracking-wider">Gratis</span>
                 ) : (
                   <span className="text-white text-xs font-bold">A convenir</span>
                 )}
               </div>
-              
-              {!isMercadoPago && (
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs text-[#555555]">
-                    <span>Precio de lista</span>
-                    <span className="line-through">{formatPrice(finalTotal * 1.2236)}</span>
+
+              {/* Getnet installment summary */}
+              {isGetnet && getnetCuota && getnetTotal !== null && getnetCuotaImporte !== null && (
+                <div className="bg-luxury-gray border border-gold/20 p-3 text-xs space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Cuotas</span>
+                    <span className="text-white font-medium">{getnetCuota.label}</span>
                   </div>
-                  <div className="bg-green-500/10 p-2 text-green-400 text-[10px] font-medium flex justify-between items-center border border-green-500/20">
-                    <span>AHORRO POR CONTADO</span>
-                    <span className="font-bold">-{formatPrice(finalTotal * 0.2236)}</span>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Por cuota</span>
+                    <span className="text-white font-medium">{formatPrice(getnetCuotaImporte)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-luxury-gray-mid">
+                    <span className="text-gray-400">Total a pagar</span>
+                    <span className="text-gold font-bold">{formatPrice(getnetTotal)}</span>
                   </div>
                 </div>
               )}
 
+              {/* Transferencia seña summary */}
+              {isTransferencia && (
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-400">Total del pedido</span>
+                    <span className="text-white">{formatPrice(baseTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs bg-gold/10 px-2 py-1.5 border border-gold/20">
+                    <span className="text-gold font-semibold">Seña (70%)</span>
+                    <span className="text-gold font-bold">{formatPrice(sena)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <span>Resto al retirar</span>
+                    <span>{formatPrice(restoTransferencia)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Final total */}
               <div className="flex justify-between items-end pt-4 border-t border-luxury-gray">
                 <div className="flex flex-col">
-                  <span className="text-white font-bold text-sm uppercase tracking-wider">Total Final</span>
+                  <span className="text-white font-bold text-sm uppercase tracking-wider">Total</span>
                   <span className="text-gray-400 text-[10px]">
-                    {isMercadoPago ? "Precio de lista" : "Precio efectivo / transf."}
+                    {isGetnet
+                      ? cuotasGetnet
+                        ? `${cuotasGetnet} cuota${cuotasGetnet > 1 ? "s" : ""}`
+                        : "seleccioná cuotas"
+                      : isTransferencia
+                      ? "Seña a transferir"
+                      : "Precio contado"}
                   </span>
                 </div>
-                <span className={`text-3xl font-bold leading-none ${!isMercadoPago ? 'text-yellow-400' : 'text-white'}`}>
-                  {formatPrice(finalTotal)}
+                <span className="text-3xl font-bold leading-none text-gold">
+                  {isGetnet
+                    ? getnetTotal !== null
+                      ? formatPrice(getnetTotal)
+                      : "—"
+                    : isTransferencia
+                    ? formatPrice(sena)
+                    : formatPrice(baseTotal)}
                 </span>
               </div>
             </div>

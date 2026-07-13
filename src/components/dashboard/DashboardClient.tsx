@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/types";
 import Link from "next/link";
@@ -19,8 +19,11 @@ import {
   ArrowDown,
   ArrowUp,
   X,
+  Images,
+  Wand2,
 } from "lucide-react";
 import BulkImportModal from "./BulkImportModal";
+import BulkImagenesModal from "./BulkImagenesModal";
 import * as XLSX from "xlsx";
 import CustomSelect from "@/components/ui/CustomSelect";
 import toast from "react-hot-toast";
@@ -38,22 +41,25 @@ interface Props {
 }
 
 export default function DashboardClient({ productos: initialProductos }: Props) {
+  const searchParams = useSearchParams();
   const [productos, setProductos] = useState<Producto[]>(initialProductos);
   const [loading, setLoading] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
+  const [busqueda, setBusqueda] = useState(searchParams.get('q') ?? "");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: "", nombre: "" });
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
-  
+
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>("");
-  const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>("");
+  const [bulkImagenesModal, setBulkImagenesModal] = useState(false);
+  const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>(searchParams.get('cat') ?? "");
+  const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>(searchParams.get('sub') ?? "");
   const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "subcategoria" | null>(null);
   const [precioModal, setPrecioModal] = useState<{ open: boolean; venta: string; costo: string }>({ open: false, venta: "", costo: "" });
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, slug: string, categoria_id: string}[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [removeBgProgress, setRemoveBgProgress] = useState<{ done: number; total: number; errors: number } | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -61,18 +67,21 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     try {
       setBulkLoading(true);
       // Cargamos categorías y productos en paralelo para máxima eficiencia
-      const [{ data: cats }, { data: prods }] = await Promise.all([
+      const [{ data: cats }, { data: prods }, { data: provs }] = await Promise.all([
         supabase.from("categorias").select("id, nombre"),
-        supabase.from("productos").select("*").order("created_at", { ascending: false })
+        supabase.from("productos").select("*").order("created_at", { ascending: false }),
+        supabase.from("proveedores").select("id, nombre"),
       ]);
 
       if (!prods) return;
 
       const catMap = new Map(cats?.map(c => [c.id.toString(), c.nombre]) || []);
+      const provMap = new Map(provs?.map(p => [p.id.toString(), p.nombre]) || []);
 
       const formattedData = (prods as any[]).map(p => ({
         ...p,
-        categoria: p.categoria_id ? (catMap.get(p.categoria_id.toString()) || "Fragancias") : (p.categoria || "Fragancias")
+        categoria: p.categoria_id ? (catMap.get(p.categoria_id.toString()) || "Fragancias") : (p.categoria || "Fragancias"),
+        proveedores: p.proveedor_id ? { nombre: provMap.get(p.proveedor_id.toString()) ?? null } : null,
       }));
 
       setProductos(formattedData as Producto[]);
@@ -94,8 +103,17 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
   useEffect(() => {
     fetchCategorias();
-    fetchProductos(); // Aseguramos que la data inicial esté bien mapeada
+    fetchProductos();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (busqueda) params.set('q', busqueda);
+    if (categoriaFiltrada) params.set('cat', categoriaFiltrada);
+    if (subcategoriaFiltrada) params.set('sub', subcategoriaFiltrada);
+    const qs = params.toString();
+    router.replace(`/dashboard${qs ? `?${qs}` : ''}`, { scroll: false });
+  }, [busqueda, categoriaFiltrada, subcategoriaFiltrada]);
 
   // Cálculos de estadísticas en tiempo real
   const currentStats = {
@@ -236,6 +254,12 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     setBulkLoading(false);
   }
 
+  function handleImagesSaved(id: string, imagen_url: string | null, imagenes_adicionales: string[]) {
+    setProductos((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, imagen_url: imagen_url ?? undefined, imagenes_adicionales } : p))
+    );
+  }
+
   async function ejecutarEliminarBulk() {
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
@@ -290,6 +314,39 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     setLoading(null);
     setDeleteModal({ isOpen: false, id: "", nombre: "" });
     toast.success("Producto eliminado.");
+  }
+
+  async function handleRemoveBg() {
+    const targets = productos.filter(p => selectedIds.has(p.id) && p.imagen_url);
+    if (targets.length === 0) {
+      toast.error("Ningún producto seleccionado tiene imagen.");
+      return;
+    }
+    setRemoveBgProgress({ done: 0, total: targets.length, errors: 0 });
+    let errors = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      try {
+        const res = await fetch('/api/remove-bg', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: p.imagen_url, productId: p.id }),
+        });
+        const json = await res.json();
+        if (res.ok && json.publicUrl) {
+          setProductos(prev => prev.map(x => x.id === p.id ? { ...x, imagen_url: json.publicUrl } : x));
+        } else {
+          errors++;
+        }
+      } catch {
+        errors++;
+      }
+      setRemoveBgProgress({ done: i + 1, total: targets.length, errors });
+    }
+    const ok = targets.length - errors;
+    toast.success(`Fondo eliminado en ${ok} producto${ok !== 1 ? 's' : ''}${errors ? ` (${errors} errores)` : ''}.`);
+    setRemoveBgProgress(null);
+    setSelectedIds(new Set());
   }
 
   const catSeleccionada = categoriasDb.find(c => c.nombre === categoriaFiltrada);
@@ -478,29 +535,29 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     </span>
                   </div>
                 </th>
-                <th 
-                  className="text-right text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
+                <th
+                  className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("precio_costo")}
                 >
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     Costo
                     <span className={`transition-all ${sortConfig?.key === "precio_costo" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "precio_costo" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
                 </th>
-                <th 
-                  className="text-right text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
+                <th
+                  className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("precio_venta")}
                 >
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     Venta
                     <span className={`transition-all ${sortConfig?.key === "precio_venta" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
                       {sortConfig?.key === "precio_venta" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
                     </span>
                   </div>
                 </th>
-                <th className="text-right text-[#555555] text-xs tracking-widest uppercase px-4 py-3 hidden md:table-cell">Margen</th>
+                <th className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 hidden md:table-cell">Proveedor</th>
                 <th 
                   className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("stock")}
@@ -528,13 +585,6 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             </thead>
             <tbody className="divide-y divide-[#111111]">
               {productosFiltrados.map((producto) => {
-                const margen =
-                  producto.precio_costo && producto.precio_costo > 0
-                    ? Math.round(
-                        ((producto.precio_venta - producto.precio_costo) / producto.precio_venta) * 100
-                      )
-                    : null;
-
                 return (
                   <tr
                     key={producto.id}
@@ -568,23 +618,19 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     <td className="px-4 py-3 text-luxury-gray-light text-xs hidden lg:table-cell">
                       {producto.categoria || "Fragancias"}
                     </td>
-                    <td className="px-4 py-3 text-right text-luxury-gray-light">
-                      {producto.precio_costo ? `$${producto.precio_costo.toLocaleString("es-AR")}` : "—"}
+                    <td className="px-4 py-3 text-center text-luxury-gray-light">
+                      {producto.precio_costo ? `${producto.moneda === 'USD' ? 'US$' : '$'} ${producto.precio_costo.toLocaleString("es-AR")}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-right text-gold font-semibold">
-                      ${producto.precio_venta.toLocaleString("es-AR")}
+                    <td className="px-4 py-3 text-center text-gold font-semibold">
+                      {producto.moneda === 'USD' ? 'US$' : '$'} {producto.precio_venta.toLocaleString("es-AR")}
                     </td>
-                    <td className="px-4 py-3 text-right hidden md:table-cell">
-                      {margen !== null ? (
-                        <span className={`text-xs font-bold ${margen >= 40 ? "text-green-400" : margen >= 25 ? "text-yellow-400" : "text-red-400"}`}>
-                          {margen}%
-                        </span>
-                      ) : (
-                        <span className="text-[#333333]">—</span>
-                      )}
+                    <td className="px-4 py-3 text-center hidden md:table-cell">
+                      <span className="text-xs text-luxury-gray-light">
+                        {producto.proveedores?.nombre ?? "—"}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-bold ${producto.stock > 5 ? "text-green-400" : producto.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                      <span className={`text-xs font-bold ${producto.stock > 5 ? "text-green-500" : producto.stock > 0 ? "text-amber-500" : "text-red-500"}`}>
                         {producto.stock}
                       </span>
                     </td>
@@ -592,10 +638,10 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                       <button
                         onClick={() => toggleActivo(producto.id, producto.activo)}
                         disabled={loading === producto.id}
-                        className={`text-xs px-2 py-1 border transition-colors ${
+                        className={`text-xs px-3 py-1 font-bold transition-colors ${
                           producto.activo
-                            ? "border-green-400/30 text-green-400 hover:bg-green-400/10"
-                            : "border-[#333333] text-[#555555] hover:border-[#555555]"
+                            ? "bg-green-500 text-black hover:bg-green-600"
+                            : "bg-red-500 text-white hover:bg-red-600"
                         }`}
                       >
                         {producto.activo ? "Activo" : "Oculto"}
@@ -748,6 +794,24 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               Precio
             </button>
             <button
+              onClick={() => setBulkImagenesModal(true)}
+              disabled={bulkLoading}
+              className="px-3 py-1.5 text-xs font-bold text-purple-400 border border-purple-400/20 hover:bg-purple-400/10 transition-colors flex items-center gap-2"
+            >
+              <Images size={12} />
+              Imágenes
+            </button>
+            <button
+              onClick={handleRemoveBg}
+              disabled={bulkLoading || !!removeBgProgress}
+              className="px-3 py-1.5 text-xs font-bold text-emerald-400 border border-emerald-400/20 hover:bg-emerald-400/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              <Wand2 size={12} />
+              {removeBgProgress
+                ? `${removeBgProgress.done}/${removeBgProgress.total}`
+                : 'Quitar fondo'}
+            </button>
+            <button
               onClick={() => setBulkDeleteModal(true)}
               disabled={bulkLoading}
               className="px-3 py-1.5 text-xs font-bold text-red-400 border border-red-400/20 hover:bg-red-400/10 transition-colors flex items-center gap-2"
@@ -893,6 +957,16 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Imágenes Masivo */}
+      {bulkImagenesModal && (
+        <BulkImagenesModal
+          productos={productos}
+          selectedIds={selectedIds}
+          onClose={() => setBulkImagenesModal(false)}
+          onSaved={handleImagesSaved}
+        />
       )}
 
       {/* Modal Importación Excel */}

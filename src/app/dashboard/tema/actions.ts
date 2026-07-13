@@ -1,6 +1,6 @@
 'use server'
 
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { ThemeConfig } from '@/lib/theme/defaults'
 
@@ -9,7 +9,7 @@ type SaveResult = { success: boolean; error?: string }
 /**
  * Upserts theme config keys into the `configuracion` table.
  * Accepts a partial ThemeConfig — only provided keys are upserted.
- * Calls revalidateTag('theme-config') so the next layout render
+ * Calls updateTag('theme-config') so the next layout render
  * picks up the new values immediately.
  */
 export async function saveThemeConfig(
@@ -32,7 +32,8 @@ export async function saveThemeConfig(
 
     if (error) return { success: false, error: error.message }
 
-    revalidateTag('theme-config', 'default')
+    revalidateTag('theme-config')
+    revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error inesperado'
@@ -62,11 +63,12 @@ export async function uploadBrandingAsset(
     const supabase = await createClient()
 
     const ext = file.name.split('.').pop() ?? 'png'
-    const path = `${field.replace('_url', '')}.${ext}`
+    const prefix = field.replace('_url', '')
+    const path = `${prefix}-${Date.now()}.${ext}`
 
     const { error: uploadError } = await supabase.storage
       .from('branding')
-      .upload(path, file, { upsert: true, contentType: file.type })
+      .upload(path, file, { upsert: false, contentType: file.type })
 
     if (uploadError) {
       return { success: false, error: uploadError.message }

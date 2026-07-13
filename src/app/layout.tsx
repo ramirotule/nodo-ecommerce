@@ -77,21 +77,34 @@ export default async function RootLayout({
 
   const theme = await getThemeConfig();
 
-  const themeCss = `:root {
+  const themeCss = `
+:root {
   --color-gold: ${theme.color_primary};
   --color-gold-light: ${theme.color_primary_light};
   --color-gold-dark: ${theme.color_primary_dark};
   --color-luxury-black: ${theme.color_bg};
   --color-luxury-gray: ${theme.color_surface};
   --color-text: ${theme.color_text};
+  --color-nav-subcategory: ${theme.color_nav_subcategory};
+}
+html[data-theme="light"], [data-theme="light"] {
+  --color-gold: ${theme.light_color_primary};
+  --color-gold-light: ${theme.light_color_primary_light};
+  --color-gold-dark: ${theme.light_color_primary_dark};
+  --color-luxury-black: ${theme.light_color_bg};
+  --color-luxury-gray: ${theme.light_color_surface};
+  --color-text: ${theme.light_color_text};
+  --color-nav-subcategory: ${theme.light_color_nav_subcategory};
 }`;
 
+  const siteTheme = ((theme.site_theme as string) === 'light' ? 'light' : 'dark') as 'dark' | 'light';
+
   return (
-    <html lang="es-AR" className="h-full dark" suppressHydrationWarning>
+    <html lang="es-AR" className="h-full dark" data-theme={siteTheme} suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
         {/* Runtime theme CSS variables — overrides @theme compile-time defaults */}
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />
       </head>

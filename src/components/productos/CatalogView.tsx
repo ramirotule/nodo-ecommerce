@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
 import ProductoGrid from "@/components/productos/ProductoGrid";
 import FiltrosCatalogo from "@/components/productos/FiltrosCatalogo";
-import CategoriasSidebar from "@/components/productos/CategoriasSidebar";
+import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
 
 interface SearchParams {
   ordenar?: string;
@@ -40,15 +40,33 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
         query = query.eq("subcategoria_id", sub.id);
       }
     } else if (params.categoria) {
-      // Sin subcategoría específica: filtrar por todos los productos de esa categoría
-      const { data: subs } = await supabase
-        .from("subcategorias")
-        .select("id, categorias!inner(slug)")
-        .eq("categorias.slug", params.categoria);
-      if (subs && subs.length > 0) {
-        query = query.in("subcategoria_id", subs.map(s => s.id));
+      // Resolver categoría por slug
+      const { data: cat } = await supabase
+        .from("categorias")
+        .select("id")
+        .eq("slug", params.categoria)
+        .single();
+
+      if (cat) {
+        // Obtener subcategorías de esta categoría
+        const { data: subs } = await supabase
+          .from("subcategorias")
+          .select("id")
+          .eq("categoria_id", cat.id);
+
+        const subIds = (subs ?? []).map((s) => s.id);
+
+        if (subIds.length > 0) {
+          // Productos asignados a la categoría O a cualquiera de sus subcategorías
+          query = query.or(
+            `categoria_id.eq.${cat.id},subcategoria_id.in.(${subIds.join(",")})`
+          );
+        } else {
+          // Categoría sin subcategorías: filtrar solo por categoria_id
+          query = query.eq("categoria_id", cat.id);
+        }
       } else {
-        // Fallback: filtro por texto (productos sin subcategoria_id asignado)
+        // Fallback: categoría no encontrada por slug, buscar en campo texto
         query = query.ilike("categoria", `%${params.categoria.replace(/-/g, " ")}%`);
       }
     }
@@ -102,7 +120,31 @@ export default async function CatalogView({
   searchParams: SearchParams;
   title?: string;
 }) {
-  const productos = await getProductos(searchParams);
+  const supabase = await createClient()
+
+  const [productos, siteConfig] = await Promise.all([
+    getProductos(searchParams),
+    getSiteConfig(),
+  ])
+
+  // Fetch subcategories of the current category for the filter bar
+  let subcategoriasFiltro: { id: string; nombre: string; slug: string }[] = []
+  if (searchParams.categoria) {
+    const { data: cat } = await supabase
+      .from('categorias')
+      .select('id')
+      .eq('slug', searchParams.categoria)
+      .single()
+    if (cat) {
+      const { data: subs } = await supabase
+        .from('subcategorias')
+        .select('id, nombre, slug')
+        .eq('categoria_id', cat.id)
+        .eq('activo', true)
+        .order('orden')
+      subcategoriasFiltro = subs ?? []
+    }
+  }
 
   const displayTitle = title || (searchParams.nuevo === "true"
     ? "Novedades"
@@ -147,26 +189,16 @@ export default async function CatalogView({
       <div className="px-4 sm:px-6 lg:px-8">
         <FiltrosCatalogo
           activeParams={searchParams as Record<string, string | undefined>}
+          subcategorias={subcategoriasFiltro}
         />
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-12 px-4 sm:px-6 lg:px-8">
-        {/* Grilla de Productos (Centro) */}
-        <div className="flex-1 min-w-0">
-          <ProductoGrid
-            productos={productos}
-            emptyMessage="No encontramos productos con ese filtro. Probá con otras opciones."
-          />
-        </div>
-
-        {/* Sidebar Derecha (Categorías) - Solo mostrar si NO es bienestar o aromatizantes */}
-        {!(searchParams.seccion === "bienestar" || 
-           searchParams.seccion === "aromatizantes" || 
-           searchParams.seccion === "cuidados-piel") && (
-          <aside className="lg:w-72 shrink-0">
-            <CategoriasSidebar />
-          </aside>
-        )}
+      <div className="px-4 sm:px-6 lg:px-8">
+        <ProductoGrid
+          productos={productos}
+          emptyMessage="No encontramos productos con ese filtro. Probá con otras opciones."
+          dolarEnabled={siteConfig.feature_precios_usd}
+        />
       </div>
     </div>
   );
