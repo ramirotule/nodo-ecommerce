@@ -32,7 +32,7 @@ export async function saveThemeConfig(
 
     if (error) return { success: false, error: error.message }
 
-    revalidateTag('theme-config')
+    revalidateTag('theme-config', 'max')
     revalidatePath('/', 'layout')
     return { success: true }
   } catch (err) {

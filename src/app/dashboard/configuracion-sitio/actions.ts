@@ -18,14 +18,14 @@ export async function saveSiteConfig(flags: Record<string, boolean | string>) {
 
   if (error) return { success: false, error: error.message }
 
-  revalidateTag('site-config')
-  revalidateTag('theme-config')
+  revalidateTag('site-config', 'max')
+  revalidateTag('theme-config', 'max')
   revalidatePath('/', 'layout')
   return { success: true }
 }
 
 export async function revalidateConfig() {
   'use server'
-  revalidateTag('site-config')
+  revalidateTag('site-config', 'max')
   revalidatePath('/', 'layout')
 }
