@@ -300,7 +300,6 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Escrib√
       <div
         className="rich-content px-4 py-3 text-sm leading-relaxed cursor-text"
         style={{ minHeight, backgroundColor: '#111111', color: '#ffffff' }}
-        style={{ minHeight }}
         onClick={() => editor.commands.focus()}
       >
         <EditorContent editor={editor} />
