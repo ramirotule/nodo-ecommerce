@@ -13,11 +13,12 @@ async function buscarProductos(q: string): Promise<Producto[]> {
   if (!q || q.length < 2) return [];
   try {
     const supabase = await createClient();
+    const tagTerm = q.toLowerCase().replace(/[{},]/g, "");
     const { data } = await supabase
       .from("productos")
       .select("*")
       .eq("activo", true)
-      .or(`nombre.ilike.%${q}%,marca.ilike.%${q}%,descripcion.ilike.%${q}%`)
+      .or(`nombre.ilike.%${q}%,marca.ilike.%${q}%,descripcion.ilike.%${q}%,tags.cs.{${tagTerm}}`)
       .order("destacado", { ascending: false })
       .limit(50);
     return (data as Producto[]) || [];

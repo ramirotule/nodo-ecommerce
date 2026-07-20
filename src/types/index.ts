@@ -4,6 +4,7 @@ export interface Producto {
   marca: string;
   slug: string;
   descripcion: string;
+  tags?: string[];
   descripcion_corta?: string;
   precio_costo?: number;
   precio_venta: number;

@@ -25,11 +25,12 @@ function useDebounce<T>(value: T, delay: number): T {
 async function searchProducts(query: string): Promise<Producto[]> {
   if (query.length < 2) return [];
   const supabase = createClient();
+  const tagTerm = query.toLowerCase().replace(/[{},]/g, "");
   const { data } = await supabase
     .from("productos")
     .select("id, nombre, marca, slug, precio_venta, imagen_url, destacado")
     .eq("activo", true)
-    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,descripcion.ilike.%${query}%`)
+    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,descripcion.ilike.%${query}%,tags.cs.{${tagTerm}}`)
     .order("destacado", { ascending: false })
     .limit(MAX_RESULTS);
   return (data as Producto[]) || [];

@@ -1,21 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/types";
 import CustomSelect from "@/components/ui/CustomSelect";
 
-import { 
-  Plus, 
-  Trash2, 
-  Star, 
-  ImagePlus, 
-  Loader2, 
+import {
+  Plus,
+  Trash2,
+  Star,
+  ImagePlus,
+  Loader2,
   X,
   ChevronRight,
   ChevronLeft,
-  AlertTriangle
+  AlertTriangle,
+  GripVertical
 } from "lucide-react";
 import Image from "next/image";
 
@@ -50,6 +51,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     nombre: producto.nombre || "",
     marca: producto.marca || "",
     descripcion: producto.descripcion || "",
+    tags: producto.tags || [] as string[],
     descripcion_corta: producto.descripcion_corta || "",
     precio_costo: producto.precio_costo?.toString() || "",
     precio_venta: producto.precio_venta?.toString() || "",
@@ -73,6 +75,29 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [isDeleteImagesModalOpen, setIsDeleteImagesModalOpen] = useState(false);
+  const dragImageIndex = useRef<number | null>(null);
+  const [dragOverImageIndex, setDragOverImageIndex] = useState<number | null>(null);
+  const [tagInput, setTagInput] = useState("");
+
+  function addTag(raw: string) {
+    const tag = raw.trim().toLowerCase();
+    if (!tag || form.tags.includes(tag)) return;
+    setForm((prev) => ({ ...prev, tags: [...prev.tags, tag] }));
+  }
+
+  function removeTag(tag: string) {
+    setForm((prev) => ({ ...prev, tags: prev.tags.filter((t) => t !== tag) }));
+  }
+
+  function handleTagKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag(tagInput);
+      setTagInput("");
+    } else if (e.key === "Backspace" && tagInput === "" && form.tags.length > 0) {
+      removeTag(form.tags[form.tags.length - 1]);
+    }
+  }
 
   useEffect(() => {
     async function fetchCategorias() {
@@ -141,6 +166,21 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  function reorderImages(from: number, to: number) {
+    setForm((prev) => {
+      const current = Array.from(new Set([prev.imagen_url, ...prev.imagenes_adicionales])).filter(Boolean) as string[];
+      const next = [...current];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      const [nuevoPrincipal, ...nuevasAdicionales] = next;
+      return {
+        ...prev,
+        imagen_url: nuevoPrincipal ?? "",
+        imagenes_adicionales: nuevasAdicionales,
+      };
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -153,6 +193,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       marca: marcaTrimmed,
       slug: generateSlug(nombreTrimmed, marcaTrimmed),
       descripcion: form.descripcion.trim(),
+      tags: form.tags,
       descripcion_corta: form.descripcion_corta.trim() || null,
       precio_costo: form.precio_costo ? parseFloat(form.precio_costo) : null,
       precio_venta: parseFloat(form.precio_venta),
@@ -297,6 +338,41 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
           <div>
             <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+              Tags de búsqueda
+            </label>
+            <div className="w-full bg-luxury-gray border border-luxury-gray-mid px-3 py-2 flex flex-wrap gap-1.5 focus-within:border-gold transition-colors">
+              {form.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="flex items-center gap-1 bg-luxury-gray-mid text-white text-xs px-2 py-1"
+                >
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="text-[#555555] hover:text-red-400 transition-colors"
+                  >
+                    <X size={11} />
+                  </button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={() => { addTag(tagInput); setTagInput(""); }}
+                placeholder={form.tags.length === 0 ? "Escribí un tag y presioná Enter..." : "Agregar otro..."}
+                className="flex-1 min-w-[140px] bg-transparent text-white text-sm px-1 py-1 focus:outline-none placeholder-[#555555]"
+              />
+            </div>
+            <p className="text-[#555555] text-[10px] mt-1.5 italic">
+              Palabras clave para que el producto aparezca en más búsquedas (ej: &quot;gamer&quot;, &quot;oferta&quot;, &quot;liviano&quot;). Enter o coma para agregar.
+            </p>
+          </div>
+
+          <div>
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
               Descripción Corta
             </label>
             <input
@@ -317,6 +393,22 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               Galería de Imágenes
             </h2>
             <div className="flex items-center gap-3">
+              {(() => {
+                const allImageUrls = Array.from(new Set([form.imagen_url, ...form.imagenes_adicionales])).filter(Boolean) as string[];
+                if (allImageUrls.length === 0) return null;
+                const allSelected = selectedImages.length === allImageUrls.length;
+                return (
+                  <label className="flex items-center gap-2 text-luxury-gray-light text-xs cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => setSelectedImages(allSelected ? [] : allImageUrls)}
+                      className="w-4 h-4 rounded border-gold text-gold focus:ring-gold bg-black/50"
+                    />
+                    Seleccionar todas
+                  </label>
+                );
+              })()}
               {selectedImages.length > 0 && (
                 <button
                   type="button"
@@ -392,14 +484,35 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
             {/* Todas las imágenes (adicionales + principal si no está en la lista) */}
             {Array.from(new Set([form.imagen_url, ...form.imagenes_adicionales])).filter(img => img).map((img, idx) => (
-              <div key={idx} className={`group relative aspect-square bg-luxury-gray border overflow-hidden rounded-sm transition-all ${selectedImages.includes(img) ? "border-red-500 ring-1 ring-red-500" : "border-luxury-gray-mid"}`}>
+              <div
+                key={img}
+                draggable
+                onDragStart={() => { dragImageIndex.current = idx; }}
+                onDragOver={(e) => { e.preventDefault(); setDragOverImageIndex(idx); }}
+                onDrop={() => {
+                  const from = dragImageIndex.current;
+                  dragImageIndex.current = null;
+                  setDragOverImageIndex(null);
+                  if (from === null || from === idx) return;
+                  reorderImages(from, idx);
+                }}
+                onDragEnd={() => { dragImageIndex.current = null; setDragOverImageIndex(null); }}
+                className={`group relative aspect-square bg-luxury-gray border overflow-hidden rounded-sm transition-all cursor-grab active:cursor-grabbing ${
+                  dragOverImageIndex === idx ? "border-gold" : selectedImages.includes(img) ? "border-red-500 ring-1 ring-red-500" : "border-luxury-gray-mid"
+                }`}
+              >
                 <Image
                   src={img}
                   alt={`Imagen ${idx}`}
                   fill
-                  className="object-contain p-2"
+                  className="object-contain p-2 pointer-events-none"
                 />
-                
+
+                {/* Manija de arrastre */}
+                <div className="absolute bottom-2 right-2 z-10 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <GripVertical size={14} />
+                </div>
+
                 {/* Checkbox de Selección */}
                 <div className={`absolute top-2 right-2 z-10 transition-opacity ${selectedImages.includes(img) ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                   <input
