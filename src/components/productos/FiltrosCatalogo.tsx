@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useState, useEffect, useRef } from "react";
 import { bienestar, aromatizantes, skincare } from "@/constants/navigation";
-import { Search, X, Loader2 } from "lucide-react";
+import { Search, X, Loader2, Grid2X2, LayoutGrid, Grid3X3 } from "lucide-react";
 import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { createClient } from "@/lib/supabase/client";
@@ -15,11 +15,12 @@ import type { Producto } from "@/types";
 async function searchProductsInline(query: string): Promise<Producto[]> {
   if (query.length < 3) return [];
   const supabase = createClient();
+  const tagTerm = query.toLowerCase().replace(/[{},]/g, "");
   const { data } = await supabase
     .from("productos")
     .select("id, nombre, marca, slug, precio_venta, imagen_url")
     .eq("activo", true)
-    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%`)
+    .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,tags.cs.{${tagTerm}}`)
     .order("destacado", { ascending: false })
     .limit(6);
   return (data as Producto[]) || [];
@@ -147,10 +148,40 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
     return Boolean(value);
   });
 
+  const vistaActiva = activeParams.vista || 'estandar';
+  const viewToggle = (
+    <div className="flex items-center bg-luxury-black p-1 rounded-lg border border-luxury-gray shrink-0">
+      <button
+        type="button"
+        onClick={() => updateParam('vista', 'grande')}
+        className={`p-2 rounded-md transition-all ${vistaActiva === 'grande' ? 'bg-black text-gold shadow-sm' : 'text-gray-400 hover:text-white'}`}
+        title="Vista Grande (3 por fila)"
+      >
+        <Grid2X2 size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => updateParam('vista', null)}
+        className={`p-2 rounded-md transition-all ${vistaActiva === 'estandar' ? 'bg-black text-gold shadow-sm' : 'text-gray-400 hover:text-white'}`}
+        title="Vista Estándar"
+      >
+        <LayoutGrid size={18} />
+      </button>
+      <button
+        type="button"
+        onClick={() => updateParam('vista', 'compacta')}
+        className={`p-2 rounded-md transition-all ${vistaActiva === 'compacta' ? 'bg-black text-gold shadow-sm' : 'text-gray-400 hover:text-white'}`}
+        title="Vista Compacta (6 por fila)"
+      >
+        <Grid3X3 size={18} />
+      </button>
+    </div>
+  )
+
   return (
-    <div className="w-full space-y-4 mb-10">
+    <div className="w-full space-y-4 mb-4">
       {/* Contenedor Único de Filtros y Búsqueda */}
-      <div className="flex flex-col lg:flex-row gap-4 bg-luxury-black border border-luxury-gray p-4 rounded-sm shadow-2xl items-end">
+      <div className="flex flex-col lg:flex-row gap-3 items-end">
         {/* Input de Búsqueda */}
         <div ref={searchContainerRef} className="relative flex-1 w-full">
           <form onSubmit={handleSearchSubmit}>
@@ -160,7 +191,7 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
               onChange={(e) => setSearchValue(e.target.value)}
               onFocus={() => dropdownResults.length > 0 && setDropdownOpen(true)}
               placeholder="¿Qué estás buscando?..."
-              className="w-full bg-black border border-luxury-gray-mid text-white text-sm px-10 py-3 focus:outline-none focus:border-gold transition-colors rounded-sm placeholder:text-gray-400 h-[46px]"
+              className="w-full bg-black border border-luxury-gray-mid text-white text-sm px-10 py-2.5 focus:outline-none focus:border-gold transition-colors rounded-sm placeholder:text-gray-400 h-[40px]"
             />
             {searching ? (
               <Loader2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gold animate-spin" size={14} />
@@ -219,6 +250,7 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
               onChange={(val) => updateParam("ordenar", val || null)}
               options={ordenOpciones}
               placeholder="ORDENAR POR"
+              compact
             />
           </div>
 
@@ -229,7 +261,7 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
                 setSearchValue("");
                 router.push(pathname + (activeParams.seccion ? `?seccion=${activeParams.seccion}` : ""));
               }}
-              className="h-[46px] px-4 text-red-500 hover:bg-red-500/10 transition-colors rounded-sm flex items-center justify-center border border-red-500/20"
+              className="h-[40px] px-4 text-red-500 hover:bg-red-500/10 transition-colors rounded-sm flex items-center justify-center border border-red-500/20"
               title="Limpiar filtros"
             >
               <X size={16} />
@@ -239,42 +271,50 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
       </div>
 
       {/* Subcategorías de la categoría activa (desde DB) */}
-      {activeParams.categoria && subcategorias.length > 0 && (
-        <div className="flex flex-wrap gap-2 pt-2">
-          {subcategorias.map((sub) => {
-            const isActive = activeParams.subcategoria === sub.slug;
-            const buildUrl = () => {
-              const params = new URLSearchParams(searchParams.toString());
-              if (isActive) {
-                params.delete("subcategoria");
-              } else {
-                params.set("subcategoria", sub.slug);
-              }
-              return `${pathname}?${params.toString()}`;
-            };
-            return (
-              <Link
-                key={sub.id}
-                href={buildUrl()}
-                className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
-                  isActive
-                    ? "bg-gold border-gold text-black font-bold"
-                    : "bg-luxury-gray/60 border-luxury-gray-mid text-luxury-gray-light hover:border-gold hover:text-white"
-                }`}
-              >
-                {sub.nombre}
-              </Link>
-            );
-          })}
+      {activeParams.categoria && subcategorias.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+          <div className="flex flex-wrap gap-2">
+            {subcategorias.map((sub) => {
+              const isActive = activeParams.subcategoria === sub.slug;
+              const buildUrl = () => {
+                const params = new URLSearchParams(searchParams.toString());
+                if (isActive) {
+                  params.delete("subcategoria");
+                } else {
+                  params.set("subcategoria", sub.slug);
+                }
+                return `${pathname}?${params.toString()}`;
+              };
+              return (
+                <Link
+                  key={sub.id}
+                  href={buildUrl()}
+                  className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
+                    isActive
+                      ? "bg-gold border-gold text-black font-bold"
+                      : "bg-luxury-gray/60 border-luxury-gray-mid text-luxury-gray-light hover:border-gold hover:text-white"
+                  }`}
+                >
+                  {sub.nombre}
+                </Link>
+              );
+            })}
+          </div>
+          {viewToggle}
         </div>
-      )}
+      ) : !(activeParams.seccion === "bienestar" || activeParams.seccion === "aromatizantes" || activeParams.seccion === "cuidados-piel") ? (
+        <div className="flex justify-end pt-2">
+          {viewToggle}
+        </div>
+      ) : null}
 
       {/* Subcategorías específicas (Bienestar/Aromatizantes/Skincare) */}
-      {(activeParams.seccion === "bienestar" || 
-        activeParams.seccion === "aromatizantes" || 
+      {(activeParams.seccion === "bienestar" ||
+        activeParams.seccion === "aromatizantes" ||
         activeParams.seccion === "cuidados-piel") && (
         <div className="flex flex-col gap-2 pt-2">
           {/* Fila 1: VER TODO + categorías padre */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
             <Link
               href={`/${activeParams.seccion}`}
@@ -323,6 +363,8 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
                   </Link>
                 );
               })}
+          </div>
+          {viewToggle}
           </div>
 
           {/* Fila 2: subcategorías del padre activo */}

@@ -15,6 +15,8 @@ interface Props {
   placeholder?: string;
   label?: string;
   loading?: boolean;
+  /** Altura reducida (40px) para alinearse con inputs compactos, ej. barras de búsqueda. */
+  compact?: boolean;
 }
 
 export default function CustomSelect({
@@ -24,6 +26,7 @@ export default function CustomSelect({
   placeholder = "Seleccionar...",
   label,
   loading = false,
+  compact = false,
 }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,9 +74,9 @@ export default function CustomSelect({
             setSearchTerm("");
           }
         }}
-        className={`w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 text-left text-sm transition-all flex items-center justify-between hover:border-gold/50 ${
-          isOpen ? "border-gold ring-1 ring-gold/20" : ""
-        } ${loading ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+        className={`w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 text-left text-sm transition-all flex items-center justify-between hover:border-gold/50 ${
+          compact ? "h-[40px] py-0" : "py-3"
+        } ${isOpen ? "border-gold ring-1 ring-gold/20" : ""} ${loading ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
       >
         <span className={!selectedOption ? "text-[#555555]" : "text-white"}>
           {loading ? "Cargando..." : selectedOption ? selectedOption.label : placeholder}

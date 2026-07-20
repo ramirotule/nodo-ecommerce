@@ -15,6 +15,7 @@ interface SearchParams {
   subcategoria?: string;
   seccion?: string;
   tipo?: string;
+  vista?: string;
 }
 
 async function getProductos(params: SearchParams): Promise<Producto[]> {
@@ -85,8 +86,9 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
 
     if (params.busqueda || params.q) {
       const term = params.busqueda || params.q || "";
+      const tagTerm = term.toLowerCase().replace(/[{},]/g, "");
       query = query.or(
-        `nombre.ilike.%${term}%,marca.ilike.%${term}%,descripcion.ilike.%${term}%`,
+        `nombre.ilike.%${term}%,marca.ilike.%${term}%,descripcion.ilike.%${term}%,tags.cs.{${tagTerm}}`,
       );
     }
 
@@ -159,12 +161,12 @@ export default async function CatalogView({
             : "Catálogo de Productos");
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="px-4 sm:px-6 lg:px-8 mb-10">
-        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
+    <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="px-4 sm:px-6 lg:px-8 mb-5">
+        <p className="text-gold text-xs tracking-[0.3em] uppercase mb-1">
           Catálogo
         </p>
-        <h1 className="font-serif text-4xl md:text-5xl text-white mb-4">
+        <h1 className="font-serif text-2xl md:text-3xl text-white mb-1.5">
           {displayTitle}
         </h1>
         <p className="text-luxury-gray-light text-sm">
@@ -198,6 +200,8 @@ export default async function CatalogView({
           productos={productos}
           emptyMessage="No encontramos productos con ese filtro. Probá con otras opciones."
           dolarEnabled={siteConfig.feature_precios_usd}
+          vista={searchParams.vista || "estandar"}
+          showViewToggle={false}
         />
       </div>
     </div>

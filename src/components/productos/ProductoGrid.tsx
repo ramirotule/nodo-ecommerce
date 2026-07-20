@@ -10,20 +10,34 @@ interface Props {
   emptyMessage?: string;
   dolarEnabled?: boolean;
   showViewToggle?: boolean;
+  /** Vista controlada externamente (ej. por FiltrosCatalogo vía query param). Si se pasa, oculta el toggle interno. */
+  vista?: string;
 }
 
 type ViewMode = "large" | "standard" | "compact";
 
 const PAGE_SIZE = 24;
 
+function mapVista(vista?: string): ViewMode {
+  if (vista === "grande") return "large";
+  if (vista === "compacta") return "compact";
+  return "standard";
+}
+
 export default function ProductoGrid({
   productos,
   emptyMessage = "No se encontraron productos.",
   dolarEnabled = false,
   showViewToggle = true,
+  vista,
 }: Props) {
-  const [viewMode, setViewMode] = useState<ViewMode>("standard");
+  const controlledExternally = vista !== undefined;
+  const [viewMode, setViewMode] = useState<ViewMode>(() => mapVista(vista));
   const [visible, setVisible] = useState(PAGE_SIZE);
+
+  if (controlledExternally && viewMode !== mapVista(vista)) {
+    setViewMode(mapVista(vista));
+  }
 
   if (productos.length === 0) {
     return (
@@ -47,9 +61,9 @@ export default function ProductoGrid({
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* View Toggle Bar */}
-      {showViewToggle && <div className="flex justify-end items-center border-b border-luxury-gray pb-4 mb-2">
+      {showViewToggle && !controlledExternally && <div className="flex justify-end items-center border-b border-luxury-gray pb-3">
         <div className="flex items-center bg-luxury-black p-1 rounded-lg border border-luxury-gray">
           <button
             onClick={() => setViewMode("large")}
