@@ -18,7 +18,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
   if (isCompact) {
     return (
       <article className="group relative bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
-        <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative aspect-square bg-[#111111]">
+        <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative aspect-square">
           {producto.imagen_url ? (
             <Image
               src={producto.imagen_url}
@@ -55,7 +55,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
   return (
     <article className="group bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
       {/* Image */}
-      <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative overflow-hidden aspect-square bg-[#111111]">
+      <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative overflow-hidden aspect-[4/3]">
         {producto.imagen_url ? (
           <Image
             src={producto.imagen_url}
@@ -63,10 +63,10 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
-            className="object-contain p-4 group-hover:scale-105 transition-transform duration-500"
+            className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <NoImagePlaceholder fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain p-4" width={0} height={0} />
+          <NoImagePlaceholder fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain p-3" width={0} height={0} />
         )}
 
         {/* Badges — top left: Nuevo / Destacado only */}
@@ -94,18 +94,18 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
       </Link>
 
       {/* Content */}
-      <div className="p-4 flex flex-col flex-1">
+      <div className="p-3 flex flex-col flex-1">
         <Link href={`/productos/${producto.slug}`}>
-          <p className="text-zinc-400 text-xs tracking-[0.2em] uppercase mb-1">
+          <p className="text-zinc-400 text-xs tracking-[0.2em] uppercase mb-0.5">
             {producto.marca}
           </p>
-          <h3 className="text-white font-product text-base leading-snug group-hover:text-gold transition-colors line-clamp-2">
+          <h3 className="text-white font-product text-sm leading-snug group-hover:text-gold transition-colors line-clamp-2">
             {producto.nombre}
           </h3>
         </Link>
 
-        <div className="mt-auto pt-4">
-          <div className="mb-3 flex flex-col">
+        <div className="mt-auto pt-3">
+          <div className="mb-2 flex flex-col">
             {dolarEnabled ? (
               <PrecioUSD precioUsd={producto.precio_venta} />
             ) : (
@@ -116,8 +116,8 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
                 <span className="text-gray-600 text-xs font-medium">
                   3 cuotas sin interés de {formatPrice(calculateInstallment(producto.precio_venta))}
                 </span>
-                <div className="mt-1">
-                  <span className="text-white font-bold text-xl">
+                <div className="mt-0.5">
+                  <span className="text-white font-bold text-lg">
                     {formatPrice(producto.precio_venta)}
                   </span>
                   <span className="text-gold text-[10px] font-bold ml-1 uppercase tracking-tight">
