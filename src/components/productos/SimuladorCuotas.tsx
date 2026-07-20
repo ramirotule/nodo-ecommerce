@@ -28,21 +28,30 @@ interface Props {
   moneda?: 'ARS' | 'USD'
 }
 
+function parseMonto(v: string): number {
+  const digits = v.replace(/\D/g, '')
+  return digits ? Number(digits) : 0
+}
+
 export default function SimuladorCuotas({ precioVenta, moneda }: Props) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<number | null>(null)
+  const [entregaManual, setEntregaManual] = useState('')
   const { rate } = useDolar()
 
   const precioARS = moneda === 'USD' && rate
     ? Math.round(precioVenta * rate)
     : precioVenta
 
+  const entrega = Math.min(parseMonto(entregaManual), precioARS)
+  const saldoFinanciar = precioARS - entrega
+
   const cuotaSeleccionada = selected !== null
     ? CUOTAS.find(c => c.n === selected)
     : null
 
   const totalSeleccionado = cuotaSeleccionada
-    ? precioARS / cuotaSeleccionada.factor
+    ? saldoFinanciar / cuotaSeleccionada.factor
     : null
 
   return (
@@ -59,33 +68,77 @@ export default function SimuladorCuotas({ precioVenta, moneda }: Props) {
 
       {open && (
         <div className="mt-4 space-y-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-            {CUOTAS.map(({ n, factor, label }) => {
-              const total = precioARS / factor
-              const cuota = total / n
-              const isSelected = selected === n
-              return (
-                <button
-                  key={n}
-                  type="button"
-                  onClick={() => setSelected(isSelected ? null : n)}
-                  className={`flex flex-col items-center p-2.5 border text-center transition-all ${
-                    isSelected
-                      ? 'border-gold bg-gold/10 text-gold'
-                      : 'border-luxury-gray-mid hover:border-gold/50 text-luxury-gray-light hover:text-white'
-                  }`}
-                >
-                  <span className="text-[10px] uppercase tracking-wider mb-1">{label}</span>
-                  <span className="text-sm font-bold">{fmt(cuota)}</span>
-                  <span className="text-[10px] opacity-60">c/u</span>
-                </button>
-              )
-            })}
+          <div>
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+              ¿Cuánto vas a entregar ahora? (opcional)
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-luxury-gray-light text-sm">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={entregaManual ? entrega.toLocaleString('es-AR') : ''}
+                onChange={(e) => setEntregaManual(e.target.value)}
+                placeholder="0"
+                className="w-full bg-black border border-luxury-gray-mid text-white text-sm pl-7 pr-3 py-2.5 focus:outline-none focus:border-gold transition-colors rounded-sm placeholder:text-gray-500"
+              />
+            </div>
+            {entrega > 0 && (
+              <p className="text-luxury-gray-light text-[11px] mt-1.5">
+                Saldo a financiar: <span className="text-white font-medium">{fmt(saldoFinanciar)}</span>
+              </p>
+            )}
           </div>
 
-          {cuotaSeleccionada && totalSeleccionado !== null && (
+          {saldoFinanciar <= 0 ? (
+            <p className="text-luxury-gray-light text-sm py-2">
+              Con esa entrega ya cubrís el precio total. No quedaría saldo para financiar.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {CUOTAS.map(({ n, factor, label }) => {
+                const total = saldoFinanciar / factor
+                const cuota = total / n
+                const isSelected = selected === n
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setSelected(isSelected ? null : n)}
+                    className={`flex flex-col items-center p-2.5 border text-center transition-all ${
+                      isSelected
+                        ? 'border-gold bg-gold/10 text-gold'
+                        : 'border-luxury-gray-mid hover:border-gold/50 text-luxury-gray-light hover:text-white'
+                    }`}
+                  >
+                    <span className="text-[10px] uppercase tracking-wider mb-1">{label}</span>
+                    <span className="text-sm font-bold">{fmt(cuota)}</span>
+                    <span className="text-[10px] opacity-60">c/u</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+
+          {saldoFinanciar > 0 && cuotaSeleccionada && totalSeleccionado !== null && (
             <div className="bg-luxury-gray border border-gold/30 p-4 text-sm space-y-1.5">
               <p className="text-luxury-gray-light text-xs uppercase tracking-widest mb-2">Resumen</p>
+              {entrega > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-luxury-gray-light">Precio total</span>
+                    <span className="text-white font-medium">{fmt(precioARS)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-luxury-gray-light">Entrega</span>
+                    <span className="text-white font-medium">- {fmt(entrega)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-luxury-gray-mid pt-1.5 mt-1.5">
+                    <span className="text-luxury-gray-light">Saldo a financiar</span>
+                    <span className="text-white font-medium">{fmt(saldoFinanciar)}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between">
                 <span className="text-luxury-gray-light">Cuotas</span>
                 <span className="text-white font-medium">{cuotaSeleccionada.label}</span>
@@ -95,7 +148,7 @@ export default function SimuladorCuotas({ precioVenta, moneda }: Props) {
                 <span className="text-white font-medium">{fmt(totalSeleccionado / cuotaSeleccionada.n)}</span>
               </div>
               <div className="flex justify-between border-t border-luxury-gray-mid pt-1.5 mt-1.5">
-                <span className="text-luxury-gray-light">Total a pagar</span>
+                <span className="text-luxury-gray-light">Total a pagar (saldo)</span>
                 <span className="text-gold font-bold">{fmt(totalSeleccionado)}</span>
               </div>
             </div>
