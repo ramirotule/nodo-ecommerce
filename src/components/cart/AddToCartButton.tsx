@@ -27,10 +27,10 @@ export default function AddToCartButton({ item, inStock, variant = "card" }: Pro
         onClick={handleAdd}
         data-umami-event={inStock ? "agregar-al-carrito" : "pedido-carrito"}
         data-umami-event-producto={item.nombre}
-        className={`flex items-center justify-center gap-2 font-bold px-4 py-3.5 tracking-wider text-sm uppercase transition-all duration-200 flex-1 whitespace-nowrap cursor-pointer ${
+        className={`flex items-center justify-center gap-2 font-bold px-4 py-3.5 tracking-wider text-sm uppercase transition-all duration-300 flex-1 whitespace-nowrap cursor-pointer ${
           added
             ? "bg-green-600 text-white"
-            : "bg-gold text-black hover:bg-gold-light"
+            : "bg-luxury-gray text-gold border border-gold/20 hover:border-gold hover:bg-gold hover:text-black focus-visible:border-gold focus-visible:bg-gold focus-visible:text-black"
         }`}
       >
         {added ? (

@@ -185,7 +185,7 @@ export default async function ProductoPage({ params }: Props) {
                 rel="noopener noreferrer"
                 data-umami-event="compra-whatsapp"
                 data-umami-event-producto={producto.nombre}
-                className="flex items-center justify-center gap-2 border border-gold/40 text-gold font-semibold px-4 py-3.5 text-sm hover:bg-gold/10 transition-colors flex-1 whitespace-nowrap"
+                className="flex items-center justify-center gap-2 bg-luxury-gray border border-gold/20 text-gold font-semibold px-4 py-3.5 text-sm hover:border-gold hover:bg-gold hover:text-black focus-visible:border-gold focus-visible:bg-gold focus-visible:text-black transition-all duration-300 flex-1 whitespace-nowrap"
               >
                 <img src="/what.png" alt="WhatsApp" className="w-5 h-5 rounded-full object-cover" />
                 Consultar

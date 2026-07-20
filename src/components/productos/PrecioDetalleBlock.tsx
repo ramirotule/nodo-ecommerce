@@ -23,16 +23,16 @@ export default function PrecioDetalleBlock({ precioVenta, moneda }: Props) {
     <div className="mb-8 p-6 bg-luxury-gray border-l-4 border-gold flex flex-col gap-1">
       {/* Precio de lista */}
       <div className="flex flex-col">
-        <span className="text-gray-400 text-xs uppercase tracking-widest mb-1">
+        <span className="text-luxury-gray-light text-xs uppercase tracking-widest mb-1">
           Precio de lista
         </span>
-        <span className="text-gray-300 font-medium text-2xl">
+        <span className="text-luxury-gray-light font-medium text-2xl">
           {formatPrice(listaARS)}
         </span>
       </div>
 
       {/* Cuotas */}
-      <div className="flex items-center gap-2 text-gray-300 mt-1">
+      <div className="flex items-center gap-2 text-luxury-gray-light mt-1">
         <span className="font-semibold text-lg">
           3 cuotas sin interés de {formatPrice(cuotaARS)}
         </span>
@@ -40,7 +40,7 @@ export default function PrecioDetalleBlock({ precioVenta, moneda }: Props) {
 
       {/* Contado */}
       <div className="mt-6 pt-6 border-t border-luxury-gray-mid">
-        <span className="text-gray-400 text-xs uppercase tracking-widest block mb-2">
+        <span className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-2">
           Precio Especial Contado / Transferencia
         </span>
         <span className="text-white font-bold text-5xl block">

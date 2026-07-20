@@ -14,7 +14,7 @@ export const THEME_DEFAULTS = {
   light_color_bg: '#f5f4f0',
   light_color_surface: '#eae9e4',
   light_color_text: '#111111',
-  light_color_nav_subcategory: '#8B6914',
+  light_color_nav_subcategory: '#1AA45C',
   // Site identity
   site_name: 'Mi Tienda',
   site_tagline: 'Tu tienda online',

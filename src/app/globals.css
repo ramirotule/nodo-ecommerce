@@ -51,9 +51,9 @@
 .rich-content span[style*="font-family"] { font-family: revert; }
 /* Block elements */
 .rich-content p          { margin-bottom: 0.75em; }
-.rich-content h1         { font-size: 1.75em; font-weight: 700; margin-bottom: 0.5em; color: #fff; }
-.rich-content h2         { font-size: 1.4em;  font-weight: 700; margin-bottom: 0.5em; color: #fff; }
-.rich-content h3         { font-size: 1.15em; font-weight: 600; margin-bottom: 0.4em; color: #fff; }
+.rich-content h1         { font-size: 1.75em; font-weight: 700; margin-bottom: 0.5em; color: var(--color-text); }
+.rich-content h2         { font-size: 1.4em;  font-weight: 700; margin-bottom: 0.5em; color: var(--color-text); }
+.rich-content h3         { font-size: 1.15em; font-weight: 600; margin-bottom: 0.4em; color: var(--color-text); }
 .rich-content strong     { font-weight: 700; }
 .rich-content em         { font-style: italic; }
 .rich-content u          { text-decoration: underline; }
@@ -138,12 +138,14 @@ html[data-theme="light"],
   color: #9a9a94;
 }
 
-.product-image-frame {
-  background-color: #111111;
+/* Contenido rich-text con color inline (heredado de sesiones de edición en modo oscuro):
+   forzar el color de texto del tema también en modo claro, donde el inline "blanco" queda invisible. */
+[data-theme="light"] .rich-content [style*="color"] {
+  color: var(--color-text) !important;
 }
 
-[data-theme="light"] .product-image-frame {
-  background-color: #F5F4F0;
+.product-image-frame {
+  background-color: #FFFFFF;
 }
 
 * {
@@ -170,8 +172,14 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-luxury-black);
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold) var(--color-luxury-black);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
