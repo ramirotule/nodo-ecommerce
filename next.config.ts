@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
     root: path.resolve(__dirname),
   },
   images: {
+    // Vercel's Hobby plan caps monthly image-optimization transforms; once hit,
+    // /_next/image starts returning 402 and every unoptimized-variant image breaks.
+    // Source images are already served as .webp from Supabase Storage, so skip
+    // Vercel's optimizer entirely and serve them as-is.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
