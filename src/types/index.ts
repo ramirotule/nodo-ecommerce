@@ -19,6 +19,9 @@ export interface Producto {
   moneda?: 'ARS' | 'USD';
   proveedor_id?: string;
   proveedores?: { nombre: string };
+  original_name?: string;
+  descrip_provee?: string;
+  pendiente_completar?: boolean;
   activo: boolean;
   destacado: boolean;
   nuevo: boolean;

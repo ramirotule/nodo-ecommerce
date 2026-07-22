@@ -51,6 +51,8 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     nombre: producto.nombre || "",
     marca: producto.marca || "",
     descripcion: producto.descripcion || "",
+    original_name: producto.original_name || "",
+    descrip_provee: producto.descrip_provee || "",
     tags: producto.tags || [] as string[],
     descripcion_corta: producto.descripcion_corta || "",
     precio_costo: producto.precio_costo?.toString() || "",
@@ -210,6 +212,9 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       meta_titulo: form.meta_titulo.trim() || null,
       meta_descripcion: form.meta_descripcion.trim() || null,
       imagenes_adicionales: form.imagenes_adicionales,
+      original_name: form.original_name.trim() || null,
+      descrip_provee: form.descrip_provee.trim() || null,
+      pendiente_completar: false,
     };
 
     let result;
@@ -296,6 +301,44 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               />
             </div>
           )}
+
+          <div className="border border-luxury-gray-mid/50 bg-black/20 p-4 space-y-4">
+            <h3 className="text-[#888888] text-[10px] tracking-[0.2em] uppercase">
+              Datos del proveedor
+            </h3>
+
+            <div>
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+                Descripción del proveedor (descrip_provee)
+              </label>
+              <textarea
+                value={form.descrip_provee}
+                onChange={(e) => update("descrip_provee", e.target.value)}
+                rows={3}
+                placeholder="Texto tal como aparece en la lista del proveedor..."
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
+              />
+              <p className="text-[#555555] text-[10px] mt-1.5 italic">
+                Referencia interna del proveedor. No se muestra en la tienda.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+                Nombre para importación de precios (original_name)
+              </label>
+              <input
+                type="text"
+                value={form.original_name}
+                onChange={(e) => update("original_name", e.target.value)}
+                placeholder="Clave de emparejamiento en la lista del proveedor..."
+                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
+              />
+              <p className="text-[#555555] text-[10px] mt-1.5 italic">
+                Se usa para emparejar este producto con la actualización diaria de precios.
+              </p>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

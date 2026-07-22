@@ -21,9 +21,11 @@ import {
   X,
   Images,
   Wand2,
+  RefreshCw,
 } from "lucide-react";
 import BulkImportModal from "./BulkImportModal";
 import BulkImagenesModal from "./BulkImagenesModal";
+import ReconciliarPreciosModal from "./ReconciliarPreciosModal";
 import * as XLSX from "xlsx";
 import CustomSelect from "@/components/ui/CustomSelect";
 import toast from "react-hot-toast";
@@ -51,7 +53,9 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   const [bulkDeleteModal, setBulkDeleteModal] = useState(false);
 
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [isReconciliarModalOpen, setIsReconciliarModalOpen] = useState(false);
   const [bulkImagenesModal, setBulkImagenesModal] = useState(false);
+  const [soloPendientes, setSoloPendientes] = useState(false);
   const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>(searchParams.get('cat') ?? "");
   const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>(searchParams.get('sub') ?? "");
   const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "subcategoria" | null>(null);
@@ -279,10 +283,13 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       nombre: p.nombre,
       marca: p.marca,
       categoria: p.categoria || "",
+      proveedor: p.proveedores?.nombre || "",
+      original_name: p.original_name || "",
+      descrip_provee: p.descrip_provee || "",
       precio_costo: p.precio_costo || 0,
       precio_venta: p.precio_venta || 0,
       stock: p.stock || 0,
-      imagen_url: p.imagen_url || "",
+      imagenes: [p.imagen_url, ...(p.imagenes_adicionales || [])].filter(Boolean).join(" | "),
       activo: p.activo ? "SI" : "NO",
       destacado: p.destacado ? "SI" : "NO",
       nuevo: p.nuevo ? "SI" : "NO",
@@ -367,7 +374,10 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     // 3. Filtro por subcategoría
     const matchesSubcategoria = !subcategoriaFiltrada || (p as any).subcategoria_id === subcategoriaFiltrada;
 
-    return matchesBusqueda && matchesCategoria && matchesSubcategoria;
+    // 4. Filtro "solo pendientes de completar"
+    const matchesPendiente = !soloPendientes || p.pendiente_completar;
+
+    return matchesBusqueda && matchesCategoria && matchesSubcategoria && matchesPendiente;
   }).sort((a, b) => {
     if (!sortConfig) return 0;
     
@@ -466,6 +476,16 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               />
             </div>
           )}
+          <button
+            onClick={() => setSoloPendientes((prev) => !prev)}
+            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border transition-colors whitespace-nowrap ${
+              soloPendientes
+                ? "bg-amber-500/15 text-amber-500 border-amber-500/40"
+                : "bg-luxury-black text-luxury-gray-light border-luxury-gray-mid hover:border-amber-500/40 hover:text-amber-500"
+            }`}
+          >
+            Solo pendientes
+          </button>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
@@ -495,6 +515,13 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               <ArrowUp size={10} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
             </div>
             Exportar
+          </button>
+          <button
+            onClick={() => setIsReconciliarModalOpen(true)}
+            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap"
+          >
+            <RefreshCw size={16} className="text-gold" />
+            Actualizar precios
           </button>
         </div>
       </div>
@@ -610,7 +637,14 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                           />
                         )}
                         <div>
-                          <p className="text-white font-medium line-clamp-1">{producto.nombre}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-white font-medium line-clamp-1">{producto.nombre}</p>
+                            {producto.pendiente_completar && (
+                              <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-500/15 text-amber-500 border border-amber-500/30">
+                                Pendiente
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[#555555] text-xs">{producto.marca}</p>
                         </div>
                       </div>
@@ -973,6 +1007,16 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       <BulkImportModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+        onSuccess={() => {
+          fetchProductos();
+          router.refresh();
+        }}
+      />
+
+      {/* Modal Reconciliación de precios del proveedor */}
+      <ReconciliarPreciosModal
+        isOpen={isReconciliarModalOpen}
+        onClose={() => setIsReconciliarModalOpen(false)}
         onSuccess={() => {
           fetchProductos();
           router.refresh();
