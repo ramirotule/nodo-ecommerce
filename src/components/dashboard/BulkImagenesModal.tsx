@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import ProductImage from '@/components/ui/ProductImage'
 import { X, ImagePlus, Loader2, Check, Images } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -164,19 +164,13 @@ export default function BulkImagenesModal({ productos, selectedIds, onClose, onS
                 >
                   {/* Thumbnail */}
                   <div className="relative aspect-square bg-luxury-gray">
-                    {state.imagen_url ? (
-                      <Image
-                        src={state.imagen_url}
-                        alt={producto.nombre}
-                        fill
-                        className="object-contain p-2"
-                        sizes="200px"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Images size={24} className="text-[#444444]" />
-                      </div>
-                    )}
+                    <ProductImage
+                      src={state.imagen_url}
+                      alt={producto.nombre}
+                      fill
+                      className="object-contain p-2"
+                      sizes="200px"
+                    />
                     {state.modified && (
                       <div className="absolute top-1.5 right-1.5 bg-gold text-black p-0.5 rounded-full">
                         <Check size={10} />

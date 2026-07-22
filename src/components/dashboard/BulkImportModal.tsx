@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import { Download, Upload, X, Check, AlertCircle, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -90,7 +91,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
       const [{ data: categoriasDb }, { data: subcategoriasDb }, { data: existingSlugs }] = await Promise.all([
         supabase.from("categorias").select("id, nombre"),
         supabase.from("subcategorias").select("id, nombre"),
-        supabase.from("productos").select("slug"),
+        supabase.from(PRODUCTS_TABLE).select("slug"),
       ]);
 
       const categoriaMap = new Map(categoriasDb?.map(c => [c.nombre.toLowerCase(), c.id]));
@@ -140,7 +141,7 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
       const batchSize = 20;
       for (let i = 0; i < productosToInsert.length; i += batchSize) {
         const batch = productosToInsert.slice(i, i + batchSize);
-        const { error: insertError } = await supabase.from("productos").insert(batch);
+        const { error: insertError } = await supabase.from(PRODUCTS_TABLE).insert(batch);
         if (insertError) throw insertError;
       }
 

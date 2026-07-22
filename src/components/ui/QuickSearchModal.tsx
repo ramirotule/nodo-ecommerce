@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
+import ProductImage from "@/components/ui/ProductImage";
 import { Search, X, ArrowRight, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import { formatPrice } from "@/lib/price-utils";
 import { useDolar } from "@/context/DolarContext";
 import type { Producto } from "@/types";
@@ -27,7 +28,7 @@ async function searchProducts(query: string): Promise<Producto[]> {
   const supabase = createClient();
   const tagTerm = query.toLowerCase().replace(/[{},]/g, "");
   const { data } = await supabase
-    .from("productos")
+    .from(PRODUCTS_TABLE)
     .select("id, nombre, marca, slug, precio_venta, imagen_url, destacado")
     .eq("activo", true)
     .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,descripcion.ilike.%${query}%,tags.cs.{${tagTerm}}`)
@@ -194,17 +195,13 @@ export default function QuickSearchModal() {
                 >
                   {/* Thumbnail */}
                   <div className="w-12 h-12 shrink-0 bg-[#0A0A0A] rounded-md overflow-hidden border border-luxury-gray-mid">
-                    {product.imagen_url ? (
-                      <Image
-                        src={product.imagen_url}
-                        alt={product.nombre}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <NoImagePlaceholder width={48} height={48} className="w-full h-full object-cover" />
-                    )}
+                    <ProductImage
+                      src={product.imagen_url}
+                      alt={product.nombre}
+                      width={48}
+                      height={48}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
                   {/* Info */}

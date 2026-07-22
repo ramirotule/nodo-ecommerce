@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import ProductoGrid from "@/components/productos/ProductoGrid";
 import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
 
@@ -15,7 +16,7 @@ async function buscarProductos(q: string): Promise<Producto[]> {
     const supabase = await createClient();
     const tagTerm = q.toLowerCase().replace(/[{},]/g, "");
     const { data } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select("*")
       .eq("activo", true)
       .or(`nombre.ilike.%${q}%,marca.ilike.%${q}%,descripcion.ilike.%${q}%,tags.cs.{${tagTerm}}`)

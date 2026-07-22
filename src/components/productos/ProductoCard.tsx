@@ -1,7 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { Producto } from "@/types";
-import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
+import ProductImage from "@/components/ui/ProductImage";
 import AddToCartButton from "@/components/cart/AddToCartButton";
 import { calculateListPrice, calculateInstallment, formatPrice } from "@/lib/price-utils";
 import PrecioUSD from "@/components/productos/PrecioUSD";
@@ -19,17 +18,13 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
     return (
       <article className="group relative bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
         <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative aspect-square">
-          {producto.imagen_url ? (
-            <Image
-              src={producto.imagen_url}
-              alt={`Producto ${producto.nombre} ${producto.marca}`}
-              fill
-              sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw"
-              className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-            />
-          ) : (
-            <NoImagePlaceholder fill sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw" className="object-contain p-3" width={0} height={0} />
-          )}
+          <ProductImage
+            src={producto.imagen_url}
+            alt={`Producto ${producto.nombre} ${producto.marca}`}
+            fill
+            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 15vw"
+            className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+          />
           
           {/* Minimal Badges for Compact View */}
           <div className="absolute top-1 left-1 flex flex-col gap-0.5">
@@ -56,18 +51,14 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
     <article className="group bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
       {/* Image */}
       <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative overflow-hidden aspect-[4/3]">
-        {producto.imagen_url ? (
-          <Image
-            src={producto.imagen_url}
-            alt={`Producto ${producto.nombre} ${producto.marca}`}
-            fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            priority={priority}
-            className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-          />
-        ) : (
-          <NoImagePlaceholder fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" className="object-contain p-3" width={0} height={0} />
-        )}
+        <ProductImage
+          src={producto.imagen_url}
+          alt={`Producto ${producto.nombre} ${producto.marca}`}
+          fill
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          priority={priority}
+          className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
+        />
 
         {/* Badges — top left: Nuevo / Destacado only */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
@@ -82,15 +73,6 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
             </span>
           )}
         </div>
-
-        {/* Sin stock badge — bottom, full width */}
-        {producto.stock === 0 && (
-          <div className="absolute bottom-0 left-0 right-0">
-            <span className="block w-full bg-black/70 text-amber-400 text-[9px] font-bold tracking-wider px-2 py-1.5 uppercase text-center backdrop-blur-sm">
-              Se trae por pedido
-            </span>
-          </div>
-        )}
       </Link>
 
       {/* Content */}

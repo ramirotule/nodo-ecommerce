@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { PRODUCTS_TABLE } from '@/lib/supabase/tables'
 
 export async function updateProductoImages(
   id: string,
@@ -10,7 +11,7 @@ export async function updateProductoImages(
   try {
     const supabase = await createClient()
     const { error } = await supabase
-      .from('productos')
+      .from(PRODUCTS_TABLE)
       .update({ imagen_url, imagenes_adicionales, updated_at: new Date().toISOString() })
       .eq('id', id)
 

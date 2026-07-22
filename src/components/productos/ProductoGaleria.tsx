@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
+import ProductImage from "@/components/ui/ProductImage";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 interface Props {
@@ -43,11 +43,14 @@ export default function ProductoGaleria({
 
   if (todas.length === 0) {
     return (
-      <div className="relative aspect-square bg-luxury-black border border-luxury-gray flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-7xl text-gray-50 mb-4">✦</div>
-          <p className="text-gray-300 text-sm tracking-wider uppercase">{marca}</p>
-        </div>
+      <div className="relative aspect-square bg-luxury-black border border-luxury-gray overflow-hidden">
+        <ProductImage
+          src={null}
+          alt={`${nombre} ${marca}`}
+          fill
+          sizes="(max-width: 768px) 100vw, 50vw"
+          className="object-contain p-4"
+        />
       </div>
     );
   }
@@ -62,7 +65,7 @@ export default function ProductoGaleria({
           aria-label="Ampliar imagen"
           className="absolute inset-0 z-0 cursor-zoom-in"
         >
-          <Image
+          <ProductImage
             src={todas[current]}
             alt={`${nombre} ${marca}`}
             fill
@@ -116,7 +119,7 @@ export default function ProductoGaleria({
               }`}
             >
               <div className="relative w-full h-full">
-                <Image
+                <ProductImage
                   src={img}
                   alt={`${nombre} — imagen ${i + 1}`}
                   fill
@@ -149,7 +152,7 @@ export default function ProductoGaleria({
             className="relative w-full max-w-4xl aspect-square"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
+            <ProductImage
               src={todas[current]}
               alt={`${nombre} ${marca}`}
               fill
@@ -192,7 +195,7 @@ export default function ProductoGaleria({
                   }`}
                 >
                   <div className="relative w-full h-full">
-                    <Image
+                    <ProductImage
                       src={img}
                       alt={`${nombre} — imagen ${i + 1}`}
                       fill

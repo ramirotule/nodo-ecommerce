@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import Image from 'next/image'
+import ProductImage from '@/components/ui/ProductImage'
 import { X, ImagePlus, Loader2, Star, Trash2, GripVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { createClient } from '@/lib/supabase/client'
@@ -229,7 +229,7 @@ export default function ProductoImagenesModal({ producto, onClose, onSaved }: Pr
                         isDragOver ? 'border-gold' : isPrincipal ? 'border-gold ring-1 ring-gold' : 'border-luxury-gray-mid'
                       }`}
                     >
-                      <Image src={url} alt={`Imagen ${i + 1}`} fill className="object-contain p-2 pointer-events-none" sizes="200px" />
+                      <ProductImage src={url} alt={`Imagen ${i + 1}`} fill className="object-contain p-2 pointer-events-none" sizes="200px" />
 
                       {/* Selection checkbox */}
                       <label

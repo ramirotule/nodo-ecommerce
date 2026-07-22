@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import ProductoGrid from "@/components/productos/ProductoGrid";
 import FiltrosCatalogo from "@/components/productos/FiltrosCatalogo";
 import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
@@ -22,7 +23,7 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
   try {
     const supabase = await createClient();
     let query = supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select("*")
       .eq("activo", true);
 

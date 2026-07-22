@@ -5,6 +5,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import { ChevronRight, MapPin } from "lucide-react";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import AddToCartButton from "@/components/cart/AddToCartButton";
@@ -22,7 +23,7 @@ async function getProducto(slug: string): Promise<Producto | null> {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select(`*`)
       .eq("slug", slug)
       .eq("activo", true)

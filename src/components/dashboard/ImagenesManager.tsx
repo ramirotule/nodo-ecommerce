@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
+import ProductImage from '@/components/ui/ProductImage'
 import { Images, Search } from 'lucide-react'
 import ProductoImagenesModal from './ProductoImagenesModal'
 
@@ -79,19 +79,13 @@ export default function ImagenesManager({ productos }: Props) {
             >
               {/* Thumbnail */}
               <div className="relative aspect-square w-full bg-luxury-gray overflow-hidden">
-                {producto.imagen_url ? (
-                  <Image
-                    src={producto.imagen_url}
-                    alt={producto.nombre}
-                    fill
-                    sizes="200px"
-                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Images size={24} className="text-[#444444]" />
-                  </div>
-                )}
+                <ProductImage
+                  src={producto.imagen_url}
+                  alt={producto.nombre}
+                  fill
+                  sizes="200px"
+                  className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
+                />
                 {/* Image count badge */}
                 <div className="absolute bottom-1.5 right-1.5">
                   <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${totalImages > 0 ? 'bg-gold text-black' : 'bg-luxury-gray-mid text-[#555555]'}`}>

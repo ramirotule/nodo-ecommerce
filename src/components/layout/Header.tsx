@@ -8,8 +8,9 @@ import { Search, Menu, X, ChevronDown, ShoppingBag, Sun, Moon, Loader2 } from "l
 import { useCart } from "@/context/CartContext";
 import { useCatalogo } from "@/context/CatalogoContext";
 import DolarWidget from "@/components/ui/DolarWidget";
-import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
+import ProductImage from "@/components/ui/ProductImage";
 import { createClient } from "@/lib/supabase/client";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import { formatPrice } from "@/lib/price-utils";
 import type { Producto } from "@/types";
 
@@ -18,7 +19,7 @@ async function searchProductsInline(query: string): Promise<Producto[]> {
   const supabase = createClient();
   const tagTerm = query.toLowerCase().replace(/[{},]/g, "");
   const { data } = await supabase
-    .from("productos")
+    .from(PRODUCTS_TABLE)
     .select("id, nombre, marca, slug, precio_venta, imagen_url")
     .eq("activo", true)
     .or(`nombre.ilike.%${query}%,marca.ilike.%${query}%,tags.cs.{${tagTerm}}`)
@@ -211,11 +212,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                         className="flex items-center gap-3 px-4 py-3 hover:bg-gold/5 transition-colors group"
                       >
                         <div className="w-10 h-10 shrink-0 bg-luxury-gray overflow-hidden">
-                          {p.imagen_url ? (
-                            <Image src={p.imagen_url} alt={p.nombre} width={40} height={40} className="w-full h-full object-cover" />
-                          ) : (
-                            <NoImagePlaceholder width={40} height={40} className="w-full h-full object-cover" />
-                          )}
+                          <ProductImage src={p.imagen_url} alt={p.nombre} width={40} height={40} className="w-full h-full object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white text-sm truncate group-hover:text-gold transition-colors">{p.nombre}</p>

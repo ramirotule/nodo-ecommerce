@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/types";
 import CustomSelect from "@/components/ui/CustomSelect";
+import { PRODUCTS_TABLE, PRODUCTS_STORAGE_BUCKET } from "@/lib/supabase/tables";
+import { sanitizeProductPayload } from "@/lib/supabase/product-columns";
+import { calcPrecioVentaFromCosto } from "@/lib/price-utils";
+import CurrencyInput from "@/components/ui/CurrencyInput";
 
 import {
   Plus,
@@ -18,7 +22,7 @@ import {
   AlertTriangle,
   GripVertical
 } from "lucide-react";
-import Image from "next/image";
+import ProductImage from "@/components/ui/ProductImage";
 
 interface Props {
   producto?: Partial<Producto>;
@@ -45,19 +49,19 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [proveedoresDb, setProveedoresDb] = useState<{id: string, nombre: string}[]>([]);
+  const [marcasDb, setMarcasDb] = useState<{id: string, nombre: string}[]>([]);
   const [loadingSubcategorias, setLoadingSubcategorias] = useState(false);
 
   const [form, setForm] = useState({
     nombre: producto.nombre || "",
     marca: producto.marca || "",
     descripcion: producto.descripcion || "",
-    original_name: producto.original_name || "",
     descrip_provee: producto.descrip_provee || "",
     tags: producto.tags || [] as string[],
     descripcion_corta: producto.descripcion_corta || "",
-    precio_costo: producto.precio_costo?.toString() || "",
-    precio_venta: producto.precio_venta?.toString() || "",
-    stock: producto.stock?.toString() || "0",
+    precio_costo: producto.precio_costo ?? 0,
+    precio_venta: producto.precio_venta ?? 0,
+    stock: producto.stock != null ? String(producto.stock) : "1",
     imagen_url: producto.imagen_url || "",
     imagenes_adicionales: producto.imagenes_adicionales || [],
     categoria_id: producto.categoria_id?.toString() || "",
@@ -153,6 +157,18 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   }, [form.categoria_id]);
 
   useEffect(() => {
+    async function fetchMarcas() {
+      const { data } = await supabase
+        .from("marcas")
+        .select("id, nombre")
+        .eq("activo", true)
+        .order("nombre");
+      setMarcasDb(data || []);
+    }
+    fetchMarcas();
+  }, []);
+
+  useEffect(() => {
     async function fetchProveedores() {
       const { data } = await supabase
         .from('proveedores')
@@ -164,8 +180,16 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     fetchProveedores()
   }, [])
 
-  function update(key: string, value: string | boolean) {
+  function update(key: string, value: string | boolean | number) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleCostoChange(value: number) {
+    setForm((prev) => ({
+      ...prev,
+      precio_costo: value,
+      precio_venta: value > 0 ? calcPrecioVentaFromCosto(value) : prev.precio_venta,
+    }));
   }
 
   function reorderImages(from: number, to: number) {
@@ -190,15 +214,24 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
 
     const nombreTrimmed = form.nombre.trim();
     const marcaTrimmed = form.marca.trim();
-    const payload = {
+    if (!marcaTrimmed) {
+      setError("Seleccioná una marca.");
+      setLoading(false);
+      return;
+    }
+    const costoParsed = form.precio_costo > 0 ? form.precio_costo : null;
+    const payload = await sanitizeProductPayload(supabase, {
       nombre: nombreTrimmed,
       marca: marcaTrimmed,
       slug: generateSlug(nombreTrimmed, marcaTrimmed),
       descripcion: form.descripcion.trim(),
       tags: form.tags,
       descripcion_corta: form.descripcion_corta.trim() || null,
-      precio_costo: form.precio_costo ? parseFloat(form.precio_costo) : null,
-      precio_venta: parseFloat(form.precio_venta),
+      precio_costo: costoParsed,
+      precio_venta:
+        costoParsed && costoParsed > 0
+          ? calcPrecioVentaFromCosto(costoParsed)
+          : form.precio_venta,
       stock: parseInt(form.stock) || 0,
       imagen_url: form.imagen_url.trim() || null,
       categoria_id: form.categoria_id || null,
@@ -212,16 +245,14 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       meta_titulo: form.meta_titulo.trim() || null,
       meta_descripcion: form.meta_descripcion.trim() || null,
       imagenes_adicionales: form.imagenes_adicionales,
-      original_name: form.original_name.trim() || null,
       descrip_provee: form.descrip_provee.trim() || null,
-      pendiente_completar: false,
-    };
+    });
 
     let result;
     if (isEdit && producto.id) {
-      result = await supabase.from("productos").update(payload).eq("id", producto.id);
+      result = await supabase.from(PRODUCTS_TABLE).update(payload).eq("id", producto.id);
     } else {
-      result = await supabase.from("productos").insert(payload);
+      result = await supabase.from(PRODUCTS_TABLE).insert(payload);
     }
 
     if (result.error) {
@@ -235,14 +266,20 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     setTimeout(() => router.back(), 1500);
   }
 
-  const margen =
-    form.precio_costo && form.precio_venta
-      ? Math.round(
-          ((parseFloat(form.precio_venta) - parseFloat(form.precio_costo)) /
-            parseFloat(form.precio_venta)) *
-            100
-        )
-      : null;
+  const precioInvalido =
+    form.precio_costo > 0 &&
+    form.precio_venta > 0 &&
+    form.precio_venta <= form.precio_costo;
+
+  const marcaOptions = [
+    ...marcasDb.map((m) => ({ value: m.nombre, label: m.nombre })),
+    ...(form.marca && !marcasDb.some((m) => m.nombre === form.marca)
+      ? [{ value: form.marca, label: `${form.marca} (actual)` }]
+      : []),
+  ];
+
+  const fieldClass =
+    "w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors";
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -302,44 +339,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
             </div>
           )}
 
-          <div className="border border-luxury-gray-mid/50 bg-black/20 p-4 space-y-4">
-            <h3 className="text-[#888888] text-[10px] tracking-[0.2em] uppercase">
-              Datos del proveedor
-            </h3>
-
-            <div>
-              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Descripción del proveedor (descrip_provee)
-              </label>
-              <textarea
-                value={form.descrip_provee}
-                onChange={(e) => update("descrip_provee", e.target.value)}
-                rows={3}
-                placeholder="Texto tal como aparece en la lista del proveedor..."
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
-              />
-              <p className="text-[#555555] text-[10px] mt-1.5 italic">
-                Referencia interna del proveedor. No se muestra en la tienda.
-              </p>
-            </div>
-
-            <div>
-              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Nombre para importación de precios (original_name)
-              </label>
-              <input
-                type="text"
-                value={form.original_name}
-                onChange={(e) => update("original_name", e.target.value)}
-                placeholder="Clave de emparejamiento en la lista del proveedor..."
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
-              />
-              <p className="text-[#555555] text-[10px] mt-1.5 italic">
-                Se usa para emparejar este producto con la actualización diaria de precios.
-              </p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
@@ -350,21 +349,34 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 value={form.nombre}
                 onChange={(e) => update("nombre", e.target.value)}
                 required
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
+                className={fieldClass}
               />
             </div>
             <div>
-              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Marca *
-              </label>
-              <input
-                type="text"
+              <CustomSelect
+                label="Marca *"
                 value={form.marca}
-                onChange={(e) => update("marca", e.target.value)}
-                required
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
+                onChange={(val) => update("marca", val)}
+                placeholder="Seleccionar marca..."
+                options={marcaOptions}
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+              Descrip_provee
+            </label>
+            <input
+              type="text"
+              value={form.descrip_provee}
+              onChange={(e) => update("descrip_provee", e.target.value)}
+              placeholder="Nombre tal como aparece en la lista del proveedor..."
+              className={fieldClass}
+            />
+            <p className="text-[#555555] text-[10px] mt-1.5 italic">
+              Se usa para emparejar este producto en la importación masiva de precios. No se muestra en la tienda.
+            </p>
           </div>
 
           <div>
@@ -375,7 +387,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
               value={form.descripcion}
               onChange={(e) => update("descripcion", e.target.value)}
               rows={4}
-              className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors resize-none"
+              className={`${fieldClass} resize-none`}
             />
           </div>
 
@@ -485,7 +497,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                       const filePath = `productos/${fileName}`;
                       
                       const { error: uploadError } = await supabase.storage
-                        .from('productos')
+                        .from(PRODUCTS_STORAGE_BUCKET)
                         .upload(filePath, file);
                         
                       if (uploadError) {
@@ -494,7 +506,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                       }
                       
                       const { data: { publicUrl } } = supabase.storage
-                        .from('productos')
+                        .from(PRODUCTS_STORAGE_BUCKET)
                         .getPublicUrl(filePath);
                         
                       newImages.push(publicUrl);
@@ -544,7 +556,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                   dragOverImageIndex === idx ? "border-gold" : selectedImages.includes(img) ? "border-red-500 ring-1 ring-red-500" : "border-luxury-gray-mid"
                 }`}
               >
-                <Image
+                <ProductImage
                   src={img}
                   alt={`Imagen ${idx}`}
                   fill
@@ -645,19 +657,6 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Precio Costo ($)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={form.precio_costo}
-                onChange={(e) => update("precio_costo", e.target.value)}
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
-                placeholder="0.00"
-              />
-            </div>
-            <div>
-              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
                 Moneda
               </label>
               <div className="flex gap-2">
@@ -679,17 +678,30 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
             </div>
             <div>
               <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
-                Precio Venta ({form.moneda === 'USD' ? 'US$' : '$'}) *
+                Precio Costo
               </label>
-              <input
-                type="number"
-                step="0.01"
-                value={form.precio_venta}
-                onChange={(e) => update("precio_venta", e.target.value)}
-                required
-                className="w-full bg-luxury-gray border border-luxury-gray-mid text-white px-4 py-3 focus:outline-none focus:border-gold text-sm transition-colors"
-                placeholder="0.00"
+              <CurrencyInput
+                value={form.precio_costo}
+                onChange={handleCostoChange}
+                moneda={form.moneda}
               />
+            </div>
+            <div>
+              <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
+                Precio Venta *
+              </label>
+              <CurrencyInput
+                value={form.precio_venta}
+                onChange={(value) => update("precio_venta", value)}
+                moneda={form.moneda}
+                readOnly={form.precio_costo > 0}
+                required
+              />
+              {form.precio_costo > 0 && (
+                <p className="text-[#555555] text-[10px] mt-1.5 italic">
+                  Calculado: (costo ÷ 0,87 + 30), redondeado al múltiplo de 5 superior.
+                </p>
+              )}
             </div>
             <div>
               <label className="text-luxury-gray-light text-xs uppercase tracking-widest block mb-1.5">
@@ -706,19 +718,9 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
             </div>
           </div>
 
-          {margen !== null && (
-            <div
-              className={`text-sm px-4 py-2.5 border ${
-                margen >= 40
-                  ? "border-green-400/30 text-green-400 bg-green-400/5"
-                  : margen >= 25
-                  ? "border-yellow-400/30 text-yellow-400 bg-yellow-400/5"
-                  : "border-red-400/30 text-red-400 bg-red-400/5"
-              }`}
-            >
-              Margen de ganancia: <strong>{margen}%</strong>
-              {margen < 25 && " — ¡Revisar precio!"}
-              {margen >= 40 && " — Excelente margen"}
+          {precioInvalido && (
+            <div className="text-sm px-4 py-2.5 border border-red-400/30 text-red-400 bg-red-400/5">
+              El precio de venta es igual o menor al precio de costo — ¡Revisar precio!
             </div>
           )}
         </div>

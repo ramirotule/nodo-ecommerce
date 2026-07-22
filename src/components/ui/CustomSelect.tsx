@@ -88,9 +88,9 @@ export default function CustomSelect({
       </button>
 
       {isOpen && (
-        <div className="absolute z-[110] w-full mt-1 bg-[#111111] border border-luxury-gray-mid shadow-2xl max-h-60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute z-[110] w-full mt-1 bg-luxury-gray border border-luxury-gray-mid shadow-2xl max-h-60 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Input de Búsqueda */}
-          <div className="p-2 border-b border-luxury-gray-mid bg-[#0A0A0A]">
+          <div className="p-2 border-b border-luxury-gray-mid bg-luxury-black">
             <input
               ref={searchInputRef}
               type="text"

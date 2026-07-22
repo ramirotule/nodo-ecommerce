@@ -1,6 +1,8 @@
 import { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL || "https://mitienda.com";
@@ -35,7 +37,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const supabase = await createClient();
     const { data: productos } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select("slug, updated_at")
       .eq("activo", true);
 

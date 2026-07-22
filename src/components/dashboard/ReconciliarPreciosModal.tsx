@@ -4,7 +4,12 @@ import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
 import { Download, Upload, X, Check, AlertCircle, FileText, ArrowRight, RefreshCw } from "lucide-react";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+import {
+  sanitizeProductPayload,
+} from "@/lib/supabase/product-columns";
 import toast from "react-hot-toast";
+import { calcPrecioVentaFromCosto } from "@/lib/price-utils";
 
 interface Props {
   isOpen: boolean;
@@ -21,7 +26,7 @@ interface ProductoLite {
   id: string;
   nombre: string;
   marca: string;
-  original_name: string | null;
+  descrip_provee?: string | null;
   precio_costo: number | null;
   precio_venta: number | null;
   activo: boolean;
@@ -51,7 +56,7 @@ interface DesactivarRow {
   id: string;
   nombre: string;
   marca: string;
-  original_name: string;
+  descrip_provee: string;
   selected: boolean;
 }
 
@@ -173,19 +178,21 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
     setError(null);
     try {
       const { data: productosDb, error: fetchError } = await supabase
-        .from("productos")
-        .select("id, nombre, marca, original_name, precio_costo, precio_venta, activo, slug");
+        .from(PRODUCTS_TABLE)
+        .select("*");
 
       if (fetchError) throw fetchError;
 
       const productos = (productosDb ?? []) as ProductoLite[];
       usedSlugsRef.current = new Set(productos.map((p) => p.slug));
 
+      const matchKey = (p: ProductoLite) =>
+        (p.descrip_provee?.trim() || p.nombre.trim()).toLowerCase();
+
       const matchMap = new Map<string, ProductoLite>();
       for (const p of productos) {
-        if (p.original_name && p.original_name.trim()) {
-          matchMap.set(p.original_name.trim().toLowerCase(), p);
-        }
+        const key = matchKey(p);
+        if (key) matchMap.set(key, p);
       }
 
       const parsedKeys = new Set(parsedRows.map((r) => r.name.toLowerCase()));
@@ -207,14 +214,8 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
 
         if (row.costo === costoActual) continue;
 
-        const canRecalc = costoActual > 0 && ventaActual > 0 && costoActual < ventaActual;
-        let nuevaVenta = ventaActual;
-        let recalcOk = false;
-        if (canRecalc) {
-          const margen = (ventaActual - costoActual) / ventaActual;
-          nuevaVenta = Math.round(row.costo / (1 - margen));
-          recalcOk = true;
-        }
+        const nuevaVenta = calcPrecioVentaFromCosto(row.costo);
+        const recalcOk = row.costo > 0;
 
         nextActualizados.push({
           id: match.id,
@@ -231,17 +232,16 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
 
       const nextADesactivar: DesactivarRow[] = productos
         .filter(
-          (p) =>
-            p.original_name &&
-            p.original_name.trim() &&
-            p.activo &&
-            !parsedKeys.has(p.original_name.trim().toLowerCase())
+          (p) => {
+            const key = matchKey(p);
+            return key && p.activo && !parsedKeys.has(key);
+          }
         )
         .map((p) => ({
           id: p.id,
           nombre: p.nombre,
           marca: p.marca,
-          original_name: p.original_name as string,
+          descrip_provee: p.descrip_provee?.trim() || p.nombre,
           selected: true,
         }));
 
@@ -280,25 +280,28 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
       const selectedDesactivar = aDesactivar.filter((d) => d.selected);
 
       if (selectedNuevos.length > 0) {
-        const toInsert = selectedNuevos.map((n) => ({
-          nombre: n.nombre,
-          marca: "Sin marca",
-          slug: uniqueSlug(n.nombre, "sin-marca", usedSlugsRef.current),
-          descripcion: "",
-          precio_costo: n.costo,
-          precio_venta: n.costo,
-          stock: 0,
-          moneda: "ARS",
-          original_name: n.nombre,
-          descrip_provee: n.nombre,
-          activo: false,
-          pendiente_completar: true,
-        }));
+        const toInsert = await Promise.all(
+          selectedNuevos.map(async (n) =>
+            sanitizeProductPayload(supabase, {
+              nombre: n.nombre,
+              marca: "Sin marca",
+              slug: uniqueSlug(n.nombre, "sin-marca", usedSlugsRef.current),
+              descripcion: "",
+              precio_costo: n.costo,
+              precio_venta: calcPrecioVentaFromCosto(n.costo),
+              stock: 0,
+              moneda: "ARS",
+              descrip_provee: n.nombre,
+              activo: false,
+              pendiente_completar: true,
+            })
+          )
+        );
 
         const batchSize = 20;
         for (let i = 0; i < toInsert.length; i += batchSize) {
           const batch = toInsert.slice(i, i + batchSize);
-          const { error: insertError } = await supabase.from("productos").insert(batch);
+          const { error: insertError } = await supabase.from(PRODUCTS_TABLE).insert(batch);
           if (insertError) throw insertError;
         }
       }
@@ -313,7 +316,7 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
                 precio_costo: row.nuevoCosto,
               };
               if (row.recalcOk) updatePayload.precio_venta = row.nuevaVenta;
-              return supabase.from("productos").update(updatePayload).eq("id", row.id);
+              return supabase.from(PRODUCTS_TABLE).update(updatePayload).eq("id", row.id);
             })
           );
           const failed = results.find((r) => r.error);
@@ -323,7 +326,7 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
 
       if (selectedDesactivar.length > 0) {
         const { error: deactivateError } = await supabase
-          .from("productos")
+          .from(PRODUCTS_TABLE)
           .update({ activo: false })
           .in(
             "id",
@@ -599,7 +602,7 @@ export default function ReconciliarPreciosModal({ isOpen, onClose, onSuccess }: 
                                 <td className="px-3 py-2 text-white">
                                   {d.nombre} <span className="text-[#555555]">· {d.marca}</span>
                                 </td>
-                                <td className="px-3 py-2">{d.original_name}</td>
+                                <td className="px-3 py-2">{d.descrip_provee}</td>
                               </tr>
                             ))}
                           </tbody>

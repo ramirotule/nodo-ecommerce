@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
+import ProductImage from "@/components/ui/ProductImage";
 import { X, ShoppingBag, Plus, Minus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useDolar } from "@/context/DolarContext";
@@ -115,17 +115,13 @@ export default function CartDrawer({ freeShippingFrom }: Props) {
                 >
                   {/* Thumbnail */}
                   <div className="w-16 h-16 shrink-0 bg-[#111111] border border-luxury-gray overflow-hidden">
-                    {item.imagen_url ? (
-                      <Image
-                        src={item.imagen_url}
-                        alt={item.nombre}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <NoImagePlaceholder width={64} height={64} className="w-full h-full object-cover" />
-                    )}
+                    <ProductImage
+                      src={item.imagen_url}
+                      alt={item.nombre}
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
                   {/* Info */}

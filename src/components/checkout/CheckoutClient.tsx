@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import NoImagePlaceholder from "@/components/ui/NoImagePlaceholder";
+import ProductImage from "@/components/ui/ProductImage";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -440,17 +440,13 @@ export default function CheckoutPage() {
               {items.map((item) => (
                 <li key={item.id} className="flex gap-4 items-center">
                   <div className="w-20 h-20 bg-luxury-gray border border-luxury-gray-mid shrink-0 overflow-hidden">
-                    {item.imagen_url ? (
-                      <Image
-                        src={item.imagen_url}
-                        alt={item.nombre}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <NoImagePlaceholder width={80} height={80} className="w-full h-full object-cover" />
-                    )}
+                    <ProductImage
+                      src={item.imagen_url}
+                      alt={item.nombre}
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white text-sm font-medium leading-tight">{item.nombre}</p>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
 import ProductoGrid from "@/components/productos/ProductoGrid";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import { MapPin, ChevronRight, Award } from "lucide-react";
@@ -12,7 +13,7 @@ async function getProductosDestacados(): Promise<Producto[]> {
   try {
     const supabase = await createClient();
     const { data } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select("*")
       .eq("activo", true)
       .eq("destacado", true)
@@ -28,7 +29,7 @@ async function getProductosNuevos(): Promise<Producto[]> {
   try {
     const supabase = await createClient();
     const { data } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .select("*")
       .eq("activo", true)
       .eq("nuevo", true)

@@ -4,8 +4,11 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/types";
+import { calcPrecioVentaFromCosto } from "@/lib/price-utils";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+import CurrencyInput from "@/components/ui/CurrencyInput";
 import Link from "next/link";
-import Image from "next/image";
+import ProductImage from "@/components/ui/ProductImage";
 import {
   Package,
   TrendingUp,
@@ -59,7 +62,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>(searchParams.get('cat') ?? "");
   const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>(searchParams.get('sub') ?? "");
   const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "subcategoria" | null>(null);
-  const [precioModal, setPrecioModal] = useState<{ open: boolean; venta: string; costo: string }>({ open: false, venta: "", costo: "" });
+  const [precioModal, setPrecioModal] = useState<{ open: boolean; venta: number; costo: number }>({ open: false, venta: 0, costo: 0 });
   const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
   const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, slug: string, categoria_id: string}[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
@@ -71,11 +74,17 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     try {
       setBulkLoading(true);
       // Cargamos categorías y productos en paralelo para máxima eficiencia
-      const [{ data: cats }, { data: prods }, { data: provs }] = await Promise.all([
+      const [{ data: cats }, { data: prods, error: prodsError }, { data: provs }] = await Promise.all([
         supabase.from("categorias").select("id, nombre"),
-        supabase.from("productos").select("*").order("created_at", { ascending: false }),
+        supabase.from(PRODUCTS_TABLE).select("*").order("created_at", { ascending: false }),
         supabase.from("proveedores").select("id, nombre"),
       ]);
+
+      if (prodsError) {
+        console.error("Error cargando productos:", prodsError.message);
+        toast.error(`Error al cargar productos: ${prodsError.message}`);
+        return;
+      }
 
       if (!prods) return;
 
@@ -154,7 +163,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
   async function toggleActivo(id: string, activo: boolean) {
     setLoading(id);
-    await supabase.from("productos").update({ activo: !activo }).eq("id", id);
+    await supabase.from(PRODUCTS_TABLE).update({ activo: !activo }).eq("id", id);
     setProductos((prev) =>
       prev.map((p) => (p.id === id ? { ...p, activo: !activo } : p))
     );
@@ -164,7 +173,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   async function bulkToggleActivo(activo: boolean) {
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
-    await supabase.from("productos").update({ activo }).in("id", ids);
+    await supabase.from(PRODUCTS_TABLE).update({ activo }).in("id", ids);
     setProductos((prev) =>
       prev.map((p) => (selectedIds.has(p.id) ? { ...p, activo } : p))
     );
@@ -204,7 +213,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     const dbPayload = { ...updateData };
     delete (dbPayload as any).categoria; // No existe en DB
 
-    const { error } = await supabase.from("productos").update(dbPayload).in("id", ids);
+    const { error } = await supabase.from(PRODUCTS_TABLE).update(dbPayload).in("id", ids);
     
     if (error) {
       console.error("Error Supabase:", error);
@@ -223,7 +232,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
     const { error } = await supabase
-      .from("productos")
+      .from(PRODUCTS_TABLE)
       .update({ subcategoria_id: subId, categoria_id: catId })
       .in("id", ids);
     if (error) {
@@ -240,19 +249,22 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
   async function bulkUpdatePrecios() {
     const { venta, costo } = precioModal;
-    if (!venta && !costo) return;
+    if (venta <= 0 && costo <= 0) return;
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
     const payload: Record<string, number> = {};
-    if (venta) payload.precio_venta = Number(venta.replace(/\D/g, ""));
-    if (costo) payload.precio_costo = Number(costo.replace(/\D/g, ""));
-    const { error } = await supabase.from("productos").update(payload).in("id", ids);
+    if (costo > 0) {
+      payload.precio_costo = costo;
+      if (venta <= 0) payload.precio_venta = calcPrecioVentaFromCosto(costo);
+    }
+    if (venta > 0) payload.precio_venta = venta;
+    const { error } = await supabase.from(PRODUCTS_TABLE).update(payload).in("id", ids);
     if (error) {
       toast.error("Error al actualizar precios.");
     } else {
       setProductos((prev) => prev.map((p) => selectedIds.has(p.id) ? { ...p, ...payload } : p));
       setSelectedIds(new Set());
-      setPrecioModal({ open: false, venta: "", costo: "" });
+      setPrecioModal({ open: false, venta: 0, costo: 0 });
       toast.success(`Precios actualizados en ${ids.length} productos.`);
     }
     setBulkLoading(false);
@@ -267,7 +279,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   async function ejecutarEliminarBulk() {
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
-    await supabase.from("productos").delete().in("id", ids);
+    await supabase.from(PRODUCTS_TABLE).delete().in("id", ids);
     setProductos((prev) => prev.filter((p) => !selectedIds.has(p.id)));
     setSelectedIds(new Set());
     setBulkLoading(false);
@@ -284,7 +296,6 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       marca: p.marca,
       categoria: p.categoria || "",
       proveedor: p.proveedores?.nombre || "",
-      original_name: p.original_name || "",
       descrip_provee: p.descrip_provee || "",
       precio_costo: p.precio_costo || 0,
       precio_venta: p.precio_venta || 0,
@@ -316,7 +327,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   async function ejecutarEliminar() {
     if (!deleteModal.id) return;
     setLoading(deleteModal.id);
-    await supabase.from("productos").delete().eq("id", deleteModal.id);
+    await supabase.from(PRODUCTS_TABLE).delete().eq("id", deleteModal.id);
     setProductos((prev) => prev.filter((p) => p.id !== deleteModal.id));
     setLoading(null);
     setDeleteModal({ isOpen: false, id: "", nombre: "" });
@@ -627,15 +638,13 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {producto.imagen_url && (
-                          <Image
-                            src={producto.imagen_url}
-                            alt={producto.nombre}
-                            width={32}
-                            height={32}
-                            className="w-8 h-8 object-cover shrink-0 hidden sm:block"
-                          />
-                        )}
+                        <ProductImage
+                          src={producto.imagen_url}
+                          alt={producto.nombre}
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 object-cover shrink-0 hidden sm:block"
+                        />
                         <div>
                           <div className="flex items-center gap-2">
                             <p className="text-white font-medium line-clamp-1">{producto.nombre}</p>
@@ -822,7 +831,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             </div>
 
             <button
-              onClick={() => setPrecioModal({ open: true, venta: "", costo: "" })}
+              onClick={() => setPrecioModal({ open: true, venta: 0, costo: 0 })}
               className="px-3 py-1.5 text-xs font-bold text-blue-400 border border-blue-400/20 hover:bg-blue-400/10 transition-colors"
             >
               Precio
@@ -953,28 +962,26 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
             <div className="space-y-4">
               <div>
                 <label className="block text-luxury-gray-light text-xs uppercase tracking-widest mb-1.5">Precio de Venta</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={precioModal.venta}
-                  onChange={(e) => setPrecioModal(prev => ({ ...prev, venta: e.target.value }))}
+                  onChange={(value) => setPrecioModal(prev => ({ ...prev, venta: value }))}
                   placeholder="Precio nuevo..."
-                  className="w-full bg-[#111] border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
+                  inputClassName="bg-[#111]"
                 />
               </div>
               <div>
                 <label className="block text-luxury-gray-light text-xs uppercase tracking-widest mb-1.5">Precio de Costo</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={precioModal.costo}
-                  onChange={(e) => setPrecioModal(prev => ({ ...prev, costo: e.target.value }))}
+                  onChange={(value) => setPrecioModal(prev => ({ ...prev, costo: value }))}
                   placeholder="Precio nuevo..."
-                  className="w-full bg-[#111] border border-luxury-gray-mid text-white px-3 py-2.5 text-sm focus:outline-none focus:border-gold transition-colors"
+                  inputClassName="bg-[#111]"
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => setPrecioModal({ open: false, venta: "", costo: "" })}
+                onClick={() => setPrecioModal({ open: false, venta: 0, costo: 0 })}
                 className="flex-1 px-4 py-2.5 text-sm text-luxury-gray-light hover:text-white border border-luxury-gray-mid hover:bg-luxury-gray transition-colors"
                 disabled={bulkLoading}
               >
@@ -982,7 +989,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
               </button>
               <button
                 onClick={bulkUpdatePrecios}
-                disabled={bulkLoading || (!precioModal.venta && !precioModal.costo)}
+                disabled={bulkLoading || (precioModal.venta <= 0 && precioModal.costo <= 0)}
                 className="flex-1 px-4 py-2.5 text-sm font-bold bg-gold text-black hover:bg-gold-light transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {bulkLoading ? <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : null}

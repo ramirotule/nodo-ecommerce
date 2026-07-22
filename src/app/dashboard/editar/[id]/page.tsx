@@ -1,9 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Producto } from "@/types";
+import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+import ProductoForm from "@/components/dashboard/ProductoForm";
 
 export const dynamic = "force-dynamic";
-import ProductoForm from "@/components/dashboard/ProductoForm";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -17,7 +18,7 @@ export default async function EditarProductoPage({ params }: Props) {
   if (!user) redirect("/login");
 
   const { data: producto } = await supabase
-    .from("productos")
+    .from(PRODUCTS_TABLE)
     .select("*")
     .eq("id", id)
     .single();

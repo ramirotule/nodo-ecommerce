@@ -129,6 +129,18 @@ html[data-theme="light"],
 [data-theme="light"] .bg-\[\#111111\]\/30 {
   background-color: color-mix(in srgb, var(--color-luxury-gray) 30%, transparent);
 }
+[data-theme="light"] .bg-black\/20 {
+  background-color: var(--color-luxury-gray);
+}
+[data-theme="light"] .bg-black\/30 {
+  background-color: var(--color-luxury-gray);
+}
+[data-theme="light"] .bg-black\/40 {
+  background-color: var(--color-luxury-gray);
+}
+[data-theme="light"] .bg-black\/50 {
+  background-color: var(--color-luxury-gray-mid);
+}
 [data-theme="light"] .border-\[\#333\],
 [data-theme="light"] .border-\[\#444\] {
   border-color: var(--color-luxury-gray-mid);

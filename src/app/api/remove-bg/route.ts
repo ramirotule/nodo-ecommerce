@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { PRODUCTS_TABLE, PRODUCTS_STORAGE_BUCKET } from '@/lib/supabase/tables'
 
 export async function POST(req: NextRequest) {
   const { imageUrl, productId } = await req.json()
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest) {
   const fileName = `productos/${productId}-nobg-${Date.now()}.png`
 
   const { error: uploadError } = await supabase.storage
-    .from('productos')
+    .from(PRODUCTS_STORAGE_BUCKET)
     .upload(fileName, imageBuffer, {
       contentType: 'image/png',
       upsert: true,
@@ -50,12 +51,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { data: { publicUrl } } = supabase.storage
-    .from('productos')
+    .from(PRODUCTS_STORAGE_BUCKET)
     .getPublicUrl(fileName)
 
   // Update product imagen_url
   const { error: updateError } = await supabase
-    .from('productos')
+    .from(PRODUCTS_TABLE)
     .update({ imagen_url: publicUrl })
     .eq('id', productId)
 
