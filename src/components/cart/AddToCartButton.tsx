@@ -52,7 +52,7 @@ export default function AddToCartButton({ item, inStock, variant = "card" }: Pro
       className={`add-to-cart-btn flex flex-1 items-center justify-center gap-2 text-sm font-bold px-2 py-2.5 border transition-all duration-200 whitespace-nowrap cursor-pointer ${
         added
           ? "border-green-600 bg-green-600 text-white"
-          : "bg-gold border-gold text-white hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] hover:-translate-y-px active:translate-y-0 active:shadow-[0_2px_8px_rgba(0,0,0,0.18)]"
+          : "bg-gold border-gold text-black hover:shadow-[0_4px_14px_rgba(0,0,0,0.22)] hover:-translate-y-px active:translate-y-0 active:shadow-[0_2px_8px_rgba(0,0,0,0.18)]"
       }`}
     >
       {added ? (

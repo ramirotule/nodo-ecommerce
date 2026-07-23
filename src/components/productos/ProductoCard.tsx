@@ -68,7 +68,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
             </span>
           )}
           {producto.destacado && !producto.nuevo && (
-            <span className="bg-luxury-gray border border-gold/50 text-gold text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
+            <span className="bg-gold text-black text-[9px] font-bold tracking-wider px-2 py-0.5 uppercase">
               Destacado
             </span>
           )}
