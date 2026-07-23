@@ -162,7 +162,9 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-luxury-gray">
       <div className="w-full px-2 sm:px-4 lg:px-6">
-        <div className="flex items-center gap-4 lg:gap-8 pt-1 pb-6 md:pt-2 md:pb-8">
+        <div className="flex flex-col gap-3 lg:gap-4 pt-1 pb-4 md:pt-2 md:pb-6">
+          {/* Fila superior: logo + utilidades */}
+          <div className="flex items-center gap-3 lg:gap-5">
           {/* Logo */}
           <div className="shrink-0 py-2">
             <Link href="/">
@@ -171,14 +173,14 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                 alt="Logo"
                 width={300}
                 height={300}
-                className="h-16 md:h-24 lg:h-32 w-auto object-contain transition-transform hover:scale-105"
+                className="h-16 md:h-24 lg:h-28 w-auto object-contain transition-transform hover:scale-105"
                 priority
               />
             </Link>
           </div>
 
           {/* Columna derecha */}
-          <div className="flex-1 flex flex-col gap-6 xl:gap-8">
+          <div className="flex-1 flex flex-col gap-4 min-w-0">
             {/* Fila 1: Utilidades */}
             <div className="hidden md:flex items-center gap-4 border-b border-luxury-gray/50 pb-4">
               {/* Buscador */}
@@ -295,110 +297,110 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
               </div>
             </div>
 
-            {/* Fila 2: Navegación + Acciones */}
-            <div className="flex items-center justify-between">
-              {/* Nav Desktop */}
-              <nav className="hidden lg:flex items-center gap-x-3 xl:gap-x-5">
-                <Link
-                  href="/"
-                  className={`text-xs tracking-wider transition-colors font-bold uppercase ${pathname === "/" ? "text-gold" : "text-white hover:text-gold"}`}
-                >
-                  INICIO
-                </Link>
-
-                {navCategorias.map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="relative"
-                    onMouseEnter={() => setOpenDropdown(cat.id)}
-                    onMouseLeave={() => setOpenDropdown(null)}
-                  >
-                    <Link
-                      href={`/productos?categoria=${cat.slug}`}
-                      className={`flex items-center gap-1 text-xs tracking-wider transition-colors font-bold uppercase ${categoriaActiva === cat.slug ? "text-gold" : "text-white hover:text-gold"}`}
-                    >
-                      {cat.nombre}
-                      {cat.subcategorias.length > 0 && (
-                        <ChevronDown size={12} className={`transition-transform ${openDropdown === cat.id ? "rotate-180" : ""}`} />
-                      )}
-                    </Link>
-
-                    {openDropdown === cat.id && cat.subcategorias.length > 0 && (
-                      <div className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 z-50 ${cat.slug === "fragancias" || cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? "w-[280px]" : "w-[200px]"}`}>
-                        <div className="bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 p-5 flex flex-col gap-2">
-                          {cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
-                            cat.subcategorias.map((sub) => {
-                              const subitems = MEGA_MENU_SUBITEMS[sub.slug] ?? [];
-                              return (
-                                <div key={sub.id} className="mt-1">
-                                  <Link
-                                    href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                    className="block text-white font-serif font-light text-[15px] pb-1 mb-1 hover:text-(--color-nav-subcategory)! transition-colors"
-                                  >
-                                    {sub.nombre}
-                                  </Link>
-                                  {subitems.map((item) => (
-                                    <Link
-                                      key={item}
-                                      href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
-                                      className="block text-sm font-serif font-light text-[#cccccc] hover:text-(--color-nav-subcategory)! transition-colors py-1 pl-2"
-                                    >
-                                      {item}
-                                    </Link>
-                                  ))}
-                                </div>
-                              );
-                            })
-                          ) : (
-                            cat.subcategorias.map((sub) => (
-                              <Link
-                                key={sub.id}
-                                href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
-                                className="text-white font-serif font-light text-[15px] py-1 hover:text-(--color-nav-subcategory)! transition-colors block"
-                              >
-                                {sub.nombre}
-                              </Link>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </nav>
-
-              {/* Acciones mobile */}
-              <div className="flex lg:hidden flex-1 justify-end items-center gap-4">
-                <button
-                  onClick={openDrawer}
-                  aria-label="Ver carrito"
-                  className="relative text-white hover:text-gold transition-all p-1"
-                >
-                  <div className="relative">
-                    <ShoppingBag size={20} />
-                    {count > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
-                        {count > 9 ? "9+" : count}
-                      </span>
-                    )}
-                  </div>
-                </button>
-                <button
-                  onClick={toggleTheme}
-                  className="text-luxury-gray-light hover:text-gold transition-colors"
-                  aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
-                >
-                  {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-                <button
-                  className="text-white hover:text-gold transition-colors"
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  aria-label="Menú"
-                >
-                  {menuOpen ? <X size={24} /> : <Menu size={24} />}
-                </button>
-              </div>
+            {/* Acciones mobile */}
+            <div className="flex lg:hidden flex-1 justify-end items-center gap-4">
+              <button
+                onClick={openDrawer}
+                aria-label="Ver carrito"
+                className="relative text-white hover:text-gold transition-all p-1"
+              >
+                <div className="relative">
+                  <ShoppingBag size={20} />
+                  {count > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
+                      {count > 9 ? "9+" : count}
+                    </span>
+                  )}
+                </div>
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="text-luxury-gray-light hover:text-gold transition-colors"
+                aria-label={theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"}
+              >
+                {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+              <button
+                className="text-white hover:text-gold transition-colors"
+                onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Menú"
+              >
+                {menuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
+          </div>
+          </div>
+
+          {/* Fila categorías: ancho completo del header */}
+          <div className="hidden lg:block border-t border-luxury-gray/30 pt-3">
+            <nav className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 xl:gap-x-3">
+              <Link
+                href="/"
+                className={`whitespace-nowrap text-sm tracking-wider transition-colors font-bold uppercase ${pathname === "/" ? "text-gold" : "text-white hover:text-gold"}`}
+              >
+                INICIO
+              </Link>
+
+              {navCategorias.map((cat) => (
+                <div
+                  key={cat.id}
+                  className="relative shrink-0"
+                  onMouseEnter={() => setOpenDropdown(cat.id)}
+                  onMouseLeave={() => setOpenDropdown(null)}
+                >
+                  <Link
+                    href={`/productos?categoria=${cat.slug}`}
+                    className={`flex items-center gap-1 whitespace-nowrap text-sm tracking-wider transition-colors font-bold uppercase ${categoriaActiva === cat.slug ? "text-gold" : "text-white hover:text-gold"}`}
+                  >
+                    {cat.nombre}
+                    {cat.subcategorias.length > 0 && (
+                      <ChevronDown size={12} className={`shrink-0 transition-transform ${openDropdown === cat.id ? "rotate-180" : ""}`} />
+                    )}
+                  </Link>
+
+                  {openDropdown === cat.id && cat.subcategorias.length > 0 && (
+                    <div className={`absolute top-full left-1/2 -translate-x-1/2 pt-4 z-50 ${cat.slug === "fragancias" || cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? "w-[280px]" : "w-[200px]"}`}>
+                      <div className="bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 p-5 flex flex-col gap-2">
+                        {cat.subcategorias.some(s => s.slug in MEGA_MENU_SUBITEMS) ? (
+                          cat.subcategorias.map((sub) => {
+                            const subitems = MEGA_MENU_SUBITEMS[sub.slug] ?? [];
+                            return (
+                              <div key={sub.id} className="mt-1">
+                                <Link
+                                  href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
+                                  className="block text-white font-serif font-light text-[15px] pb-1 mb-1 hover:text-(--color-nav-subcategory)! transition-colors"
+                                >
+                                  {sub.nombre}
+                                </Link>
+                                {subitems.map((item) => (
+                                  <Link
+                                    key={item}
+                                    href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}&tipo=${encodeURIComponent(item.toLowerCase())}`}
+                                    className="block text-sm font-serif font-light text-[#cccccc] hover:text-(--color-nav-subcategory)! transition-colors py-1 pl-2"
+                                  >
+                                    {item}
+                                  </Link>
+                                ))}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          cat.subcategorias.map((sub) => (
+                            <Link
+                              key={sub.id}
+                              href={`/productos?categoria=${cat.slug}&subcategoria=${sub.slug}`}
+                              className="text-white font-serif font-light text-[15px] py-1 hover:text-(--color-nav-subcategory)! transition-colors block"
+                            >
+                              {sub.nombre}
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </nav>
           </div>
         </div>
       </div>

@@ -87,7 +87,7 @@ html[data-theme="light"],
   --color-luxury-gray-mid: #d0cec6;
   --color-luxury-gray-light: #4a4a44;
   --color-text: #111111;
-  --color-nav-subcategory: #8B6914;
+  --color-nav-subcategory: #18A45C;
 
   color-scheme: light;
 }
@@ -99,6 +99,15 @@ html[data-theme="light"],
 }
 [data-theme="light"] .text-white {
   color: var(--color-text);
+}
+[data-theme="light"] .bg-red-500.text-white,
+[data-theme="light"] .bg-red-600.text-white,
+[data-theme="light"] .bg-red-600\/90.text-white,
+[data-theme="light"] .hover\:bg-red-500:hover.text-white,
+[data-theme="light"] .add-to-cart-btn,
+[data-theme="light"] .add-to-cart-btn:hover,
+[data-theme="light"] .add-to-cart-btn:focus-visible {
+  color: #ffffff !important;
 }
 [data-theme="light"] .hover\:text-white:hover {
   color: var(--color-text);

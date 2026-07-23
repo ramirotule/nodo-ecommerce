@@ -6,7 +6,7 @@ export const THEME_DEFAULTS = {
   color_bg: '#000000',
   color_surface: '#0D0D0D',
   color_text: '#FFFFFF',
-  color_nav_subcategory: '#715F24',
+  color_nav_subcategory: '#18A45C',
   // Light mode colors
   light_color_primary: '#D4AF37',
   light_color_primary_light: '#E8C84A',
@@ -14,7 +14,7 @@ export const THEME_DEFAULTS = {
   light_color_bg: '#f5f4f0',
   light_color_surface: '#eae9e4',
   light_color_text: '#111111',
-  light_color_nav_subcategory: '#1AA45C',
+  light_color_nav_subcategory: '#18A45C',
   // Site identity
   site_name: 'Mi Tienda',
   site_tagline: 'Tu tienda online',

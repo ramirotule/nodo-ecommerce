@@ -11,10 +11,12 @@ export default async function DashboardPage() {
   const [
     { data: rawProductos, error: productosError },
     { data: categorias },
+    { data: subcategorias },
     { data: proveedores },
   ] = await Promise.all([
     supabase.from(PRODUCTS_TABLE).select("*").order("created_at", { ascending: false }),
     supabase.from("categorias").select("id, nombre"),
+    supabase.from("subcategorias").select("id, nombre, categoria_id"),
     supabase.from("proveedores").select("id, nombre"),
   ]);
 
@@ -23,11 +25,15 @@ export default async function DashboardPage() {
   }
 
   const catMap = new Map(categorias?.map(c => [c.id.toString(), c.nombre]) || []);
+  const subMap = new Map(subcategorias?.map(s => [s.id.toString(), s.nombre]) || []);
   const provMap = new Map(proveedores?.map(p => [p.id.toString(), p.nombre]) || []);
 
   const productos = (rawProductos as any[] || []).map(p => ({
     ...p,
     categoria: p.categoria_id ? (catMap.get(p.categoria_id.toString()) || "") : (p.categoria || ""),
+    subcategorias: p.subcategoria_id
+      ? { nombre: subMap.get(p.subcategoria_id.toString()) ?? "" }
+      : undefined,
     proveedores: p.proveedor_id ? { nombre: provMap.get(p.proveedor_id.toString()) ?? null } : null,
   }));
 

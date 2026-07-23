@@ -42,28 +42,30 @@ export default function ProductoImagenesModal({ producto, onClose, onSaved }: Pr
     setUploading(true)
     const newUrls: string[] = []
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const ext = file.name.split('.').pop()
-      const path = `productos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const ext = file.name.split('.').pop()
+        const path = `productos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-      const { error } = await supabase.storage.from('productos').upload(path, file)
-      if (error) {
-        toast.error(`Error subiendo ${file.name}`)
-        continue
+        const { error } = await supabase.storage.from('productos').upload(path, file)
+        if (error) {
+          toast.error(`Error subiendo ${file.name}`)
+          continue
+        }
+
+        const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(path)
+        newUrls.push(publicUrl)
       }
 
-      const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(path)
-      newUrls.push(publicUrl)
+      if (newUrls.length > 0) {
+        setImages((prev) => [...prev, ...newUrls])
+        toast.success(`${newUrls.length} imagen${newUrls.length !== 1 ? 'es' : ''} subida${newUrls.length !== 1 ? 's' : ''}`)
+      }
+    } finally {
+      setUploading(false)
+      if (inputRef.current) inputRef.current.value = ''
     }
-
-    if (newUrls.length > 0) {
-      setImages((prev) => [...prev, ...newUrls])
-      toast.success(`${newUrls.length} imagen${newUrls.length !== 1 ? 'es' : ''} subida${newUrls.length !== 1 ? 's' : ''}`)
-    }
-
-    setUploading(false)
-    if (inputRef.current) inputRef.current.value = ''
   }
 
   function setAsPrincipal(url: string) {
@@ -300,10 +302,10 @@ export default function ProductoImagenesModal({ producto, onClose, onSaved }: Pr
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving}
-              className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-gold-light disabled:opacity-50 transition-colors"
+              disabled={saving || uploading}
+              className="flex items-center gap-2 bg-gold text-black font-bold px-4 py-2 text-xs tracking-wider hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? 'Guardando...' : 'Guardar cambios'}
+              {uploading ? 'Subiendo imágenes...' : saving ? 'Guardando...' : 'Guardar cambios'}
             </button>
           </div>
         </div>

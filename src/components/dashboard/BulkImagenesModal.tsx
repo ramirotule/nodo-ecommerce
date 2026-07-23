@@ -48,6 +48,8 @@ export default function BulkImagenesModal({ productos, selectedIds, onClose, onS
 
   const [saving, setSaving] = useState(false)
 
+  const isUploading = Array.from(states.values()).some((state) => state.uploading)
+
   const selectedProductos = productos.filter((p) => selectedIds.has(p.id))
 
   async function handleUpload(productId: string, files: FileList) {
@@ -59,44 +61,55 @@ export default function BulkImagenesModal({ productos, selectedIds, onClose, onS
     })
 
     const newUrls: string[] = []
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const ext = file.name.split('.').pop()
-      const path = `productos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-      const { error } = await supabase.storage.from('productos').upload(path, file)
-      if (error) {
-        toast.error(`Error subiendo ${file.name}`)
-        continue
-      }
-      const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(path)
-      newUrls.push(publicUrl)
-    }
 
-    setStates((prev) => {
-      const next = new Map(prev)
-      const p = next.get(productId)!
-      let newMain = p.imagen_url
-      let newAdicionales = [...p.imagenes_adicionales]
-
-      if (!newMain && newUrls.length > 0) {
-        newMain = newUrls[0]
-        newAdicionales = [...newAdicionales, ...newUrls.slice(1)]
-      } else {
-        newAdicionales = [...newAdicionales, ...newUrls]
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const ext = file.name.split('.').pop()
+        const path = `productos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error } = await supabase.storage.from('productos').upload(path, file)
+        if (error) {
+          toast.error(`Error subiendo ${file.name}`)
+          continue
+        }
+        const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(path)
+        newUrls.push(publicUrl)
       }
 
-      next.set(productId, {
-        ...p,
-        imagen_url: newMain,
-        imagenes_adicionales: newAdicionales,
-        modified: newUrls.length > 0 ? true : p.modified,
-        uploading: false,
+      setStates((prev) => {
+        const next = new Map(prev)
+        const p = next.get(productId)!
+        let newMain = p.imagen_url
+        let newAdicionales = [...p.imagenes_adicionales]
+
+        if (!newMain && newUrls.length > 0) {
+          newMain = newUrls[0]
+          newAdicionales = [...newAdicionales, ...newUrls.slice(1)]
+        } else {
+          newAdicionales = [...newAdicionales, ...newUrls]
+        }
+
+        next.set(productId, {
+          ...p,
+          imagen_url: newMain,
+          imagenes_adicionales: newAdicionales,
+          modified: newUrls.length > 0 ? true : p.modified,
+          uploading: false,
+        })
+        return next
       })
-      return next
-    })
 
-    if (newUrls.length > 0) {
-      toast.success(`${newUrls.length} foto${newUrls.length !== 1 ? 's' : ''} subida${newUrls.length !== 1 ? 's' : ''}`)
+      if (newUrls.length > 0) {
+        toast.success(`${newUrls.length} foto${newUrls.length !== 1 ? 's' : ''} subida${newUrls.length !== 1 ? 's' : ''}`)
+      }
+    } catch {
+      setStates((prev) => {
+        const next = new Map(prev)
+        const p = next.get(productId)
+        if (p) next.set(productId, { ...p, uploading: false })
+        return next
+      })
+      toast.error('Error al subir imágenes')
     }
   }
 
@@ -243,15 +256,25 @@ export default function BulkImagenesModal({ productos, selectedIds, onClose, onS
             </button>
             <button
               onClick={saveAll}
-              disabled={saving || modifiedCount === 0}
+              disabled={saving || isUploading || modifiedCount === 0}
               className="flex items-center gap-2 bg-gold text-black font-bold px-5 py-2 text-xs tracking-wider hover:bg-gold-light disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? (
-                <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              {isUploading ? (
+                <>
+                  <Loader2 size={13} className="animate-spin" />
+                  Subiendo imágenes...
+                </>
+              ) : saving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  Guardando...
+                </>
               ) : (
-                <Check size={13} />
+                <>
+                  <Check size={13} />
+                  Guardar todo
+                </>
               )}
-              Guardar todo
             </button>
           </div>
         </div>

@@ -7,6 +7,11 @@ import { Producto } from "@/types";
 import CustomSelect from "@/components/ui/CustomSelect";
 import { PRODUCTS_TABLE, PRODUCTS_STORAGE_BUCKET } from "@/lib/supabase/tables";
 import { sanitizeProductPayload } from "@/lib/supabase/product-columns";
+import { resolveProductSlug, slugifyText } from "@/lib/product-slug";
+import {
+  categoriaSelectOptions,
+  subcategoriaSelectOptions,
+} from "@/lib/catalog-select-options";
 import { calcPrecioVentaFromCosto } from "@/lib/price-utils";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 
@@ -32,13 +37,13 @@ interface Props {
 
 const supabase = createClient();
 
-function generateSlug(nombre: string, marca: string) {
-  return `${nombre}-${marca}`
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "");
+function proveedorSlugKey(
+  proveedorId: string | undefined,
+  proveedores: { id: string; nombre: string }[]
+): string | null {
+  if (!proveedorId) return null;
+  const nombre = proveedores.find((p) => p.id === proveedorId)?.nombre;
+  return nombre ? slugifyText(nombre) : null;
 }
 
 export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
@@ -46,8 +51,8 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
-  const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string}[]>([]);
+  const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string, activo?: boolean}[]>([]);
+  const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, activo?: boolean}[]>([]);
   const [proveedoresDb, setProveedoresDb] = useState<{id: string, nombre: string}[]>([]);
   const [marcasDb, setMarcasDb] = useState<{id: string, nombre: string}[]>([]);
   const [loadingSubcategorias, setLoadingSubcategorias] = useState(false);
@@ -105,9 +110,73 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     }
   }
 
+  async function createCategoriaFromSearch(nombre: string) {
+    const trimmed = nombre.trim();
+    if (!trimmed) return null;
+
+    const existing = categoriasDb.find(
+      (c) => c.nombre.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) return existing;
+
+    const { data, error } = await supabase
+      .from("categorias")
+      .insert({ nombre: trimmed, slug: slugifyText(trimmed), orden: categoriasDb.length + 1 })
+      .select("id, nombre, activo")
+      .single();
+
+    if (error || !data) {
+      setError(error?.message || "No se pudo crear la categoría.");
+      return null;
+    }
+
+    setCategoriasDb((prev) => [...prev, data]);
+    setForm((prev) => ({
+      ...prev,
+      categoria_id: data.id,
+      categoria_nombre: data.nombre,
+      subcategoria_id: "",
+    }));
+    return data;
+  }
+
+  async function createSubcategoriaFromSearch(nombre: string) {
+    const trimmed = nombre.trim();
+    if (!trimmed || !form.categoria_id) return null;
+
+    const existing = subcategoriasDb.find(
+      (s) => s.nombre.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      setForm((prev) => ({ ...prev, subcategoria_id: existing.id }));
+      return existing;
+    }
+
+    const { data, error } = await supabase
+      .from("subcategorias")
+      .insert({
+        nombre: trimmed,
+        slug: slugifyText(trimmed),
+        orden: subcategoriasDb.length + 1,
+        categoria_id: form.categoria_id,
+        activo: true,
+      })
+      .select("id, nombre")
+      .single();
+
+    if (error || !data) {
+      setError(error?.message || "No se pudo crear la subcategoría.");
+      return null;
+    }
+
+    setSubcategoriasDb((prev) => [...prev, data]);
+    setForm((prev) => ({ ...prev, subcategoria_id: data.id }));
+    return data;
+  }
+
   useEffect(() => {
     async function fetchCategorias() {
-      const { data, error } = await supabase.from("categorias").select("id, nombre").order("nombre");
+      const { data, error } = await supabase.from("categorias").select("id, nombre, activo").order("nombre");
       
       if (error) {
         console.error("Error cargando categorías de la DB:", error);
@@ -142,10 +211,9 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       setLoadingSubcategorias(true);
       const { data, error } = await supabase
         .from("subcategorias")
-        .select("id, nombre")
+        .select("id, nombre, activo")
         .eq("categoria_id", form.categoria_id)
-        .eq("activo", true)
-        .order("orden");
+        .order("nombre");
       if (error) {
         console.error("Error cargando subcategorías:", error);
       } else {
@@ -160,7 +228,7 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
     async function fetchMarcas() {
       const { data } = await supabase
         .from("marcas")
-        .select("id, nombre")
+        .select("id, nombre, activo")
         .eq("activo", true)
         .order("nombre");
       setMarcasDb(data || []);
@@ -220,10 +288,36 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
       return;
     }
     const costoParsed = form.precio_costo > 0 ? form.precio_costo : null;
+
+    let slugQuery = supabase.from(PRODUCTS_TABLE).select("slug");
+    if (isEdit && producto.id) {
+      slugQuery = slugQuery.neq("id", producto.id);
+    }
+    const { data: slugRows } = await slugQuery;
+    const usedSlugs = new Set(slugRows?.map((row) => row.slug) ?? []);
+
+    const proveedorKey = proveedorSlugKey(form.proveedor_id, proveedoresDb);
+    const currentProveedorKey = proveedorSlugKey(
+      producto.proveedor_id?.toString(),
+      proveedoresDb
+    );
+
+    const slug = resolveProductSlug({
+      nombre: nombreTrimmed,
+      marca: marcaTrimmed,
+      proveedorKey,
+      currentSlug: producto.slug,
+      currentNombre: producto.nombre,
+      currentMarca: producto.marca,
+      currentProveedorKey,
+      usedSlugs,
+      isEdit,
+    });
+
     const payload = await sanitizeProductPayload(supabase, {
       nombre: nombreTrimmed,
       marca: marcaTrimmed,
-      slug: generateSlug(nombreTrimmed, marcaTrimmed),
+      slug,
       descripcion: form.descripcion.trim(),
       tags: form.tags,
       descripcion_corta: form.descripcion_corta.trim() || null,
@@ -304,22 +398,28 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                 const name = categoriasDb.find(c => c.id === val)?.nombre || "";
                 setForm(prev => ({ ...prev, categoria_id: val, categoria_nombre: name, subcategoria_id: "" }));
               }}
-              options={categoriasDb.map((c) => ({ value: c.id, label: c.nombre }))}
+              options={categoriaSelectOptions(categoriasDb)}
+              placeholder="Buscar o seleccionar categoría..."
+              onCreateFromSearch={async (nombre) => {
+                await createCategoriaFromSearch(nombre);
+              }}
+              createOptionLabel={(term) => `Agregar categoría "${term}"`}
             />
           </div>
 
-          {form.categoria_id && subcategoriasDb.length > 0 && (
+          {form.categoria_id && (
             <div className="mb-6">
               <CustomSelect
                 label="Subcategoría"
                 value={form.subcategoria_id}
                 loading={loadingSubcategorias}
-                placeholder="Seleccionar subcategoría..."
-                onChange={(val) => setForm(prev => ({ ...prev, subcategoria_id: val === "__none__" ? "" : val }))}
-                options={[
-                  { value: "__none__", label: "— Sin subcategoría —" },
-                  ...subcategoriasDb.map((s) => ({ value: s.id, label: s.nombre })),
-                ]}
+                placeholder="Buscar o seleccionar subcategoría..."
+                onChange={(val) => setForm(prev => ({ ...prev, subcategoria_id: val }))}
+                options={subcategoriaSelectOptions(subcategoriasDb)}
+                onCreateFromSearch={async (nombre) => {
+                  await createSubcategoriaFromSearch(nombre);
+                }}
+                createOptionLabel={(term) => `Agregar subcategoría "${term}"`}
               />
             </div>
           )}
@@ -486,49 +586,53 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
                   onChange={async (e) => {
                     const files = e.target.files;
                     if (!files || files.length === 0) return;
-                    
+
                     setUploading(true);
                     const newImages: string[] = [];
-                    
-                    for (let i = 0; i < files.length; i++) {
-                      const file = files[i];
-                      const fileExt = file.name.split('.').pop();
-                      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-                      const filePath = `productos/${fileName}`;
-                      
-                      const { error: uploadError } = await supabase.storage
-                        .from(PRODUCTS_STORAGE_BUCKET)
-                        .upload(filePath, file);
-                        
-                      if (uploadError) {
-                        console.error("Error subiendo imagen:", uploadError);
-                        continue;
+
+                    try {
+                      for (let i = 0; i < files.length; i++) {
+                        const file = files[i];
+                        const fileExt = file.name.split('.').pop();
+                        const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+                        const filePath = `productos/${fileName}`;
+
+                        const { error: uploadError } = await supabase.storage
+                          .from(PRODUCTS_STORAGE_BUCKET)
+                          .upload(filePath, file);
+
+                        if (uploadError) {
+                          console.error("Error subiendo imagen:", uploadError);
+                          continue;
+                        }
+
+                        const { data: { publicUrl } } = supabase.storage
+                          .from(PRODUCTS_STORAGE_BUCKET)
+                          .getPublicUrl(filePath);
+
+                        newImages.push(publicUrl);
                       }
-                      
-                      const { data: { publicUrl } } = supabase.storage
-                        .from(PRODUCTS_STORAGE_BUCKET)
-                        .getPublicUrl(filePath);
-                        
-                      newImages.push(publicUrl);
+
+                      setForm(prev => {
+                        let updatedPrincipal = prev.imagen_url;
+                        let imagesToAdd = newImages;
+
+                        if (!updatedPrincipal && newImages.length > 0) {
+                          updatedPrincipal = newImages[0];
+                          imagesToAdd = newImages.slice(1);
+                        }
+
+                        const updatedAdicionales = [...prev.imagenes_adicionales, ...imagesToAdd];
+                        return {
+                          ...prev,
+                          imagenes_adicionales: updatedAdicionales,
+                          imagen_url: updatedPrincipal
+                        };
+                      });
+                    } finally {
+                      setUploading(false);
+                      e.target.value = "";
                     }
-                    
-                    setForm(prev => {
-                      let updatedPrincipal = prev.imagen_url;
-                      let imagesToAdd = newImages;
-
-                      if (!updatedPrincipal && newImages.length > 0) {
-                        updatedPrincipal = newImages[0];
-                        imagesToAdd = newImages.slice(1);
-                      }
-
-                      const updatedAdicionales = [...prev.imagenes_adicionales, ...imagesToAdd];
-                      return {
-                        ...prev,
-                        imagenes_adicionales: updatedAdicionales,
-                        imagen_url: updatedPrincipal
-                      };
-                    });
-                    setUploading(false);
                   }}
                 />
               </label>
@@ -795,15 +899,15 @@ export default function ProductoForm({ producto = {}, isEdit = false }: Props) {
         <div className="flex gap-4">
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || uploading}
             className="flex-1 bg-gold text-black font-bold py-4 tracking-[0.2em] text-sm uppercase hover:bg-gold-light transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isEdit ? "GUARDAR CAMBIOS" : "CREAR PRODUCTO"}
+            {uploading ? "SUBIENDO IMÁGENES..." : isEdit ? "GUARDAR CAMBIOS" : "CREAR PRODUCTO"}
           </button>
           <button
             type="button"
             onClick={() => router.back()}
-            disabled={loading}
+            disabled={loading || uploading}
             className="px-8 py-4 bg-transparent border border-luxury-gray-mid text-luxury-gray-light font-bold text-sm tracking-[0.2em] hover:text-white hover:border-white transition-all duration-300 disabled:opacity-50"
           >
             CANCELAR

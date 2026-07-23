@@ -43,9 +43,10 @@ interface Subcategoria {
 interface Props {
   activeParams: Record<string, string | undefined>;
   subcategorias?: Subcategoria[];
+  marcas?: string[];
 }
 
-export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Props) {
+export default function FiltrosCatalogo({ activeParams, subcategorias = [], marcas = [] }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,12 +81,15 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
   }, [activeParams.subcategoria, activeParams.categoria]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateParam = useCallback(
-    (key: string, value: string | null) => {
+    (key: string, value: string | null, extraClears: string[] = []) => {
       const params = new URLSearchParams(searchParams.toString());
       if (value) {
         params.set(key, value);
       } else {
         params.delete(key);
+      }
+      for (const clearKey of extraClears) {
+        params.delete(clearKey);
       }
       router.push(`${pathname}?${params.toString()}`);
     },
@@ -145,7 +149,7 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
   };
 
   const hasActiveFilters = Object.entries(activeParams).some(([key, value]) => {
-    if (key === 'seccion') return false;
+    if (key === "seccion" || key === "categoria") return false;
     return Boolean(value);
   });
 
@@ -179,12 +183,24 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
     </div>
   )
 
+  const subcategoriaOpciones = [
+    { value: "", label: "SUBCATEGORÍA" },
+    ...subcategorias.map((sub) => ({ value: sub.slug, label: sub.nombre })),
+  ];
+
+  const marcaOpciones = [
+    { value: "", label: "MARCA" },
+    ...marcas.map((marca) => ({ value: marca, label: marca })),
+  ];
+
+  const showCategoriaFiltros = Boolean(activeParams.categoria);
+
   return (
     <div className="w-full space-y-4 mb-4">
       {/* Contenedor Único de Filtros y Búsqueda */}
       <div className="flex flex-col lg:flex-row gap-3 items-end">
-        {/* Input de Búsqueda */}
-        <div ref={searchContainerRef} className="relative flex-1 w-full">
+        {/* Input de Búsqueda — ocupa el espacio hasta los filtros */}
+        <div ref={searchContainerRef} className="relative w-full lg:flex-1 min-w-0">
           <form onSubmit={handleSearchSubmit}>
             <input
               type="text"
@@ -240,8 +256,33 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
         </div>
 
         {/* Grupo de Dropdowns Custom */}
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="min-w-[160px] flex-1 lg:flex-none">
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto shrink-0">
+          {showCategoriaFiltros && subcategorias.length > 0 && (
+            <div className="min-w-[240px] w-auto shrink-0 sm:min-w-[260px]">
+              <CustomSelect
+                value={activeParams.subcategoria || ""}
+                onChange={(val) => updateParam("subcategoria", val || null, ["marca"])}
+                options={subcategoriaOpciones}
+                placeholder="SUBCATEGORÍA"
+                compact
+                truncateSelected={false}
+              />
+            </div>
+          )}
+
+          {showCategoriaFiltros && marcas.length > 0 && (
+            <div className="min-w-[130px] flex-1 sm:flex-none sm:w-[150px]">
+              <CustomSelect
+                value={activeParams.marca || ""}
+                onChange={(val) => updateParam("marca", val || null)}
+                options={marcaOpciones}
+                placeholder="MARCA"
+                compact
+              />
+            </div>
+          )}
+
+          <div className="min-w-[160px] flex-1 sm:flex-none sm:w-[170px]">
             <CustomSelect
               value={activeParams.ordenar || ""}
               onChange={(val) => updateParam("ordenar", val || null)}
@@ -256,7 +297,10 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
             <button
               onClick={() => {
                 setSearchValue("");
-                router.push(pathname + (activeParams.seccion ? `?seccion=${activeParams.seccion}` : ""));
+                const params = new URLSearchParams();
+                if (activeParams.seccion) params.set("seccion", activeParams.seccion);
+                if (activeParams.categoria) params.set("categoria", activeParams.categoria);
+                router.push(`${pathname}?${params.toString()}`);
               }}
               className="h-[40px] px-4 text-red-500 hover:bg-red-500/10 transition-colors rounded-sm flex items-center justify-center border border-red-500/20"
               title="Limpiar filtros"
@@ -267,39 +311,8 @@ export default function FiltrosCatalogo({ activeParams, subcategorias = [] }: Pr
         </div>
       </div>
 
-      {/* Subcategorías de la categoría activa (desde DB) */}
-      {activeParams.categoria && subcategorias.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
-          <div className="flex flex-wrap gap-2">
-            {subcategorias.map((sub) => {
-              const isActive = activeParams.subcategoria === sub.slug;
-              const buildUrl = () => {
-                const params = new URLSearchParams(searchParams.toString());
-                if (isActive) {
-                  params.delete("subcategoria");
-                } else {
-                  params.set("subcategoria", sub.slug);
-                }
-                return `${pathname}?${params.toString()}`;
-              };
-              return (
-                <Link
-                  key={sub.id}
-                  href={buildUrl()}
-                  className={`px-4 py-2 text-[11px] uppercase tracking-widest border transition-all rounded-sm ${
-                    isActive
-                      ? "bg-gold border-gold text-black font-bold"
-                      : "bg-luxury-gray/60 border-luxury-gray-mid text-luxury-gray-light hover:border-gold hover:text-white"
-                  }`}
-                >
-                  {sub.nombre}
-                </Link>
-              );
-            })}
-          </div>
-          {viewToggle}
-        </div>
-      ) : !(activeParams.seccion === "bienestar" || activeParams.seccion === "aromatizantes" || activeParams.seccion === "cuidados-piel") ? (
+      {/* Vista de productos */}
+      {!(activeParams.seccion === "bienestar" || activeParams.seccion === "aromatizantes" || activeParams.seccion === "cuidados-piel") ? (
         <div className="flex justify-end pt-2">
           {viewToggle}
         </div>

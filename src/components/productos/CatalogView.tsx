@@ -31,44 +31,50 @@ async function getProductos(params: SearchParams): Promise<Producto[]> {
     if (params.destacado === "true") query = query.eq("destacado", true);
     if (params.marca) query = query.eq("marca", params.marca);
 
-    // Filtro por subcategoría (via slug → id)
-    if (params.subcategoria) {
-      const { data: sub } = await supabase
-        .from("subcategorias")
-        .select("id")
-        .eq("slug", params.subcategoria)
-        .single();
-      if (sub) {
-        query = query.eq("subcategoria_id", sub.id);
-      }
-    } else if (params.categoria) {
-      // Resolver categoría por slug
+    let categoriaId: string | null = null;
+    if (params.categoria) {
       const { data: cat } = await supabase
         .from("categorias")
         .select("id")
         .eq("slug", params.categoria)
-        .single();
+        .maybeSingle();
+      categoriaId = cat?.id ?? null;
+    }
 
-      if (cat) {
-        // Obtener subcategorías de esta categoría
+    if (params.subcategoria) {
+      let subQuery = supabase
+        .from("subcategorias")
+        .select("id")
+        .eq("slug", params.subcategoria);
+
+      if (categoriaId) {
+        subQuery = subQuery.eq("categoria_id", categoriaId);
+      }
+
+      const { data: sub } = await subQuery.maybeSingle();
+
+      if (sub) {
+        query = query.eq("subcategoria_id", sub.id);
+      } else {
+        return [];
+      }
+    } else if (params.categoria) {
+      if (categoriaId) {
         const { data: subs } = await supabase
           .from("subcategorias")
           .select("id")
-          .eq("categoria_id", cat.id);
+          .eq("categoria_id", categoriaId);
 
         const subIds = (subs ?? []).map((s) => s.id);
 
         if (subIds.length > 0) {
-          // Productos asignados a la categoría O a cualquiera de sus subcategorías
           query = query.or(
-            `categoria_id.eq.${cat.id},subcategoria_id.in.(${subIds.join(",")})`
+            `categoria_id.eq.${categoriaId},subcategoria_id.in.(${subIds.join(",")})`
           );
         } else {
-          // Categoría sin subcategorías: filtrar solo por categoria_id
-          query = query.eq("categoria_id", cat.id);
+          query = query.eq("categoria_id", categoriaId);
         }
       } else {
-        // Fallback: categoría no encontrada por slug, buscar en campo texto
         query = query.ilike("categoria", `%${params.categoria.replace(/-/g, " ")}%`);
       }
     }
@@ -130,8 +136,9 @@ export default async function CatalogView({
     getSiteConfig(),
   ])
 
-  // Fetch subcategories of the current category for the filter bar
+  // Fetch subcategories and brands of the current category for the filter bar
   let subcategoriasFiltro: { id: string; nombre: string; slug: string }[] = []
+  let marcasFiltro: string[] = []
   if (searchParams.categoria) {
     const { data: cat } = await supabase
       .from('categorias')
@@ -146,6 +153,54 @@ export default async function CatalogView({
         .eq('activo', true)
         .order('orden')
       subcategoriasFiltro = subs ?? []
+
+      if (searchParams.subcategoria) {
+        const { data: sub } = await supabase
+          .from('subcategorias')
+          .select('id')
+          .eq('slug', searchParams.subcategoria)
+          .eq('categoria_id', cat.id)
+          .maybeSingle()
+
+        if (sub) {
+          const { data: marcasRows } = await supabase
+            .from(PRODUCTS_TABLE)
+            .select('marca')
+            .eq('activo', true)
+            .eq('subcategoria_id', sub.id)
+
+          marcasFiltro = [
+            ...new Set(
+              (marcasRows ?? [])
+                .map((row) => row.marca?.trim())
+                .filter((marca): marca is string => Boolean(marca))
+            ),
+          ].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+        }
+      } else {
+        const subIds = subcategoriasFiltro.map((s) => s.id)
+        let marcasQuery = supabase
+          .from(PRODUCTS_TABLE)
+          .select('marca')
+          .eq('activo', true)
+
+        if (subIds.length > 0) {
+          marcasQuery = marcasQuery.or(
+            `categoria_id.eq.${cat.id},subcategoria_id.in.(${subIds.join(',')})`
+          )
+        } else {
+          marcasQuery = marcasQuery.eq('categoria_id', cat.id)
+        }
+
+        const { data: marcasRows } = await marcasQuery
+        marcasFiltro = [
+          ...new Set(
+            (marcasRows ?? [])
+              .map((row) => row.marca?.trim())
+              .filter((marca): marca is string => Boolean(marca))
+          ),
+        ].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+      }
     }
   }
 
@@ -193,6 +248,7 @@ export default async function CatalogView({
         <FiltrosCatalogo
           activeParams={searchParams as Record<string, string | undefined>}
           subcategorias={subcategoriasFiltro}
+          marcas={marcasFiltro}
         />
       </div>
 

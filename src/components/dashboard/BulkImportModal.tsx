@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import * as XLSX from "xlsx";
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+import { sanitizeProductPayload } from "@/lib/supabase/product-columns";
+import { slugifyText, uniqueProductSlug } from "@/lib/product-slug";
 import { Download, Upload, X, Check, AlertCircle, FileText } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -23,18 +25,86 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
 
   if (!isOpen) return null;
 
+  const parseSiNo = (val: unknown, defaultVal = false) => {
+    if (val === true || val === 1) return true;
+    if (val === false || val === 0) return false;
+    const s = String(val ?? "").trim().toUpperCase();
+    if (s === "SI" || s === "SÍ" || s === "YES" || s === "TRUE" || s === "1") return true;
+    if (s === "NO" || s === "FALSE" || s === "0") return false;
+    return defaultVal;
+  };
+
+  type ImportRow = {
+    nombre: string;
+    marca: string;
+    descripcion: string;
+    descrip_provee: string;
+    proveedor: string;
+    precio_costo: unknown;
+    precio_venta: unknown;
+    stock: unknown;
+    categoria: string;
+    subcategoria: string;
+    destacado: unknown;
+    nuevo: unknown;
+    activo: unknown;
+    imagen_url: string;
+  };
+
+  function cell(raw: Record<string, unknown>, ...keys: string[]): string {
+    for (const key of keys) {
+      const val = raw[key];
+      if (val !== undefined && val !== null && String(val).trim() !== "") {
+        return String(val).trim();
+      }
+    }
+    const lowerKeys = keys.map((k) => k.toLowerCase());
+    for (const [key, val] of Object.entries(raw)) {
+      if (lowerKeys.includes(key.toLowerCase().trim())) {
+        if (val !== undefined && val !== null && String(val).trim() !== "") {
+          return String(val).trim();
+        }
+      }
+    }
+    return "";
+  }
+
+  function normalizeImportRow(raw: Record<string, unknown>): ImportRow {
+    return {
+      nombre: cell(raw, "nombre", "Nombre", "producto", "Producto"),
+      marca: cell(raw, "marca", "Marca", "brand", "Brand") || "Sin marca",
+      descripcion: cell(raw, "descripcion", "Descripcion", "Descripción"),
+      descrip_provee: cell(raw, "descrip_provee", "descrip provee", "original_name"),
+      proveedor: cell(raw, "proveedor", "Proveedor"),
+      precio_costo: raw.precio_costo ?? raw.costo ?? raw["Precio costo"],
+      precio_venta: raw.precio_venta ?? raw.precio ?? raw["Precio venta"],
+      stock: raw.stock ?? raw.Stock,
+      categoria: cell(raw, "categoria", "Categoria", "Categoría"),
+      subcategoria: cell(raw, "subcategoria", "Subcategoria", "Subcategoría"),
+      destacado: raw.destacado ?? raw.Destacado,
+      nuevo: raw.nuevo ?? raw.Nuevo,
+      activo: raw.activo ?? raw.Activo,
+      imagen_url: cell(raw, "imagen_url", "imagen", "Imagen", "imagenes", "portada"),
+    };
+  }
+
   const downloadTemplate = () => {
     const templateData = [
       {
         nombre: "Ejemplo Producto",
         marca: "Marca Ejemplo",
         descripcion: "Descripción larga del producto...",
+        descrip_provee: "Nombre tal como figura en la lista del proveedor",
+        proveedor: "Gcgroup",
         precio_costo: 5000,
         precio_venta: 8500,
         stock: 10,
         categoria: "General",
         subcategoria: "Femeninos",
-        activo: "SI"
+        destacado: "NO",
+        nuevo: "SI",
+        activo: "SI",
+        imagen_url: "https://ejemplo.com/foto-producto.webp",
       },
     ];
 
@@ -73,13 +143,19 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
     reader.readAsBinaryString(file);
   };
 
-  const baseSlug = (nombre: string, marca: string) =>
-    `${nombre}-${marca}`
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "");
+  async function mirrorImageToStorage(sourceUrl: string, slug: string): Promise<string | null> {
+    const res = await fetch("/api/import-product-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl: sourceUrl, slug }),
+    });
+    const json = (await res.json()) as { publicUrl?: string; error?: string };
+    if (!res.ok) {
+      console.warn(`Imagen no importada (${slug}):`, json.error);
+      return null;
+    }
+    return json.publicUrl ?? null;
+  }
 
   const processImport = async () => {
     if (data.length === 0) return;
@@ -87,55 +163,133 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
     setError(null);
 
     try {
-      // 1. Obtener categorías y slugs existentes
-      const [{ data: categoriasDb }, { data: subcategoriasDb }, { data: existingSlugs }] = await Promise.all([
+      const rows = data
+        .map((item) => normalizeImportRow(item as Record<string, unknown>))
+        .filter((row) => row.nombre);
+
+      if (rows.length === 0) {
+        setError("No hay filas válidas: cada producto necesita al menos un nombre.");
+        setLoading(false);
+        return;
+      }
+
+      const skippedEmpty = data.length - rows.length;
+      const defaultMarcaCount = rows.filter((r) => r.marca === "Sin marca").length;
+
+      // 1. Obtener categorías, proveedores y slugs existentes
+      const [{ data: categoriasDb }, { data: subcategoriasDb }, { data: proveedoresDb }, { data: existingSlugs }] = await Promise.all([
         supabase.from("categorias").select("id, nombre"),
-        supabase.from("subcategorias").select("id, nombre"),
+        supabase.from("subcategorias").select("id, nombre, categoria_id"),
+        supabase.from("proveedores").select("id, nombre"),
         supabase.from(PRODUCTS_TABLE).select("slug"),
       ]);
 
-      const categoriaMap = new Map(categoriasDb?.map(c => [c.nombre.toLowerCase(), c.id]));
-      const subcategoriaMap = new Map(subcategoriasDb?.map(s => [s.nombre.toLowerCase(), s.id]));
+      const categoriaMap = new Map(categoriasDb?.map((c) => [c.nombre.toLowerCase(), c.id]));
+      const categoriaIdToName = new Map(categoriasDb?.map((c) => [c.id, c.nombre.toLowerCase()]) || []);
+
+      const subcategoriaByCatAndName = new Map<string, { id: string; categoria_id: string }>();
+      const subcategoriaByName = new Map<string, { id: string; categoria_id: string }>();
+      for (const sub of subcategoriasDb ?? []) {
+        const catName = categoriaIdToName.get(sub.categoria_id) ?? "";
+        subcategoriaByCatAndName.set(`${catName}|${sub.nombre.toLowerCase()}`, {
+          id: sub.id,
+          categoria_id: sub.categoria_id,
+        });
+        if (!subcategoriaByName.has(sub.nombre.toLowerCase())) {
+          subcategoriaByName.set(sub.nombre.toLowerCase(), {
+            id: sub.id,
+            categoria_id: sub.categoria_id,
+          });
+        }
+      }
+
+      function resolveCategoriaSubcategoria(categoriaRaw: string, subcategoriaRaw: string) {
+        const catNombre = categoriaRaw.trim().toLowerCase();
+        const subNombre = subcategoriaRaw.trim().toLowerCase();
+        let categoriaId = catNombre ? categoriaMap.get(catNombre) || null : null;
+        let subcategoriaId: string | null = null;
+
+        if (subNombre) {
+          const scopedKey = catNombre ? `${catNombre}|${subNombre}` : "";
+          const match =
+            (scopedKey && subcategoriaByCatAndName.get(scopedKey)) ||
+            subcategoriaByName.get(subNombre) ||
+            null;
+          if (match) {
+            subcategoriaId = match.id;
+            categoriaId = match.categoria_id;
+          }
+        }
+
+        return { categoriaId, subcategoriaId };
+      }
+
+      const proveedorMap = new Map(proveedoresDb?.map(p => [p.nombre.toLowerCase().trim(), p.id]));
 
       // Set de slugs ya usados (DB + los que vamos generando en este lote)
       const usedSlugs = new Set<string>((existingSlugs ?? []).map(r => r.slug));
 
-      function uniqueSlug(nombre: string, marca: string): string {
-        const base = baseSlug(nombre, marca);
-        if (!usedSlugs.has(base)) {
-          usedSlugs.add(base);
-          return base;
-        }
-        let i = 2;
-        while (usedSlugs.has(`${base}-${i}`)) i++;
-        const slug = `${base}-${i}`;
-        usedSlugs.add(slug);
-        return slug;
+      // 2. Preparar filas y subir portadas al bucket
+      type ImportDraft = {
+        item: ImportRow;
+        slug: string;
+        sourceImage: string;
+        storedImage: string | null;
+      };
+
+      const drafts: ImportDraft[] = rows.map((item) => ({
+        item,
+        slug: uniqueProductSlug(
+          item.nombre,
+          item.marca,
+          usedSlugs,
+          item.proveedor ? slugifyText(item.proveedor) : null
+        ),
+        sourceImage: item.imagen_url,
+        storedImage: null,
+      }));
+
+      let imageFailures = 0;
+      const imageConcurrency = 4;
+      for (let i = 0; i < drafts.length; i += imageConcurrency) {
+        const chunk = drafts.slice(i, i + imageConcurrency);
+        await Promise.all(
+          chunk.map(async (draft) => {
+            if (!draft.sourceImage) return;
+            draft.storedImage = await mirrorImageToStorage(draft.sourceImage, draft.slug);
+            if (!draft.storedImage) imageFailures += 1;
+          })
+        );
       }
 
-      // 2. Preparar datos para inserción
-      const productosToInsert = data.map(item => {
-        const catNombre = String(item.categoria || "").toLowerCase();
-        const subNombre = String(item.subcategoria || "").toLowerCase();
-        const catId = categoriaMap.get(catNombre) || null;
-        const subId = subcategoriaMap.get(subNombre) || null;
+      const productosToInsert = await Promise.all(
+        drafts.map(async ({ item, slug, storedImage }) => {
+          const provNombre = item.proveedor.toLowerCase();
+          const { categoriaId, subcategoriaId } = resolveCategoriaSubcategoria(
+            item.categoria,
+            item.subcategoria
+          );
+          const proveedorId = provNombre ? proveedorMap.get(provNombre) || null : null;
 
-        return {
-          nombre: item.nombre,
-          marca: item.marca,
-          slug: uniqueSlug(String(item.nombre), String(item.marca)),
-          descripcion: item.descripcion || "",
-          precio_costo: Number(item.precio_costo) || 0,
-          precio_venta: Number(item.precio_venta) || 0,
-          stock: Number(item.stock) || 0,
-          imagen_url: item.imagen_url || null,
-          categoria_id: catId,
-          subcategoria_id: subId,
-          activo: item.activo === "SI" || item.activo === true,
-          destacado: item.destacado === "SI" || item.destacado === true,
-          nuevo: item.nuevo === "SI" || item.nuevo === true,
-        };
-      });
+          return sanitizeProductPayload(supabase, {
+            nombre: item.nombre,
+            marca: item.marca,
+            slug,
+            descripcion: item.descripcion || "",
+            descrip_provee: item.descrip_provee || null,
+            proveedor_id: proveedorId,
+            precio_costo: Number(item.precio_costo) || 0,
+            precio_venta: Number(item.precio_venta) || 0,
+            stock: Number(item.stock) || 0,
+            imagen_url: storedImage,
+            categoria_id: categoriaId,
+            subcategoria_id: subcategoriaId,
+            activo: parseSiNo(item.activo, true),
+            destacado: parseSiNo(item.destacado, false),
+            nuevo: parseSiNo(item.nuevo, false),
+          });
+        })
+      );
 
       // 3. Insertar en lotes de 20 para seguridad
       const batchSize = 20;
@@ -146,6 +300,20 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
       }
 
       toast.success(`Se importaron ${productosToInsert.length} productos correctamente.`);
+      if (skippedEmpty > 0) {
+        toast(`${skippedEmpty} fila${skippedEmpty !== 1 ? "s" : ""} vacía${skippedEmpty !== 1 ? "s" : ""} omitida${skippedEmpty !== 1 ? "s" : ""}.`, { icon: "ℹ️" });
+      }
+      if (defaultMarcaCount > 0) {
+        toast(
+          `${defaultMarcaCount} producto${defaultMarcaCount !== 1 ? "s" : ""} sin marca en el Excel — se guardó "Sin marca".`,
+          { icon: "ℹ️" }
+        );
+      }
+      if (imageFailures > 0) {
+        toast.error(
+          `${imageFailures} imagen${imageFailures !== 1 ? "es" : ""} no se pudieron subir al bucket (producto importado sin portada).`
+        );
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
@@ -185,6 +353,9 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
               <div>
                 <p className="text-white text-sm font-medium">1. Descargar Plantilla</p>
                 <p className="text-[#555555] text-xs">Usá nuestro formato oficial para evitar errores</p>
+                <p className="text-[#444444] text-[10px] mt-1">
+                  imagen_url: URL pública; se descarga y guarda en Storage como portada
+                </p>
               </div>
             </div>
             <button 
@@ -243,8 +414,12 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
                   <thead className="bg-black/50 text-[#555555] uppercase tracking-wider">
                     <tr>
                       <th className="px-3 py-2">Nombre</th>
-                      <th className="px-3 py-2">Categoría</th>
                       <th className="px-3 py-2">Marca</th>
+                      <th className="px-3 py-2">Categoría</th>
+                      <th className="px-3 py-2">Subcategoría</th>
+                      <th className="px-3 py-2">Proveedor</th>
+                      <th className="px-3 py-2">Descrip. provee</th>
+                      <th className="px-3 py-2">Portada</th>
                       <th className="px-3 py-2 text-right">Precio</th>
                     </tr>
                   </thead>
@@ -252,8 +427,16 @@ export default function BulkImportModal({ isOpen, onClose, onSuccess }: Props) {
                     {data.slice(0, 5).map((item, i) => (
                       <tr key={i} className="text-luxury-gray-light">
                         <td className="px-3 py-2 text-white">{item.nombre}</td>
-                        <td className="px-3 py-2 text-gold">{item.categoria || ""}</td>
                         <td className="px-3 py-2">{item.marca}</td>
+                        <td className="px-3 py-2">{item.categoria || "—"}</td>
+                        <td className="px-3 py-2">{item.subcategoria || "—"}</td>
+                        <td className="px-3 py-2 text-gold">{item.proveedor || "—"}</td>
+                        <td className="px-3 py-2 max-w-[120px] truncate" title={item.descrip_provee}>
+                          {item.descrip_provee || "—"}
+                        </td>
+                        <td className="px-3 py-2 max-w-[80px] truncate text-[#888]" title={item.imagen_url || item.imagen}>
+                          {item.imagen_url || item.imagen ? "Sí" : "—"}
+                        </td>
                         <td className="px-3 py-2 text-right">${item.precio_venta}</td>
                       </tr>
                     ))}

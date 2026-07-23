@@ -498,16 +498,20 @@ export default function TemaEditor({ initialConfig }: TemaEditorProps) {
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 bg-gold text-black font-bold px-5 py-2.5 text-sm tracking-wider hover:bg-gold-light disabled:opacity-50 transition-colors"
+          disabled={saving || uploadingLogo || uploadingFavicon}
+          className="flex items-center gap-2 bg-gold text-black font-bold px-5 py-2.5 text-sm tracking-wider hover:bg-gold-light disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           <Save size={15} />
-          {saving ? 'Guardando...' : 'Guardar cambios'}
+          {uploadingLogo || uploadingFavicon
+            ? 'Subiendo imagen...'
+            : saving
+              ? 'Guardando...'
+              : 'Guardar cambios'}
         </button>
         <button
           type="button"
           onClick={handleCancel}
-          disabled={saving}
+          disabled={saving || uploadingLogo || uploadingFavicon}
           className="flex items-center gap-2 border border-luxury-gray-mid text-luxury-gray-light hover:text-white hover:border-gold/50 px-5 py-2.5 text-sm transition-colors"
         >
           <X size={15} />

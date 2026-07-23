@@ -1,11 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Producto } from "@/types";
 import { calcPrecioVentaFromCosto } from "@/lib/price-utils";
 import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
+import { sanitizeProductPayload } from "@/lib/supabase/product-columns";
+import {
+  applyTextTransform,
+  getProductFieldValue,
+  uniqueProductSlug,
+  type BulkTextField,
+  type TextTransformOptions,
+} from "@/lib/text-transform";
+import { slugifyText } from "@/lib/product-slug";
+import {
+  categoriaFilterOptions,
+  categoriaSelectOptions,
+  subcategoriaSelectOptions,
+} from "@/lib/catalog-select-options";
 import CurrencyInput from "@/components/ui/CurrencyInput";
 import Link from "next/link";
 import ProductImage from "@/components/ui/ProductImage";
@@ -22,12 +36,12 @@ import {
   ArrowDown,
   ArrowUp,
   X,
-  Images,
-  Wand2,
   RefreshCw,
+  LayoutGrid,
 } from "lucide-react";
 import BulkImportModal from "./BulkImportModal";
 import BulkImagenesModal from "./BulkImagenesModal";
+import BulkActionsModal from "./BulkActionsModal";
 import ReconciliarPreciosModal from "./ReconciliarPreciosModal";
 import * as XLSX from "xlsx";
 import CustomSelect from "@/components/ui/CustomSelect";
@@ -61,12 +75,14 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   const [soloPendientes, setSoloPendientes] = useState(false);
   const [categoriaFiltrada, setCategoriaFiltrada] = useState<string>(searchParams.get('cat') ?? "");
   const [subcategoriaFiltrada, setSubcategoriaFiltrada] = useState<string>(searchParams.get('sub') ?? "");
-  const [menuBulkAbierto, setMenuBulkAbierto] = useState<"categoria" | "subcategoria" | null>(null);
+  const [proveedorFiltrado, setProveedorFiltrado] = useState<string>(searchParams.get('prov') ?? "");
+  const [bulkActionsModal, setBulkActionsModal] = useState(false);
   const [precioModal, setPrecioModal] = useState<{ open: boolean; venta: number; costo: number }>({ open: false, venta: 0, costo: 0 });
-  const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string}[]>([]);
-  const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, slug: string, categoria_id: string}[]>([]);
+  const [categoriasDb, setCategoriasDb] = useState<{id: string, nombre: string, activo?: boolean}[]>([]);
+  const [proveedoresDb, setProveedoresDb] = useState<{id: string, nombre: string}[]>([]);
+  const [marcasDb, setMarcasDb] = useState<{id: string, nombre: string}[]>([]);
+  const [subcategoriasDb, setSubcategoriasDb] = useState<{id: string, nombre: string, slug: string, categoria_id: string, activo?: boolean}[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
-  const [removeBgProgress, setRemoveBgProgress] = useState<{ done: number; total: number; errors: number } | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -74,8 +90,9 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     try {
       setBulkLoading(true);
       // Cargamos categorías y productos en paralelo para máxima eficiencia
-      const [{ data: cats }, { data: prods, error: prodsError }, { data: provs }] = await Promise.all([
-        supabase.from("categorias").select("id, nombre"),
+      const [{ data: cats }, { data: subs }, { data: prods, error: prodsError }, { data: provs }] = await Promise.all([
+        supabase.from("categorias").select("id, nombre, activo").order("nombre"),
+        supabase.from("subcategorias").select("id, nombre, categoria_id, activo").order("nombre"),
         supabase.from(PRODUCTS_TABLE).select("*").order("created_at", { ascending: false }),
         supabase.from("proveedores").select("id, nombre"),
       ]);
@@ -89,11 +106,15 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
       if (!prods) return;
 
       const catMap = new Map(cats?.map(c => [c.id.toString(), c.nombre]) || []);
+      const subMap = new Map(subs?.map(s => [s.id.toString(), s.nombre]) || []);
       const provMap = new Map(provs?.map(p => [p.id.toString(), p.nombre]) || []);
 
       const formattedData = (prods as any[]).map(p => ({
         ...p,
-        categoria: p.categoria_id ? (catMap.get(p.categoria_id.toString()) || "Fragancias") : (p.categoria || "Fragancias"),
+        categoria: p.categoria_id ? (catMap.get(p.categoria_id.toString()) || "") : (p.categoria || ""),
+        subcategorias: p.subcategoria_id
+          ? { nombre: subMap.get(p.subcategoria_id.toString()) ?? "" }
+          : undefined,
         proveedores: p.proveedor_id ? { nombre: provMap.get(p.proveedor_id.toString()) ?? null } : null,
       }));
 
@@ -106,13 +127,32 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   }
 
   const fetchCategorias = async () => {
-    const [{ data: cats }, { data: subs }] = await Promise.all([
-      supabase.from("categorias").select("id, nombre"),
-      supabase.from("subcategorias").select("id, nombre, slug, categoria_id").eq("activo", true).order("orden"),
+    const [{ data: cats }, { data: subs }, { data: provs }, { data: marcas }] = await Promise.all([
+      supabase.from("categorias").select("id, nombre, activo").order("nombre"),
+      supabase.from("subcategorias").select("id, nombre, slug, categoria_id, activo").order("nombre"),
+      supabase.from("proveedores").select("id, nombre").order("nombre"),
+      supabase.from("marcas").select("id, nombre").order("nombre"),
     ]);
     if (cats) setCategoriasDb(cats);
     if (subs) setSubcategoriasDb(subs);
+    if (provs) setProveedoresDb(provs);
+    if (marcas) setMarcasDb(marcas);
   };
+
+  const marcasBulk = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const m of marcasDb) {
+      const trimmed = m.nombre.trim();
+      if (trimmed) seen.set(trimmed.toLowerCase(), trimmed);
+    }
+    for (const p of productos) {
+      const trimmed = p.marca?.trim();
+      if (trimmed) seen.set(trimmed.toLowerCase(), trimmed);
+    }
+    return Array.from(seen.values())
+      .sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }))
+      .map((nombre) => ({ id: nombre, nombre }));
+  }, [marcasDb, productos]);
 
   useEffect(() => {
     fetchCategorias();
@@ -120,13 +160,18 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   }, []);
 
   useEffect(() => {
+    if (selectedIds.size === 0) setBulkActionsModal(false);
+  }, [selectedIds.size]);
+
+  useEffect(() => {
     const params = new URLSearchParams();
     if (busqueda) params.set('q', busqueda);
     if (categoriaFiltrada) params.set('cat', categoriaFiltrada);
     if (subcategoriaFiltrada) params.set('sub', subcategoriaFiltrada);
+    if (proveedorFiltrado) params.set('prov', proveedorFiltrado);
     const qs = params.toString();
     router.replace(`/dashboard${qs ? `?${qs}` : ''}`, { scroll: false });
-  }, [busqueda, categoriaFiltrada, subcategoriaFiltrada]);
+  }, [busqueda, categoriaFiltrada, subcategoriaFiltrada, proveedorFiltrado]);
 
   // Cálculos de estadísticas en tiempo real
   const currentStats = {
@@ -182,67 +227,250 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     toast.success(`Se actualizaron ${ids.length} productos.`);
   }
   
-  async function bulkUpdateField(field: "categoria", value: string) {
-    setBulkLoading(true);
-    const ids = Array.from(selectedIds);
-    
-    let updateData: any = { [field]: value };
-    
-    // Si es categoría, buscamos el ID correspondiente
-    if (field === "categoria") {
-      console.log("Categorías en DB:", categoriasDb);
-      console.log("Buscando categoría:", value);
-      
-      const catEncontrada = categoriasDb.find(c => c.nombre.toLowerCase().trim() === value.toLowerCase().trim());
-      
-      if (catEncontrada) {
-        console.log("Categoría encontrada!", catEncontrada);
-        updateData = { 
-          categoria_id: catEncontrada.id,
-          categoria: catEncontrada.nombre
-        };
-      } else {
-        console.error("No se encontró la categoría con nombre:", value);
-        toast.error(`No se encontró la categoría '${value}' en la base de datos.`);
-        setBulkLoading(false);
-        return;
-      }
-    }
-
-    // 2. Preparamos lo que se guarda en DB (solo columnas reales)
-    const dbPayload = { ...updateData };
-    delete (dbPayload as any).categoria; // No existe en DB
-
-    const { error } = await supabase.from(PRODUCTS_TABLE).update(dbPayload).in("id", ids);
-    
-    if (error) {
-      console.error("Error Supabase:", error);
-      toast.error("Error al actualizar productos.");
-    } else {
-      setProductos((prev) =>
-        prev.map((p) => (selectedIds.has(p.id) ? { ...p, ...updateData } : p))
-      );
-      setSelectedIds(new Set());
-      toast.success("Productos actualizados correctamente.");
-    }
-    setBulkLoading(false);
-  }
-
-  async function bulkUpdateSubcategoria(subId: string, catId: string) {
+  async function bulkToggleDestacado(destacado: boolean) {
     setBulkLoading(true);
     const ids = Array.from(selectedIds);
     const { error } = await supabase
       .from(PRODUCTS_TABLE)
-      .update({ subcategoria_id: subId, categoria_id: catId })
+      .update({ destacado })
       .in("id", ids);
+
     if (error) {
-      toast.error("Error al actualizar subcategoría.");
+      toast.error("Error al actualizar destacados.");
     } else {
       setProductos((prev) =>
-        prev.map((p) => selectedIds.has(p.id) ? { ...p, subcategoria_id: subId, categoria_id: catId } : p)
+        prev.map((p) => (selectedIds.has(p.id) ? { ...p, destacado } : p))
       );
       setSelectedIds(new Set());
-      toast.success("Subcategoría actualizada correctamente.");
+      toast.success(
+        destacado
+          ? `${ids.length} producto${ids.length !== 1 ? "s" : ""} marcado${ids.length !== 1 ? "s" : ""} como destacado${ids.length !== 1 ? "s" : ""}.`
+          : `Se quitó el destacado de ${ids.length} producto${ids.length !== 1 ? "s" : ""}.`
+      );
+    }
+    setBulkLoading(false);
+  }
+
+  async function bulkUpdateMoneda(moneda: "ARS" | "USD") {
+    setBulkLoading(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase
+      .from(PRODUCTS_TABLE)
+      .update({ moneda })
+      .in("id", ids);
+
+    if (error) {
+      toast.error("Error al actualizar moneda.");
+    } else {
+      setProductos((prev) =>
+        prev.map((p) => (selectedIds.has(p.id) ? { ...p, moneda } : p))
+      );
+      setSelectedIds(new Set());
+      toast.success(`Moneda actualizada a ${moneda} en ${ids.length} producto${ids.length !== 1 ? "s" : ""}.`);
+    }
+    setBulkLoading(false);
+  }
+
+  async function createCategoriaBulk(nombre: string) {
+    const trimmed = nombre.trim();
+    if (!trimmed) return null;
+
+    const existing = categoriasDb.find(
+      (c) => c.nombre.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      toast.error("Ya existe una categoría con ese nombre.");
+      return existing;
+    }
+
+    const slug = slugifyText(trimmed);
+    const { data, error } = await supabase
+      .from("categorias")
+      .insert({ nombre: trimmed, slug, orden: categoriasDb.length + 1 })
+      .select("id, nombre, activo")
+      .single();
+
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
+
+    setCategoriasDb((prev) => [...prev, data]);
+    toast.success(`Categoría "${trimmed}" creada.`);
+    return data;
+  }
+
+  async function createSubcategoriaBulk(nombre: string, categoriaId: string) {
+    const trimmed = nombre.trim();
+    if (!trimmed || !categoriaId) return null;
+
+    const existing = subcategoriasDb.find(
+      (s) =>
+        s.categoria_id === categoriaId &&
+        s.nombre.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (existing) {
+      toast.error("Ya existe esa subcategoría en la categoría seleccionada.");
+      return existing;
+    }
+
+    const slug = slugifyText(trimmed);
+    const orden =
+      subcategoriasDb.filter((s) => s.categoria_id === categoriaId).length + 1;
+
+    const { data, error } = await supabase
+      .from("subcategorias")
+      .insert({
+        nombre: trimmed,
+        slug,
+        orden,
+        categoria_id: categoriaId,
+        activo: true,
+      })
+      .select("id, nombre, slug, categoria_id, activo")
+      .single();
+
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
+
+    setSubcategoriasDb((prev) => [...prev, data]);
+    toast.success(`Subcategoría "${trimmed}" creada.`);
+    return data;
+  }
+
+  async function bulkUpdateCategoriaSubcategoria(categoriaId: string, subcategoriaId: string | null) {
+    setBulkLoading(true);
+    const ids = Array.from(selectedIds);
+
+    const cat = categoriasDb.find((c) => c.id === categoriaId);
+    if (!cat) {
+      toast.error("Categoría no encontrada.");
+      setBulkLoading(false);
+      return;
+    }
+
+    const sub = subcategoriaId
+      ? subcategoriasDb.find((s) => s.id === subcategoriaId)
+      : null;
+
+    if (subcategoriaId && !sub) {
+      toast.error("Subcategoría no encontrada.");
+      setBulkLoading(false);
+      return;
+    }
+
+    if (sub && sub.categoria_id !== categoriaId) {
+      toast.error("La subcategoría no pertenece a la categoría seleccionada.");
+      setBulkLoading(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from(PRODUCTS_TABLE)
+      .update({
+        categoria_id: categoriaId,
+        subcategoria_id: subcategoriaId,
+      })
+      .in("id", ids);
+
+    if (error) {
+      toast.error("Error al actualizar categoría.");
+    } else {
+      setProductos((prev) =>
+        prev.map((p) =>
+          selectedIds.has(p.id)
+            ? {
+                ...p,
+                categoria_id: categoriaId,
+                categoria: cat.nombre,
+                subcategoria_id: subcategoriaId ?? undefined,
+                subcategorias: sub ? { nombre: sub.nombre } : undefined,
+              }
+            : p
+        )
+      );
+      setSelectedIds(new Set());
+      toast.success("Categoría actualizada correctamente.");
+    }
+    setBulkLoading(false);
+  }
+
+  async function bulkUpdateProveedor(proveedorId: string | null) {
+    setBulkLoading(true);
+    const ids = Array.from(selectedIds);
+    const { error } = await supabase
+      .from(PRODUCTS_TABLE)
+      .update({ proveedor_id: proveedorId })
+      .in("id", ids);
+    if (error) {
+      toast.error("Error al actualizar proveedor.");
+    } else {
+      const provNombre = proveedorId
+        ? proveedoresDb.find((p) => p.id === proveedorId)?.nombre ?? null
+        : null;
+      setProductos((prev) =>
+        prev.map((p) =>
+          selectedIds.has(p.id)
+            ? {
+                ...p,
+                proveedor_id: proveedorId ?? undefined,
+                proveedores: proveedorId && provNombre ? { nombre: provNombre } : undefined,
+              }
+            : p
+        )
+      );
+      setSelectedIds(new Set());
+      toast.success(`Proveedor actualizado en ${ids.length} productos.`);
+    }
+    setBulkLoading(false);
+  }
+
+  async function bulkUpdateMarca(marca: string) {
+    const trimmed = marca.trim();
+    if (!trimmed) return;
+
+    setBulkLoading(true);
+    const targets = productos.filter((p) => selectedIds.has(p.id));
+    const usedSlugs = new Set(
+      productos.filter((p) => !selectedIds.has(p.id)).map((p) => p.slug)
+    );
+
+    let errors = 0;
+    const updates: Array<{ id: string; marca: string; slug: string }> = [];
+
+    for (const product of targets) {
+      const provNombre = product.proveedor_id
+        ? proveedoresDb.find((p) => p.id === product.proveedor_id)?.nombre
+        : null;
+      const provKey = provNombre ? slugifyText(provNombre) : null;
+      const slug = uniqueProductSlug(product.nombre, trimmed, usedSlugs, provKey);
+      usedSlugs.add(slug);
+      updates.push({ id: product.id, marca: trimmed, slug });
+    }
+
+    for (const { id, marca: newMarca, slug } of updates) {
+      const payload = await sanitizeProductPayload(supabase, { marca: newMarca, slug });
+      const { error } = await supabase.from(PRODUCTS_TABLE).update(payload).eq("id", id);
+      if (error) {
+        console.error("Error al actualizar marca:", error.message);
+        errors++;
+      }
+    }
+
+    if (errors > 0) {
+      toast.error(`No se pudieron actualizar ${errors} producto${errors !== 1 ? "s" : ""}.`);
+      await fetchProductos();
+    } else {
+      setProductos((prev) =>
+        prev.map((p) => {
+          const update = updates.find((u) => u.id === p.id);
+          return update ? { ...p, marca: update.marca, slug: update.slug } : p;
+        })
+      );
+      setSelectedIds(new Set());
+      toast.success(`Marca actualizada en ${updates.length} producto${updates.length !== 1 ? "s" : ""}.`);
     }
     setBulkLoading(false);
   }
@@ -291,10 +519,15 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     const toExport = data || productos.filter((p) => selectedIds.has(p.id));
     if (toExport.length === 0) return;
 
+    const subMap = new Map(subcategoriasDb.map((s) => [s.id, s.nombre]));
+
     const exportData = toExport.map((p) => ({
       nombre: p.nombre,
       marca: p.marca,
       categoria: p.categoria || "",
+      subcategoria:
+        p.subcategorias?.nombre ||
+        (p.subcategoria_id ? subMap.get(p.subcategoria_id) || "" : ""),
       proveedor: p.proveedores?.nombre || "",
       descrip_provee: p.descrip_provee || "",
       precio_costo: p.precio_costo || 0,
@@ -334,37 +567,69 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     toast.success("Producto eliminado.");
   }
 
-  async function handleRemoveBg() {
-    const targets = productos.filter(p => selectedIds.has(p.id) && p.imagen_url);
-    if (targets.length === 0) {
-      toast.error("Ningún producto seleccionado tiene imagen.");
+  async function bulkRenameText(field: BulkTextField, options: TextTransformOptions) {
+    const targets = productos.filter((p) => selectedIds.has(p.id));
+    if (targets.length === 0) return;
+
+    setBulkLoading(true);
+
+    const usedSlugs = new Set(
+      productos.filter((p) => !selectedIds.has(p.id)).map((p) => p.slug)
+    );
+
+    const updates: Array<{ id: string; payload: Record<string, string> }> = [];
+
+    for (const product of targets) {
+      const before = getProductFieldValue(product, field);
+      const after = applyTextTransform(before, options);
+      if (after === before) continue;
+
+      const payload: Record<string, string> = { [field]: after };
+
+      if (field === "nombre" || field === "marca") {
+        const newNombre = field === "nombre" ? after : product.nombre;
+        const newMarca = field === "marca" ? after : product.marca;
+        const provNombre = product.proveedor_id
+          ? proveedoresDb.find((p) => p.id === product.proveedor_id)?.nombre
+          : null;
+        const provKey = provNombre ? slugifyText(provNombre) : null;
+        payload.slug = uniqueProductSlug(newNombre, newMarca, usedSlugs, provKey);
+      }
+
+      updates.push({ id: product.id, payload });
+    }
+
+    if (updates.length === 0) {
+      toast.error("Ningún producto requería cambios con esas reglas.");
+      setBulkLoading(false);
       return;
     }
-    setRemoveBgProgress({ done: 0, total: targets.length, errors: 0 });
+
     let errors = 0;
-    for (let i = 0; i < targets.length; i++) {
-      const p = targets[i];
-      try {
-        const res = await fetch('/api/remove-bg', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageUrl: p.imagen_url, productId: p.id }),
-        });
-        const json = await res.json();
-        if (res.ok && json.publicUrl) {
-          setProductos(prev => prev.map(x => x.id === p.id ? { ...x, imagen_url: json.publicUrl } : x));
-        } else {
-          errors++;
-        }
-      } catch {
+    for (const { id, payload } of updates) {
+      const sanitized = await sanitizeProductPayload(supabase, payload);
+      const { error } = await supabase.from(PRODUCTS_TABLE).update(sanitized).eq("id", id);
+      if (error) {
+        console.error("Error renombrando producto:", error.message);
         errors++;
       }
-      setRemoveBgProgress({ done: i + 1, total: targets.length, errors });
     }
-    const ok = targets.length - errors;
-    toast.success(`Fondo eliminado en ${ok} producto${ok !== 1 ? 's' : ''}${errors ? ` (${errors} errores)` : ''}.`);
-    setRemoveBgProgress(null);
+
+    if (errors > 0) {
+      toast.error(`No se pudieron actualizar ${errors} producto${errors !== 1 ? "s" : ""}.`);
+      await fetchProductos();
+    } else {
+      setProductos((prev) =>
+        prev.map((p) => {
+          const update = updates.find((u) => u.id === p.id);
+          return update ? { ...p, ...update.payload } : p;
+        })
+      );
+      toast.success(`Se actualizaron ${updates.length} producto${updates.length !== 1 ? "s" : ""}.`);
+    }
+
     setSelectedIds(new Set());
+    setBulkLoading(false);
   }
 
   const catSeleccionada = categoriasDb.find(c => c.nombre === categoriaFiltrada);
@@ -374,9 +639,11 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
   const productosFiltrados = productos.filter((p) => {
     // 1. Filtro por búsqueda
-    const matchesBusqueda = !busqueda ||
-      p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-      p.marca.toLowerCase().includes(busqueda.toLowerCase());
+    const term = busqueda.toLowerCase().trim();
+    const matchesBusqueda = !term ||
+      p.nombre.toLowerCase().includes(term) ||
+      p.marca.toLowerCase().includes(term) ||
+      (p.tags ?? []).some((tag) => tag.toLowerCase().includes(term));
 
     // 2. Filtro por categoría
     const cat = p.categoria || "Fragancias";
@@ -385,10 +652,14 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     // 3. Filtro por subcategoría
     const matchesSubcategoria = !subcategoriaFiltrada || (p as any).subcategoria_id === subcategoriaFiltrada;
 
-    // 4. Filtro "solo pendientes de completar"
+    // 4. Filtro por proveedor
+    const matchesProveedor =
+      !proveedorFiltrado || p.proveedor_id?.toString() === proveedorFiltrado;
+
+    // 5. Filtro "solo pendientes de completar"
     const matchesPendiente = !soloPendientes || p.pendiente_completar;
 
-    return matchesBusqueda && matchesCategoria && matchesSubcategoria && matchesPendiente;
+    return matchesBusqueda && matchesCategoria && matchesSubcategoria && matchesProveedor && matchesPendiente;
   }).sort((a, b) => {
     if (!sortConfig) return 0;
     
@@ -399,6 +670,11 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
     if (sortConfig.key === "categoria") {
       aValue = a.categoria || "Fragancias";
       bValue = b.categoria || "Fragancias";
+    }
+
+    if (sortConfig.key === "subcategoria") {
+      aValue = a.subcategorias?.nombre ?? "";
+      bValue = b.subcategorias?.nombre ?? "";
     }
 
     if (aValue < bValue) {
@@ -413,7 +689,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
   return (
     <>
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-5">
         <div className="bg-luxury-black border border-luxury-gray p-5">
           <div className="flex items-center gap-2 text-luxury-gray-light text-xs mb-2">
             <Package size={14} /> TOTAL
@@ -453,88 +729,101 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
         </div>
       </div>
 
-      {/* Toolbar — fila 1: filtros + importar/exportar */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-3 items-start sm:items-center justify-between">
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o marca..."
-            className="bg-luxury-black border border-luxury-gray-mid text-white placeholder-[#555555] px-4 py-2.5 focus:outline-none focus:border-gold transition-colors text-sm w-full sm:w-72"
-          />
-          <div className="w-full sm:w-44">
-            <CustomSelect
-              value={categoriaFiltrada}
-              onChange={(val) => { setCategoriaFiltrada(val); setSubcategoriaFiltrada(""); }}
+      {/* Acciones de catálogo — fila superior */}
+      <div className="flex justify-end gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => setIsImportModalOpen(true)}
+          className="flex items-center gap-1.5 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-3 py-2 text-xs tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group h-10"
+        >
+          <div className="relative flex items-center">
+            <FileSpreadsheet size={14} className="text-gold" />
+            <ArrowDown size={8} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:translate-y-0.5 transition-transform" />
+          </div>
+          Importar
+        </button>
+        <button
+          onClick={() => downloadExcel(productosFiltrados)}
+          className="flex items-center gap-1.5 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-3 py-2 text-xs tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group h-10"
+        >
+          <div className="relative flex items-center">
+            <FileSpreadsheet size={14} className="text-gold" />
+            <ArrowUp size={8} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
+          </div>
+          Exportar
+        </button>
+        <button
+          onClick={() => setIsReconciliarModalOpen(true)}
+          className="flex items-center gap-1.5 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-3 py-2 text-xs tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap h-10"
+        >
+          <RefreshCw size={14} className="text-gold shrink-0" />
+          Actualizar precios
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-3 items-start sm:items-center flex-wrap">
+        <input
+          type="search"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre, marca o tags..."
+          className="bg-luxury-black border border-luxury-gray-mid text-white placeholder-[#555555] px-3 py-2 focus:outline-none focus:border-gold transition-colors text-sm w-full sm:w-64 h-10"
+        />
+        <div className="w-full sm:w-52 shrink-0">
+          <CustomSelect
+            compact
+            value={categoriaFiltrada}
+            onChange={(val) => { setCategoriaFiltrada(val); setSubcategoriaFiltrada(""); }}
               options={[
                 { value: "", label: "Ver Todo" },
-                ...categoriasDb.map(c => ({ value: c.nombre, label: c.nombre })),
+                ...categoriaFilterOptions(categoriasDb),
               ]}
-              placeholder="Categoría"
+            placeholder="Categoría"
+          />
+        </div>
+        {subcategoriasParaCategoria.length > 0 && (
+          <div className="w-full sm:w-52 shrink-0">
+            <CustomSelect
+              compact
+              value={subcategoriaFiltrada}
+              onChange={(val) => setSubcategoriaFiltrada(val)}
+              options={[
+                { value: "", label: "Todas" },
+                  ...subcategoriaSelectOptions(subcategoriasParaCategoria),
+              ]}
+              placeholder="Subcategoría"
             />
           </div>
-          {subcategoriasParaCategoria.length > 0 && (
-            <div className="w-full sm:w-40">
-              <CustomSelect
-                value={subcategoriaFiltrada}
-                onChange={(val) => setSubcategoriaFiltrada(val)}
-                options={[
-                  { value: "", label: "Todas" },
-                  ...subcategoriasParaCategoria.map(s => ({ value: s.id, label: s.nombre })),
-                ]}
-                placeholder="Subcategoría"
-              />
-            </div>
-          )}
-          <button
-            onClick={() => setSoloPendientes((prev) => !prev)}
-            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border transition-colors whitespace-nowrap ${
-              soloPendientes
-                ? "bg-amber-500/15 text-amber-500 border-amber-500/40"
-                : "bg-luxury-black text-luxury-gray-light border-luxury-gray-mid hover:border-amber-500/40 hover:text-amber-500"
-            }`}
-          >
-            Solo pendientes
-          </button>
+        )}
+        <div className="w-full sm:w-56 shrink-0">
+          <CustomSelect
+            compact
+            value={proveedorFiltrado}
+            onChange={setProveedorFiltrado}
+            options={[
+              { value: "", label: "Todos los proveedores" },
+              ...proveedoresDb.map(p => ({ value: p.id, label: p.nombre })),
+            ]}
+            placeholder="Proveedor"
+          />
         </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <Link
-            href="/dashboard/nuevo"
-            className="flex items-center gap-2 bg-gold text-black font-bold px-5 py-2.5 text-sm tracking-wider hover:bg-gold-light transition-colors whitespace-nowrap"
-          >
-            <Plus size={16} />
-            Nuevo
-          </Link>
-          <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
-          >
-            <div className="relative flex items-center">
-              <FileSpreadsheet size={16} className="text-gold" />
-              <ArrowDown size={10} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:translate-y-0.5 transition-transform" />
-            </div>
-            Importar
-          </button>
-          <button
-            onClick={() => downloadExcel(productosFiltrados)}
-            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap group"
-          >
-            <div className="relative flex items-center">
-              <FileSpreadsheet size={16} className="text-gold" />
-              <ArrowUp size={10} className="text-white absolute -right-1 -bottom-1 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
-            </div>
-            Exportar
-          </button>
-          <button
-            onClick={() => setIsReconciliarModalOpen(true)}
-            className="flex items-center gap-2 bg-luxury-gray text-white border border-luxury-gray-mid font-bold px-4 py-2.5 text-sm tracking-wider hover:bg-[#252525] transition-colors whitespace-nowrap"
-          >
-            <RefreshCw size={16} className="text-gold" />
-            Actualizar precios
-          </button>
-        </div>
+        <button
+          onClick={() => setSoloPendientes((prev) => !prev)}
+          className={`h-10 px-3 text-[11px] font-bold uppercase tracking-wider border transition-colors whitespace-nowrap ${
+            soloPendientes
+              ? "bg-amber-500/15 text-amber-500 border-amber-500/40"
+              : "bg-luxury-black text-luxury-gray-light border-luxury-gray-mid hover:border-amber-500/40 hover:text-amber-500"
+          }`}
+        >
+          Solo pendientes
+        </button>
+        <Link
+          href="/dashboard/nuevo"
+          className="flex items-center gap-1.5 bg-gold text-black font-bold px-3 py-2 text-xs tracking-wider hover:bg-gold-light transition-colors whitespace-nowrap h-10 sm:ml-auto"
+        >
+          <Plus size={14} />
+          Nuevo
+        </Link>
       </div>
 
       {/* Tabla */}
@@ -573,6 +862,17 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     </span>
                   </div>
                 </th>
+                <th 
+                  className="text-left text-[#555555] text-xs tracking-widest uppercase px-4 py-3 hidden lg:table-cell cursor-pointer hover:text-white transition-colors group"
+                  onClick={() => handleSort("subcategoria")}
+                >
+                  <div className="flex items-center gap-2">
+                    Subcategoría
+                    <span className={`transition-all ${sortConfig?.key === "subcategoria" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
+                      {sortConfig?.key === "subcategoria" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
+                    </span>
+                  </div>
+                </th>
                 <th
                   className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("precio_costo")}
@@ -596,17 +896,6 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                   </div>
                 </th>
                 <th className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 hidden md:table-cell">Proveedor</th>
-                <th 
-                  className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
-                  onClick={() => handleSort("stock")}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    Stock
-                    <span className={`transition-all ${sortConfig?.key === "stock" ? "opacity-100 text-gold" : "opacity-30 text-white"}`}>
-                      {sortConfig?.key === "stock" && sortConfig.direction === "desc" ? <ArrowDown size={12} /> : <ArrowUp size={12} />}
-                    </span>
-                  </div>
-                </th>
                 <th 
                   className="text-center text-[#555555] text-xs tracking-widest uppercase px-4 py-3 cursor-pointer hover:text-white transition-colors group"
                   onClick={() => handleSort("activo")}
@@ -661,6 +950,9 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     <td className="px-4 py-3 text-luxury-gray-light text-xs hidden lg:table-cell">
                       {producto.categoria || "Fragancias"}
                     </td>
+                    <td className="px-4 py-3 text-luxury-gray-light text-xs hidden lg:table-cell">
+                      {producto.subcategorias?.nombre ?? "—"}
+                    </td>
                     <td className="px-4 py-3 text-center text-luxury-gray-light">
                       {producto.precio_costo ? `${producto.moneda === 'USD' ? 'US$' : '$'} ${producto.precio_costo.toLocaleString("es-AR")}` : "—"}
                     </td>
@@ -670,11 +962,6 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
                     <td className="px-4 py-3 text-center hidden md:table-cell">
                       <span className="text-xs text-luxury-gray-light">
                         {producto.proveedores?.nombre ?? "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span className={`text-xs font-bold ${producto.stock > 5 ? "text-green-500" : producto.stock > 0 ? "text-amber-500" : "text-red-500"}`}>
-                        {producto.stock}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center">
@@ -729,141 +1016,26 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-luxury-gray border border-gold/30 shadow-2xl px-6 py-4 flex items-center gap-6 animate-fade-in-up">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-luxury-gray border border-gold/30 shadow-2xl px-6 py-4 flex items-center gap-4 animate-fade-in-up">
           <div className="flex items-center gap-3">
             <span className="text-white font-bold text-sm">{selectedIds.size} seleccionados</span>
-            <button onClick={() => setSelectedIds(new Set())} className="text-gold text-[10px] uppercase tracking-wider hover:underline">Desmarcar todos</button>
-          </div>
-          <div className="h-8 w-px bg-luxury-gray-mid" />
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => downloadExcel()}
-              className="px-3 py-1.5 text-xs font-bold text-gold border border-gold/20 hover:bg-gold/10 transition-colors flex items-center gap-2 group"
-            >
-              <div className="relative flex items-center">
-                <FileSpreadsheet size={14} className="text-gold" />
-                <ArrowUp size={8} className="text-white absolute -right-0.5 -bottom-0.5 bg-luxury-gray rounded-full group-hover:-translate-y-0.5 transition-transform" />
-              </div>
-              Exportar
-            </button>
-            <button 
-              onClick={() => bulkToggleActivo(true)}
-              disabled={bulkLoading}
-              className="px-3 py-1.5 text-xs font-bold text-green-400 border border-green-400/20 hover:bg-green-400/10 transition-colors"
-            >
-              Mostrar
-            </button>
-            <button 
-              onClick={() => bulkToggleActivo(false)}
-              disabled={bulkLoading}
-              className="px-3 py-1.5 text-xs font-bold text-gray-400 border border-gray-400/20 hover:bg-gray-400/10 transition-colors"
-            >
-              Ocultar
-            </button>
-
-            <div className="h-6 w-px bg-luxury-gray-mid mx-1" />
-
-            {/* Categoría Masiva */}
-            <div className="relative">
-              <button 
-                onClick={() => setMenuBulkAbierto(menuBulkAbierto === "categoria" ? null : "categoria")}
-                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "categoria" ? "bg-gold text-black border-gold" : "text-gold border-gold/20 hover:bg-gold/10"}`}
-              >
-                Categoría
-              </button>
-              {menuBulkAbierto === "categoria" && (
-                <>
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setMenuBulkAbierto(null)} />
-                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-luxury-gray-mid shadow-2xl p-2 min-w-[160px] animate-fade-in-up">
-                    {categoriasDb.map(cat => (
-                      <button
-                        key={cat.id}
-                        onClick={() => {
-                          bulkUpdateField("categoria", cat.nombre);
-                          setMenuBulkAbierto(null);
-                        }}
-                        className="w-full text-left px-3 py-2 text-[10px] text-luxury-gray-light hover:text-white hover:bg-luxury-gray transition-colors"
-                      >
-                        {cat.nombre}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Subcategoría Masiva */}
-            <div className="relative">
-              <button
-                onClick={() => setMenuBulkAbierto(menuBulkAbierto === "subcategoria" ? null : "subcategoria")}
-                className={`px-3 py-1.5 text-xs font-bold border transition-colors ${menuBulkAbierto === "subcategoria" ? "bg-gold text-black border-gold" : "text-gold border-gold/20 hover:bg-gold/10"}`}
-              >
-                Subcategoría
-              </button>
-              {menuBulkAbierto === "subcategoria" && (
-                <>
-                  <div className="fixed inset-0 z-[-1]" onClick={() => setMenuBulkAbierto(null)} />
-                  <div className="absolute bottom-full left-0 mb-2 bg-[#111111] border border-luxury-gray-mid shadow-2xl p-2 min-w-[200px] animate-fade-in-up max-h-72 overflow-y-auto">
-                    {categoriasDb.map(cat => {
-                      const subs = subcategoriasDb.filter(s => s.categoria_id === cat.id);
-                      if (!subs.length) return null;
-                      return (
-                        <div key={cat.id}>
-                          <p className="px-3 py-1 text-[9px] text-[#555555] uppercase tracking-widest font-bold">{cat.nombre}</p>
-                          {subs.map(sub => (
-                            <button
-                              key={sub.id}
-                              onClick={() => {
-                                bulkUpdateSubcategoria(sub.id, sub.categoria_id);
-                                setMenuBulkAbierto(null);
-                              }}
-                              className="w-full text-left px-3 py-2 text-[10px] text-luxury-gray-light hover:text-white hover:bg-luxury-gray transition-colors pl-5"
-                            >
-                              {sub.nombre}
-                            </button>
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
-
             <button
-              onClick={() => setPrecioModal({ open: true, venta: 0, costo: 0 })}
-              className="px-3 py-1.5 text-xs font-bold text-blue-400 border border-blue-400/20 hover:bg-blue-400/10 transition-colors"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-gold text-[10px] uppercase tracking-wider hover:underline"
             >
-              Precio
-            </button>
-            <button
-              onClick={() => setBulkImagenesModal(true)}
-              disabled={bulkLoading}
-              className="px-3 py-1.5 text-xs font-bold text-purple-400 border border-purple-400/20 hover:bg-purple-400/10 transition-colors flex items-center gap-2"
-            >
-              <Images size={12} />
-              Imágenes
-            </button>
-            <button
-              onClick={handleRemoveBg}
-              disabled={bulkLoading || !!removeBgProgress}
-              className="px-3 py-1.5 text-xs font-bold text-emerald-400 border border-emerald-400/20 hover:bg-emerald-400/10 transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              <Wand2 size={12} />
-              {removeBgProgress
-                ? `${removeBgProgress.done}/${removeBgProgress.total}`
-                : 'Quitar fondo'}
-            </button>
-            <button
-              onClick={() => setBulkDeleteModal(true)}
-              disabled={bulkLoading}
-              className="px-3 py-1.5 text-xs font-bold text-red-400 border border-red-400/20 hover:bg-red-400/10 transition-colors flex items-center gap-2"
-            >
-              <Trash2 size={12} />
-              Eliminar
+              Desmarcar todos
             </button>
           </div>
           <div className="h-8 w-px bg-luxury-gray-mid" />
+          <button
+            type="button"
+            onClick={() => setBulkActionsModal(true)}
+            disabled={bulkLoading}
+            className="flex items-center gap-2 px-4 py-2 text-xs font-bold bg-gold text-black hover:bg-gold-light transition-colors disabled:opacity-50"
+          >
+            <LayoutGrid size={14} />
+            Acciones masivas
+          </button>
           <button
             onClick={() => setSelectedIds(new Set())}
             className="text-[#555555] hover:text-white transition-colors p-1"
@@ -871,13 +1043,47 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
           >
             <X size={16} />
           </button>
-          {bulkLoading && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center backdrop-blur-[1px]">
-              <div className="w-5 h-5 border-2 border-gold/20 border-t-gold rounded-full animate-spin" />
-            </div>
-          )}
         </div>
       )}
+
+      <BulkActionsModal
+        isOpen={bulkActionsModal}
+        onClose={() => setBulkActionsModal(false)}
+        onDismiss={() => {
+          setBulkActionsModal(false);
+          setSelectedIds(new Set());
+        }}
+        selectedCount={selectedIds.size}
+        categorias={categoriasDb}
+        subcategorias={subcategoriasDb}
+        proveedores={proveedoresDb}
+        marcas={marcasBulk}
+        bulkLoading={bulkLoading}
+        selectedProducts={productos
+          .filter((p) => selectedIds.has(p.id))
+          .map((p) => ({
+            id: p.id,
+            nombre: p.nombre,
+            marca: p.marca,
+            descripcion: p.descripcion,
+            descripcion_corta: p.descripcion_corta,
+            descrip_provee: p.descrip_provee,
+          }))}
+        onExport={() => downloadExcel()}
+        onShow={() => bulkToggleActivo(true)}
+        onHide={() => bulkToggleActivo(false)}
+        onUpdateProveedor={bulkUpdateProveedor}
+        onUpdateMarca={bulkUpdateMarca}
+        onUpdateCategoriaSubcategoria={bulkUpdateCategoriaSubcategoria}
+        onCreateCategoria={createCategoriaBulk}
+        onCreateSubcategoria={createSubcategoriaBulk}
+        onOpenPrecio={() => setPrecioModal({ open: true, venta: 0, costo: 0 })}
+        onOpenImagenes={() => setBulkImagenesModal(true)}
+        onBulkRename={bulkRenameText}
+        onUpdateMoneda={bulkUpdateMoneda}
+        onSetDestacado={bulkToggleDestacado}
+        onDelete={() => setBulkDeleteModal(true)}
+      />
 
       {/* Modal eliminación unitaria */}
       {deleteModal.isOpen && (
