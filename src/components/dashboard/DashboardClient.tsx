@@ -1234,6 +1234,7 @@ export default function DashboardClient({ productos: initialProductos }: Props) 
           fetchProductos();
           router.refresh();
         }}
+        proveedores={proveedoresDb}
       />
     </>
   );
