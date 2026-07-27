@@ -8,6 +8,7 @@ import { Search, Menu, X, ChevronDown, ShoppingBag, Sun, Moon, Loader2 } from "l
 import { useCart } from "@/context/CartContext";
 import { useCatalogo } from "@/context/CatalogoContext";
 import DolarWidget from "@/components/ui/DolarWidget";
+import PrecioUSD from "@/components/productos/PrecioUSD";
 import ProductImage from "@/components/ui/ProductImage";
 import { createClient } from "@/lib/supabase/client";
 import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
@@ -224,7 +225,13 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                           <p className="text-white text-sm truncate group-hover:text-gold transition-colors">{p.nombre}</p>
                           <p className="text-luxury-gray-light text-[11px]">{p.marca}</p>
                         </div>
-                        <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
+                        {showDolarWidget ? (
+                          <div className="shrink-0 text-right">
+                            <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-gold text-sm font-semibold" />
+                          </div>
+                        ) : (
+                          <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
+                        )}
                       </Link>
                     ))}
                   </div>
@@ -371,7 +378,13 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                       <p className="text-white text-sm truncate group-hover:text-gold transition-colors">{p.nombre}</p>
                       <p className="text-luxury-gray-light text-[11px]">{p.marca}</p>
                     </div>
-                    <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
+                    {showDolarWidget ? (
+                      <div className="shrink-0 text-right">
+                        <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-gold text-sm font-semibold" />
+                      </div>
+                    ) : (
+                      <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
+                    )}
                   </Link>
                 ))}
               </div>
