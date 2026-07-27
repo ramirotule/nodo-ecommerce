@@ -227,7 +227,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                         </div>
                         {showDolarWidget ? (
                           <div className="shrink-0 text-right">
-                            <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-gold text-sm font-semibold" />
+                            <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-white text-sm font-semibold" />
                           </div>
                         ) : (
                           <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
@@ -380,7 +380,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                     </div>
                     {showDolarWidget ? (
                       <div className="shrink-0 text-right">
-                        <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-gold text-sm font-semibold" />
+                        <PrecioUSD precioUsd={p.precio_venta} priceClassName="text-white text-sm font-semibold" />
                       </div>
                     ) : (
                       <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
