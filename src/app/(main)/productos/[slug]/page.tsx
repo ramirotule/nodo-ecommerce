@@ -13,6 +13,7 @@ import ProductoGaleria from "@/components/productos/ProductoGaleria";
 import { formatPrice } from "@/lib/price-utils";
 import PrecioDetalleBlock from "@/components/productos/PrecioDetalleBlock";
 import SimuladorCuotas from "@/components/productos/SimuladorCuotas";
+import ShareButton from "@/components/productos/ShareButton";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -79,6 +80,7 @@ export default async function ProductoPage({ params }: Props) {
     `Hola! Me interesa el producto *${producto.nombre}* de *${producto.marca}*. ¿Tienen stock disponible?`
   );
   const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
+  const productUrl = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/productos/${slug}`;
 
   // JSON-LD Product schema
   const productSchema = {
@@ -191,6 +193,7 @@ export default async function ProductoPage({ params }: Props) {
                 <img src="/what.png" alt="WhatsApp" className="w-5 h-5 rounded-full object-cover" />
                 Consultar
               </a>
+              <ShareButton nombre={producto.nombre} marca={producto.marca} url={productUrl} />
             </div>
 
             {/* Local info */}

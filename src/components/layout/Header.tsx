@@ -96,6 +96,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
 
   // Búsqueda en vivo a medida que se escribe (mismo criterio que el buscador del catálogo)
   useEffect(() => {
@@ -114,10 +115,13 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
     return () => clearTimeout(timer);
   }, [busqueda]);
 
-  // Cerrar dropdown al hacer click afuera
+  // Cerrar dropdown al hacer click afuera (desktop o mobile, el que esté visible)
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideDesktop = searchContainerRef.current?.contains(target);
+      const insideMobile = mobileSearchContainerRef.current?.contains(target);
+      if (!insideDesktop && !insideMobile) {
         setDropdownOpen(false);
       }
     }
@@ -331,6 +335,49 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
           </div>
           </div>
 
+          {/* Buscador mobile: siempre visible, fuera del menú hamburguesa */}
+          <div ref={mobileSearchContainerRef} className="relative lg:hidden">
+            <form onSubmit={handleSearch}>
+              <div className="flex items-center border border-luxury-gray-mid bg-luxury-gray/30 focus-within:border-gold/60 transition-colors px-3 py-2 gap-2">
+                {searching ? (
+                  <Loader2 size={14} className="text-gold shrink-0 animate-spin" />
+                ) : (
+                  <Search size={14} className="text-luxury-gray-light shrink-0" />
+                )}
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  onFocus={() => dropdownResults.length > 0 && setDropdownOpen(true)}
+                  placeholder="Buscar productos..."
+                  className="flex-1 bg-transparent text-white text-xs placeholder-[#555] focus:outline-none"
+                />
+              </div>
+            </form>
+
+            {dropdownOpen && dropdownResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-luxury-black border border-luxury-gray shadow-2xl shadow-black/80 divide-y divide-luxury-gray/50">
+                {dropdownResults.map((p) => (
+                  <Link
+                    key={p.id}
+                    href={`/productos/${p.slug}`}
+                    onClick={() => setDropdownOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gold/5 transition-colors group"
+                  >
+                    <div className="w-10 h-10 shrink-0 bg-luxury-gray overflow-hidden">
+                      <ProductImage src={p.imagen_url} alt={p.nombre} width={40} height={40} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm truncate group-hover:text-gold transition-colors">{p.nombre}</p>
+                      <p className="text-luxury-gray-light text-[11px]">{p.marca}</p>
+                    </div>
+                    <p className="text-gold text-sm font-semibold shrink-0">{formatPrice(p.precio_venta)}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Fila categorías: ancho completo del header */}
           <div className="hidden lg:block border-t border-luxury-gray/30 pt-3">
             <nav className="mx-auto flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 xl:gap-x-3">
@@ -407,7 +454,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="lg:hidden bg-luxury-black border-t border-luxury-gray px-4 py-6">
+        <div className="lg:hidden bg-luxury-black border-t border-luxury-gray px-4 py-6 max-h-[calc(100vh-96px)] overflow-y-auto overscroll-contain">
           <nav className="flex flex-col gap-4">
             <Link href="/" onClick={() => setMenuOpen(false)} className="text-sm tracking-wider text-white hover:text-gold transition-colors">
               INICIO
@@ -509,21 +556,6 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                 INICIAR SESIÓN
               </Link>
             )}
-
-            <div className="border-t border-luxury-gray-mid pt-4">
-              <form onSubmit={handleSearch} className="flex gap-2">
-                <input
-                  type="text"
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                  placeholder="Buscar..."
-                  className="flex-1 bg-luxury-gray border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold"
-                />
-                <button type="submit" className="px-3 py-2 bg-gold text-black">
-                  <Search size={16} />
-                </button>
-              </form>
-            </div>
           </nav>
         </div>
       )}
