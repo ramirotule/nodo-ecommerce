@@ -148,12 +148,12 @@ export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
           <p className="text-gray-400 text-xs">
             Página web desarrollada por{" "}
             <a
-              href="https://www.nodocore.com.ar/nodo-it"
+              href="https://www.flowsync.com.ar"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gold hover:font-bold transition-all"
             >
-              NODO Core
+              FlowSync
             </a>
           </p>
         </div>
