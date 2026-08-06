@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import ProductImage from "@/components/ui/ProductImage";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import ImageCarouselModal from "@/components/ui/ImageCarouselModal";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   imagenPrincipal?: string;
@@ -26,21 +27,6 @@ export default function ProductoGaleria({
   const prev = () => setCurrent((i) => (i - 1 + todas.length) % todas.length);
   const next = () => setCurrent((i) => (i + 1) % todas.length);
 
-  useEffect(() => {
-    if (!open) return;
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-      if (e.key === "ArrowLeft") prev();
-      if (e.key === "ArrowRight") next();
-    }
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = "";
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, todas.length]);
-
   if (todas.length === 0) {
     return (
       <div className="relative aspect-square bg-luxury-black border border-luxury-gray overflow-hidden">
@@ -57,7 +43,6 @@ export default function ProductoGaleria({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Imagen principal */}
       <div className="product-image-frame relative aspect-square bg-luxury-black border border-luxury-gray-mid overflow-hidden group">
         <button
           type="button"
@@ -75,7 +60,6 @@ export default function ProductoGaleria({
           />
         </button>
 
-        {/* Badges */}
         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
           {nuevo && (
             <span className="bg-gold text-black text-xs font-bold tracking-wider px-3 py-1 uppercase">
@@ -84,7 +68,6 @@ export default function ProductoGaleria({
           )}
         </div>
 
-        {/* Flechas — solo si hay más de una imagen */}
         {todas.length > 1 && (
           <>
             <button
@@ -105,7 +88,6 @@ export default function ProductoGaleria({
         )}
       </div>
 
-      {/* Thumbnails */}
       {todas.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           {todas.map((img, i) => (
@@ -132,83 +114,13 @@ export default function ProductoGaleria({
         </div>
       )}
 
-      {/* Modal / lightbox */}
-      {open && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-          onClick={() => setOpen(false)}
-        >
-          <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
-
-          <button
-            onClick={() => setOpen(false)}
-            aria-label="Cerrar"
-            className="absolute top-4 right-4 z-10 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
-          >
-            <X size={24} />
-          </button>
-
-          <div
-            className="relative w-full max-w-4xl aspect-square"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <ProductImage
-              src={todas[current]}
-              alt={`${nombre} ${marca}`}
-              fill
-              sizes="90vw"
-              className="object-contain"
-              priority
-            />
-
-            {todas.length > 1 && (
-              <>
-                <button
-                  onClick={prev}
-                  aria-label="Imagen anterior"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/70 backdrop-blur-sm text-black hover:text-gold hover:bg-white transition-colors"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-                <button
-                  onClick={next}
-                  aria-label="Imagen siguiente"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-white/70 backdrop-blur-sm text-black hover:text-gold hover:bg-white transition-colors"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              </>
-            )}
-          </div>
-
-          {todas.length > 1 && (
-            <div
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {todas.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrent(i)}
-                  className={`w-14 h-14 border transition-all overflow-hidden bg-white rounded ${
-                    i === current ? "border-gold" : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <div className="relative w-full h-full">
-                    <ProductImage
-                      src={img}
-                      alt={`${nombre} — imagen ${i + 1}`}
-                      fill
-                      sizes="56px"
-                      className="object-contain p-1"
-                    />
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      <ImageCarouselModal
+        images={todas}
+        alt={`${nombre} ${marca}`}
+        open={open}
+        onClose={() => setOpen(false)}
+        initialIndex={current}
+      />
     </div>
   );
 }

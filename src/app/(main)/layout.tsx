@@ -11,15 +11,17 @@ import WhatsAppButton from "@/components/ui/WhatsAppButton";
 import QuickSearchModal from "@/components/ui/QuickSearchModal";
 import { createClient } from "@/lib/supabase/server";
 import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
+import { getLegalConfig } from "@/lib/site-config/getLegalConfig";
 import { getThemeConfig } from "@/lib/theme/getThemeConfig";
 
 export default async function MainLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
 
-  const [{ data: categorias }, { data: subcategorias }, siteConfig, theme, { data: { user } }] = await Promise.all([
+  const [{ data: categorias }, { data: subcategorias }, siteConfig, legalConfig, theme, { data: { user } }] = await Promise.all([
     supabase.from("categorias").select("id, nombre, slug, orden").eq("activo", true).order("orden"),
     supabase.from("subcategorias").select("id, nombre, slug, orden, categoria_id").eq("activo", true).order("orden"),
     getSiteConfig(),
+    getLegalConfig(),
     getThemeConfig(),
     supabase.auth.getUser(),
   ]);
@@ -65,7 +67,8 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             customerUser={customerUser}
           />
           <main className="flex-1">{children}</main>
-          <Footer contact={{
+          <Footer
+            contact={{
             whatsapp: siteConfig.whatsapp,
             instagram: siteConfig.instagram,
             facebook: siteConfig.facebook,
@@ -73,7 +76,19 @@ export default async function MainLayout({ children }: { children: React.ReactNo
             contact_address: siteConfig.contact_address,
             contact_horarios: siteConfig.contact_horarios,
             contact_email: siteConfig.contact_email,
-          }} />
+          }}
+            legal={{
+              razon_social: legalConfig.razon_social,
+              cuit: legalConfig.cuit,
+              data_fiscal_url: legalConfig.data_fiscal_url,
+            }}
+            siteName={theme.site_name}
+            newsletter={{
+              title: siteConfig.newsletter_title,
+              body: siteConfig.newsletter_body,
+              footer: siteConfig.newsletter_footer,
+            }}
+          />
           <CartDrawer freeShippingFrom={siteConfig.shipping_free_from ? Number(siteConfig.shipping_free_from) : undefined} />
           {siteConfig.feature_newsletter && (
             <NewsletterModal

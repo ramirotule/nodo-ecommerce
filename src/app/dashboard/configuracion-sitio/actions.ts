@@ -19,6 +19,7 @@ export async function saveSiteConfig(flags: Record<string, boolean | string>) {
   if (error) return { success: false, error: error.message }
 
   revalidateTag('site-config', 'max')
+  revalidateTag('legal-config', 'max')
   revalidateTag('theme-config', 'max')
   revalidatePath('/', 'layout')
   return { success: true }
@@ -27,5 +28,6 @@ export async function saveSiteConfig(flags: Record<string, boolean | string>) {
 export async function revalidateConfig() {
   'use server'
   revalidateTag('site-config', 'max')
+  revalidateTag('legal-config', 'max')
   revalidatePath('/', 'layout')
 }

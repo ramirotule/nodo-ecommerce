@@ -16,7 +16,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
 
   if (isCompact) {
     return (
-      <article className="group relative bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
+      <article className="group relative bg-luxury-gray border border-luxury-gray-mid hover:border-gold/50 transition-all duration-300 hover:shadow-lg flex flex-col overflow-hidden">
         <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative aspect-square">
           <ProductImage
             src={producto.imagen_url}
@@ -48,7 +48,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
   }
 
   return (
-    <article className="group bg-luxury-black border border-zinc-700 hover:border-gold/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
+    <article className="group bg-luxury-gray border border-luxury-gray-mid hover:border-gold/50 transition-all duration-300 hover:shadow-xl hover:shadow-black/50 flex flex-col h-full">
       {/* Image */}
       <Link href={`/productos/${producto.slug}`} className="product-image-frame block relative overflow-hidden aspect-[4/3]">
         <ProductImage
@@ -81,7 +81,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
           <p className="text-zinc-400 text-xs tracking-[0.2em] uppercase mb-0.5">
             {producto.marca}
           </p>
-          <h3 className="text-white font-product text-sm leading-snug group-hover:text-gold transition-colors line-clamp-2">
+          <h3 className="product-title text-sm text-white group-hover:text-gold transition-colors line-clamp-2">
             {producto.nombre}
           </h3>
         </Link>
@@ -119,6 +119,7 @@ export default function ProductoCard({ producto, isCompact = false, priority = f
                 slug: producto.slug,
                 precio_venta: producto.precio_venta,
                 imagen_url: producto.imagen_url,
+                imagenes_adicionales: producto.imagenes_adicionales,
               }}
               inStock={producto.stock > 0}
               variant="card"

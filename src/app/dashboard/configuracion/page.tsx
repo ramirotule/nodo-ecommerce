@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getSiteConfig } from '@/lib/site-config/getSiteConfig'
+import { getLegalConfig } from '@/lib/site-config/getLegalConfig'
 import ConfiguracionShell from '@/components/dashboard/ConfiguracionShell'
 
 const MIS_DATOS_KEYS = ['nombre_completo', 'telefono', 'instagram', 'whatsapp', 'facebook', 'tiktok']
@@ -16,8 +17,9 @@ export default async function ConfiguracionPage({
   const { tab } = await searchParams
   const supabase = await createClient()
 
-  const [siteConfig, { data: rows }] = await Promise.all([
+  const [siteConfig, legalConfig, { data: rows }] = await Promise.all([
     getSiteConfig(),
+    getLegalConfig(),
     supabase.from('configuracion').select('clave, valor').in('clave', ALL_KEYS),
   ])
 
@@ -50,6 +52,7 @@ export default async function ConfiguracionPage({
       misDatosConfig={misDatosConfig}
       datosBancariosConfig={datosBancariosConfig}
       contactoConfig={contactoConfig}
+      legalConfig={legalConfig}
       defaultTab={tab ?? 'sitio'}
     />
   )

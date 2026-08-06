@@ -1,6 +1,7 @@
 "use client";
 
 import { SITE_CONFIG } from "@/constants/site";
+import { buildWhatsAppUrl } from "@/lib/whatsapp-url";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 
@@ -14,7 +15,9 @@ export default function WhatsAppButton({ phone }: Props) {
   const resolvedPhone = phone || SITE_CONFIG.contact.phone
   if (drawerOpen || !resolvedPhone) return null;
 
-  const whatsappUrl = `https://wa.me/${resolvedPhone}?text=${encodeURIComponent(SITE_CONFIG.contact.whatsappMsg)}`;
+  const whatsappUrl =
+    buildWhatsAppUrl(SITE_CONFIG.contact.whatsappMsg, resolvedPhone) ?? "";
+  if (!whatsappUrl) return null;
 
   return (
     <a

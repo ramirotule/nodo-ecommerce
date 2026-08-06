@@ -16,6 +16,7 @@ export interface CartItem {
   slug: string;
   precio_venta: number;
   imagen_url?: string;
+  imagenes_adicionales?: string[];
   cantidad: number;
   por_pedido?: boolean;
 }

@@ -81,9 +81,9 @@ const DEFAULTS: SiteConfig = {
   shipping_banner_enabled: false,
   shipping_banner_text: 'ENVÍO GRATIS en tu primera compra',
   shipping_free_from: '',
-  newsletter_title: 'Unite a la Elite',
-  newsletter_body: 'Suscribite para recibir lanzamientos exclusivos, ofertas privadas y novedades.',
-  newsletter_footer: 'Sin spam. Solo exclusividad.',
+  newsletter_title: 'Lista de precios diaria',
+  newsletter_body: 'Dejanos tu celular y recibí por WhatsApp la lista de precios actualizada todos los días.',
+  newsletter_footer: 'Podés darte de baja en cualquier momento.',
   nav_modules_enabled: '["productos","carrousel","pedidos","categorias","marcas","proveedores","configuracion","tema"]',
 }
 

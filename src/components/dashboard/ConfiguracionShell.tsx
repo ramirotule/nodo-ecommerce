@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { Settings, Layout, Globe, HelpCircle, UserCircle, Building2, Phone } from 'lucide-react'
+import { Settings, Layout, Globe, HelpCircle, UserCircle, Building2, Phone, Scale } from 'lucide-react'
 import { SiteConfig } from '@/lib/site-config/getSiteConfig'
+import type { LegalConfig } from '@/lib/site-config/getLegalConfig'
 import ConfiguracionSitioClient from './ConfiguracionSitioClient'
 import DashboardModulosClient from './DashboardModulosClient'
 import NosotrosEditor from './NosotrosEditor'
@@ -10,6 +11,7 @@ import FaqEditor from './FaqEditor'
 import MisDatosClient from './MisDatosClient'
 import DatosBancariosClient from './DatosBancariosClient'
 import ContactoClient from './ContactoClient'
+import LegalEditor from './LegalEditor'
 
 interface FaqItem {
   id: string
@@ -25,6 +27,7 @@ interface Props {
   misDatosConfig: Record<string, string>
   datosBancariosConfig: Record<string, string>
   contactoConfig: Record<string, string>
+  legalConfig: LegalConfig
   defaultTab?: string
 }
 
@@ -36,6 +39,7 @@ const TABS = [
   { id: 'faq',            label: 'FAQ',               icon: HelpCircle },
   { id: 'mis-datos',      label: 'Mis Datos',         icon: UserCircle },
   { id: 'datos-bancarios',label: 'Datos Bancarios',   icon: Building2  },
+  { id: 'legal',          label: 'Legal',             icon: Scale      },
 ]
 
 export default function ConfiguracionShell({
@@ -46,6 +50,7 @@ export default function ConfiguracionShell({
   misDatosConfig,
   datosBancariosConfig,
   contactoConfig,
+  legalConfig,
   defaultTab = 'sitio',
 }: Props) {
   const [activeTab, setActiveTab] = useState(defaultTab)
@@ -111,6 +116,9 @@ export default function ConfiguracionShell({
         )}
         {activeTab === 'datos-bancarios' && (
           <DatosBancariosClient config={datosBancariosConfig} />
+        )}
+        {activeTab === 'legal' && (
+          <LegalEditor initial={legalConfig} />
         )}
       </div>
     </div>

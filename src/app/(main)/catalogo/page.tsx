@@ -49,7 +49,7 @@ const CATALOG_PAGES = [
 
 export default function CatalogoPage() {
   return (
-    <main className="min-h-screen bg-black py-20 px-4">
+    <main className="min-h-screen bg-luxury-black py-20 px-4">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-16">

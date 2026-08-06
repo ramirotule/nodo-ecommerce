@@ -1,5 +1,5 @@
 export const SITE_CONFIG = {
-  name: "Mi Tienda",
+  name: "RAM Informática",
   description: "",
   contact: {
     phone: "",

@@ -13,7 +13,7 @@ export default async function CuentaPage() {
   const displayName = user.user_metadata?.full_name || user.email || "";
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-luxury-black flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
           <span className="text-gold font-serif text-2xl tracking-[0.15em] font-bold">

@@ -165,7 +165,7 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
   }
 
   return (
-    <header className="sticky top-0 z-50 bg-black border-b border-luxury-gray">
+    <header className="sticky top-0 z-50 bg-luxury-black border-b border-luxury-gray-mid">
       <div className="w-full px-2 sm:px-4 lg:px-6">
         <div className="flex flex-col gap-3 lg:gap-4 pt-1 pb-4 md:pt-2 md:pb-6">
           {/* Fila superior: logo + utilidades */}
@@ -295,10 +295,10 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                 aria-label="Ver carrito"
                 className="relative text-white hover:text-gold transition-all flex items-center gap-1.5 group"
               >
-                <div className="relative">
+                <div className="relative inline-flex shrink-0 -ml-0.5">
                   <ShoppingBag size={16} className="group-hover:scale-110 transition-transform" />
                   {count > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
+                    <span className="absolute -top-1.5 -right-2 bg-gold text-black text-[8px] font-bold min-w-4 h-4 px-0.5 rounded-full flex items-center justify-center leading-none border-2 border-luxury-black">
                       {count > 9 ? "9+" : count}
                     </span>
                   )}
@@ -315,10 +315,10 @@ function HeaderContent({ navCategorias, showCatalogo = false, showFaq = true, sh
                 aria-label="Ver carrito"
                 className="relative text-white hover:text-gold transition-all p-1"
               >
-                <div className="relative">
+                <div className="relative inline-flex shrink-0 -ml-0.5">
                   <ShoppingBag size={20} />
                   {count > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-gold text-black text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center leading-none border-2 border-black">
+                    <span className="absolute -top-1.5 -right-2 bg-gold text-black text-[9px] font-bold min-w-[18px] h-[18px] px-0.5 rounded-full flex items-center justify-center leading-none border-2 border-luxury-black">
                       {count > 9 ? "9+" : count}
                     </span>
                   )}

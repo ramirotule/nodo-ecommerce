@@ -3,8 +3,8 @@ export const THEME_DEFAULTS = {
   color_primary: '#D4AF37',
   color_primary_light: '#E8C84A',
   color_primary_dark: '#B8941F',
-  color_bg: '#000000',
-  color_surface: '#0D0D0D',
+  color_bg: '#151413',
+  color_surface: '#1f1e1b',
   color_text: '#FFFFFF',
   color_nav_subcategory: '#18A45C',
   // Light mode colors
@@ -16,7 +16,7 @@ export const THEME_DEFAULTS = {
   light_color_text: '#111111',
   light_color_nav_subcategory: '#18A45C',
   // Site identity
-  site_name: 'Mi Tienda',
+  site_name: 'RAM Informática',
   site_tagline: 'Tu tienda online',
   logo_url: '',
   favicon_url: '',

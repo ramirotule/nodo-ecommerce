@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle, Clock, Banknote, Building2, CreditCard, ArrowRight } from "lucide-react";
 import { createClient } from "@supabase/supabase-js";
+import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
+import { buildWhatsAppUrl } from "@/lib/whatsapp-url";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +36,8 @@ export default async function ConfirmacionPage({ searchParams }: Props) {
   const { pedido, config } = await getData(id);
   if (!pedido) notFound();
 
+  const siteConfig = await getSiteConfig();
+
   const isPending = mp === "pending" || pedido.estado === "pendiente";
 
   const TRANSFER_CBU = config.cbu || "—";
@@ -41,10 +45,10 @@ export default async function ConfirmacionPage({ searchParams }: Props) {
   const TRANSFER_TITULAR = config.titular || "Mi Tienda";
   void isPending;
 
-  const whatsappMsg = encodeURIComponent(
-    `Hola! Realicé un pedido (${pedido.numero_pedido}) por $${pedido.total.toLocaleString("es-AR")}. Método de pago: ${pedido.metodo_pago}. Por favor confirmame la disponibilidad.`
+  const whatsappUrl = buildWhatsAppUrl(
+    `Hola! Realicé un pedido (${pedido.numero_pedido}) por $${pedido.total.toLocaleString("es-AR")}. Método de pago: ${pedido.metodo_pago}. Por favor confirmame la disponibilidad.`,
+    siteConfig.whatsapp
   );
-  const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
@@ -163,6 +167,7 @@ export default async function ConfirmacionPage({ searchParams }: Props) {
       </div>
 
       {/* WhatsApp CTA */}
+      {whatsappUrl && (
       <a
         href={whatsappUrl}
         target="_blank"
@@ -172,6 +177,7 @@ export default async function ConfirmacionPage({ searchParams }: Props) {
         <img src="/what.png" alt="WhatsApp" className="w-5 h-5 rounded-full object-cover" />
         Confirmar por WhatsApp
       </a>
+      )}
 
       <Link
         href="/productos"

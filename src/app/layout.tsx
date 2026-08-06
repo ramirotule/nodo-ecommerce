@@ -105,10 +105,17 @@ html[data-theme="light"], [data-theme="light"] {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+        <link
+          rel="preload"
+          href="/fonts/Militech/militech_r_2019-04-13.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
+        />
         {/* Runtime theme CSS variables — overrides @theme compile-time defaults */}
         <style dangerouslySetInnerHTML={{ __html: themeCss }} />
       </head>
-      <body className="min-h-full flex flex-col bg-black text-white antialiased transition-colors duration-300">
+      <body className="min-h-full flex flex-col bg-luxury-black text-white antialiased transition-colors duration-300">
         <Suspense>
           <ScrollToTop />
         </Suspense>

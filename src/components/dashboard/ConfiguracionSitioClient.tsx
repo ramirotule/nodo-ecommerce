@@ -211,7 +211,7 @@ export default function ConfiguracionSitioClient({ initialConfig }: Props) {
                 value={config.newsletter_title}
                 onChange={(e) => setText('newsletter_title', e.target.value)}
                 className="w-full bg-[#111111] border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444]"
-                placeholder="Ej: Unite a la Elite"
+                placeholder="Ej: Lista de precios diaria"
               />
             </div>
             <div>
@@ -223,7 +223,7 @@ export default function ConfiguracionSitioClient({ initialConfig }: Props) {
                 onChange={(e) => setText('newsletter_body', e.target.value)}
                 rows={3}
                 className="w-full bg-[#111111] border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444] resize-none"
-                placeholder="Ej: Suscribite para recibir lanzamientos exclusivos..."
+                placeholder="Ej: Dejanos tu celular y recibí la lista de precios por WhatsApp..."
               />
             </div>
             <div>
@@ -235,7 +235,7 @@ export default function ConfiguracionSitioClient({ initialConfig }: Props) {
                 value={config.newsletter_footer}
                 onChange={(e) => setText('newsletter_footer', e.target.value)}
                 className="w-full bg-[#111111] border border-luxury-gray-mid text-white px-3 py-2 text-sm focus:outline-none focus:border-gold transition-colors placeholder-[#444444]"
-                placeholder="Ej: Sin spam. Solo exclusividad."
+                placeholder="Ej: Podés darte de baja en cualquier momento."
               />
             </div>
           </div>

@@ -1,16 +1,25 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Militech';
+  src: url('/fonts/Militech/militech_r_2019-04-13.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-gold: #D4AF37;
   --color-gold-light: #E8CC6B;
   --color-gold-dark: #B8960C;
-  --color-luxury-black: #000000;
+  --color-luxury-black: #151413;
   --color-luxury-white: #FFFFFF;
-  --color-luxury-gray: #1A1A1A;
-  --color-luxury-gray-mid: #2D2D2D;
-  --color-luxury-gray-light: #888888;
+  --color-luxury-gray: #1f1e1b;
+  --color-luxury-gray-mid: #2e2c28;
+  --color-luxury-gray-light: #9a9690;
 
   --font-product: 'Outfit', sans-serif;
+  --font-product-description: 'Militech', 'Outfit', sans-serif;
 
   --animate-fade-in: fadeIn 0.6s ease-in-out;
   --animate-shimmer: shimmer 2s linear infinite;
@@ -44,24 +53,24 @@
 /* Rich text content rendered from TipTap HTML — used in dashboard editor and public pages */
 .rich-content            { color: inherit; }
 .rich-content *          { box-sizing: border-box; }
-/* Respect inline color styles set by the editor */
-.rich-content [style]    { color: unset; }
-.rich-content span[style*="color"]       { color: revert; }
 .rich-content span[style*="font-size"]   { font-size: revert; }
 .rich-content span[style*="font-family"] { font-family: revert; }
 /* Block elements */
-.rich-content p          { margin-bottom: 0.75em; }
-.rich-content h1         { font-size: 1.75em; font-weight: 700; margin-bottom: 0.5em; color: var(--color-text); }
-.rich-content h2         { font-size: 1.4em;  font-weight: 700; margin-bottom: 0.5em; color: var(--color-text); }
-.rich-content h3         { font-size: 1.15em; font-weight: 600; margin-bottom: 0.4em; color: var(--color-text); }
-.rich-content strong     { font-weight: 700; }
+.rich-content p          { margin-bottom: 0.75em; color: inherit; }
+.rich-content h1         { font-size: 1.75em; font-weight: 700; margin-bottom: 0.5em; color: inherit; }
+.rich-content h2         { font-size: 1.4em;  font-weight: 700; margin-bottom: 0.5em; color: inherit; }
+.rich-content h3         { font-size: 1.15em; font-weight: 600; margin-bottom: 0.4em; color: inherit; }
+.rich-content strong     { font-weight: 700; color: inherit; }
 .rich-content em         { font-style: italic; }
 .rich-content u          { text-decoration: underline; }
 .rich-content s          { text-decoration: line-through; }
-.rich-content ul         { list-style: disc outside; margin-bottom: 0.75em; padding-left: 1.5em; }
-.rich-content ol         { list-style: decimal outside; margin-bottom: 0.75em; padding-left: 1.5em; }
-.rich-content li         { margin-bottom: 0.25em; }
-.rich-content a          { color: var(--color-gold); text-decoration: underline; }
+.rich-content ul         { list-style: disc outside; margin-bottom: 0.75em; padding-left: 1.5em; color: inherit; }
+.rich-content ol         { list-style: decimal outside; margin-bottom: 0.75em; padding-left: 1.5em; color: inherit; }
+.rich-content li         { margin-bottom: 0.25em; color: inherit; }
+.rich-content a,
+.rich-content a:link,
+.rich-content a:visited,
+.rich-content a:hover  { color: var(--color-gold); text-decoration: underline; }
 .rich-content hr         { border-color: #2D2D2D; margin: 1.5em 0; }
 .rich-content mark       { background-color: var(--color-gold); color: #000; padding: 0 2px; border-radius: 2px; }
 .rich-content img        { max-width: 100%; height: auto; border-radius: 4px; margin: 0.75em 0; }
@@ -88,8 +97,144 @@ html[data-theme="light"],
   --color-luxury-gray-light: #4a4a44;
   --color-text: #111111;
   --color-nav-subcategory: #18A45C;
+  --color-input-bg: #ffffff;
+  --color-input-border: #b8b6ae;
+  --color-input-text: #111111;
+  --color-surface-elevated: #ffffff;
+  --color-muted: #5a5a54;
 
   color-scheme: light;
+}
+
+html:not([data-theme="light"]) {
+  --color-input-bg: #1a1917;
+  --color-input-border: #3d3a36;
+  --color-input-text: #ffffff;
+  --color-surface-elevated: #232220;
+  --color-muted: #a8a39c;
+}
+
+/* Dark mode — unificar negros duros con la paleta del tema */
+html:not([data-theme="light"]) body,
+html:not([data-theme="light"]) .bg-black {
+  background-color: var(--color-luxury-black);
+}
+
+html:not([data-theme="light"]) .bg-\[\#050505\],
+html:not([data-theme="light"]) .bg-\[\#0A0A0A\],
+html:not([data-theme="light"]) .bg-\[\#0D0D0D\],
+html:not([data-theme="light"]) .bg-\[\#111111\],
+html:not([data-theme="light"]) .bg-\[\#111\],
+html:not([data-theme="light"]) .bg-\[\#252525\] {
+  background-color: var(--color-luxury-gray);
+}
+
+html:not([data-theme="light"]) .border-zinc-700,
+html:not([data-theme="light"]) .border-zinc-800 {
+  border-color: var(--color-luxury-gray-mid);
+}
+
+.form-input {
+  width: 100%;
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+  padding: 0.75rem 0.875rem;
+  font-size: 1rem;
+  line-height: 1.375rem;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.form-input::placeholder {
+  color: #888888;
+}
+
+html[data-theme="light"] .form-input::placeholder,
+[data-theme="light"] .form-input::placeholder {
+  color: #9a9a94;
+}
+
+.form-input:-webkit-autofill,
+.form-input:-webkit-autofill:hover,
+.form-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--color-input-text);
+  caret-color: var(--color-input-text);
+  box-shadow: 0 0 0 1000px var(--color-input-bg) inset;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-gold);
+}
+
+.form-input-error {
+  border-color: #ef4444 !important;
+}
+
+.form-label {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.375rem;
+}
+
+.form-section-title {
+  color: var(--color-input-text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+html:not([data-theme="light"]) .form-section-title {
+  color: #ffffff;
+}
+
+.checkout-card {
+  background-color: var(--color-surface-elevated);
+  border: 1px solid var(--color-input-border);
+}
+
+[data-theme="light"] .checkout-card {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.checkout-option {
+  border: 1px solid var(--color-input-border);
+  background-color: var(--color-input-bg);
+  color: var(--color-input-text);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+html:not([data-theme="light"]) .checkout-option {
+  background-color: var(--color-surface-elevated);
+}
+
+.checkout-option:hover {
+  border-color: var(--color-luxury-gray-mid);
+}
+
+.checkout-option-selected {
+  border-color: var(--color-gold);
+  background-color: color-mix(in srgb, var(--color-gold) 5%, var(--color-input-bg));
+}
+
+.text-muted {
+  color: var(--color-muted);
+}
+
+.cart-savings {
+  color: #86efac;
+}
+
+html[data-theme="light"] .cart-savings,
+[data-theme="light"] .cart-savings {
+  color: #15803d;
 }
 
 /* Override hardcoded Tailwind colors inside light-mode wrappers */
@@ -158,15 +303,70 @@ html[data-theme="light"],
 [data-theme="light"] .placeholder-\[\#444\]::placeholder {
   color: #9a9a94;
 }
+[data-theme="light"] .text-gray-400 {
+  color: var(--color-muted);
+}
+[data-theme="light"] .text-gray-500 {
+  color: #4a4a44;
+}
+
+/* Páginas legales — texto blanco en dark, enlaces dorados */
+html:not([data-theme="light"]) .rich-content.text-white,
+html:not([data-theme="light"]) .rich-content.text-white :is(p, li, h1, h2, h3, h4, strong, em, span, div, ul, ol) {
+  color: #ffffff;
+}
+
+html:not([data-theme="light"]) .rich-content.text-white a:any-link {
+  color: var(--color-gold) !important;
+}
 
 /* Contenido rich-text con color inline (heredado de sesiones de edición en modo oscuro):
    forzar el color de texto del tema también en modo claro, donde el inline "blanco" queda invisible. */
+html:not([data-theme="light"]) .rich-content [style*="color"] {
+  color: inherit !important;
+}
+
+html:not([data-theme="light"]) .rich-content.text-white [style*="color"] {
+  color: #ffffff !important;
+}
+
+html:not([data-theme="light"]) .rich-content a[style*="color"],
+html:not([data-theme="light"]) .rich-content a[style*="color"]:visited,
+html:not([data-theme="light"]) .rich-content a[style*="color"]:link {
+  color: var(--color-gold) !important;
+}
+
 [data-theme="light"] .rich-content [style*="color"] {
   color: var(--color-text) !important;
 }
 
+[data-theme="light"] .rich-content a[style*="color"],
+[data-theme="light"] .rich-content a[style*="color"]:visited {
+  color: var(--color-gold) !important;
+}
+
 .product-image-frame {
   background-color: #FFFFFF;
+}
+
+.font-product {
+  font-family: var(--font-product);
+}
+
+/* Títulos y textos de producto — sans moderna, legible con números/specs */
+.product-title {
+  font-family: var(--font-product);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.product-description {
+  font-family: var(--font-product-description);
+  font-weight: 400;
+  font-size: 1rem;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
 }
 
 * {

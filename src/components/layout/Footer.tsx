@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { MapPin, Mail, Clock } from "lucide-react";
 import InstagramIcon from "@/components/ui/InstagramIcon";
 import { SITE_CONFIG } from "@/constants/site";
+import { formatCuit } from "@/lib/format-cuit";
 import NewsletterModal from "../ui/NewsletterModal";
 
 interface ContactConfig {
@@ -18,13 +18,35 @@ interface ContactConfig {
   contact_email?: string
 }
 
+interface LegalFooterConfig {
+  razon_social?: string
+  cuit?: string
+  data_fiscal_url?: string
+}
+
+interface NewsletterConfig {
+  title?: string
+  body?: string
+  footer?: string
+}
+
 const TikTokIcon = ({ size = 16 }: { size?: number }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
     <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.77a4.85 4.85 0 0 1-1.01-.08z" />
   </svg>
 );
 
-export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
+export default function Footer({
+  contact = {},
+  legal = {},
+  siteName,
+  newsletter = {},
+}: {
+  contact?: ContactConfig
+  legal?: LegalFooterConfig
+  siteName?: string
+  newsletter?: NewsletterConfig
+}) {
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
 
   const phone = contact.whatsapp || SITE_CONFIG.contact.phone
@@ -33,9 +55,13 @@ export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
   const email = contact.contact_email || SITE_CONFIG.contact.email
   const instagram = contact.instagram || SITE_CONFIG.social.instagram
   const tiktok = contact.tiktok || SITE_CONFIG.social.tiktok
+  const razonSocial = legal.razon_social?.trim()
+  const cuit = legal.cuit?.trim()
+  const dataFiscalUrl = legal.data_fiscal_url?.trim()
+  const displayName = siteName?.trim() || SITE_CONFIG.name
 
   return (
-    <footer className="bg-black border-t border-luxury-gray mt-20">
+    <footer className="bg-luxury-black border-t border-luxury-gray-mid mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
           {/* Horarios */}
@@ -128,7 +154,7 @@ export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
             </h4>
             <div className="space-y-4">
               <p className="text-gray-500 text-sm leading-relaxed">
-                Suscribite para recibir lanzamientos exclusivos y novedades de nuestra colección.
+                Dejanos tu celular y recibí por WhatsApp la lista de precios actualizada todos los días.
               </p>
               <button
                 onClick={() => setIsNewsletterOpen(true)}
@@ -140,10 +166,63 @@ export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
           </div>
         </div>
 
+        {/* Información legal — requisitos e-commerce AR */}
+        <div className="border-t border-luxury-gray mt-12 pt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div>
+              <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
+                Información Legal
+              </h4>
+              <nav className="flex flex-col gap-2 text-sm">
+                <Link
+                  href="/boton-de-arrepentimiento"
+                  className="text-gray-400 hover:text-gold transition-colors underline underline-offset-2 w-fit"
+                >
+                  Botón de Arrepentimiento
+                </Link>
+                <Link
+                  href="/terminos-y-condiciones"
+                  className="text-gray-400 hover:text-gold transition-colors w-fit"
+                >
+                  Términos y Condiciones
+                </Link>
+                <Link
+                  href="/politica-de-cambios-y-devoluciones"
+                  className="text-gray-400 hover:text-gold transition-colors w-fit"
+                >
+                  Política de Cambios y Devoluciones
+                </Link>
+                {dataFiscalUrl && (
+                  <a
+                    href={dataFiscalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-400 hover:text-gold transition-colors w-fit"
+                  >
+                    Data Fiscal
+                  </a>
+                )}
+              </nav>
+            </div>
+
+            {(razonSocial || cuit) && (
+              <div>
+                <h4 className="text-gold text-xs font-bold tracking-[0.2em] uppercase mb-4">
+                  Titular del sitio
+                </h4>
+                <div className="text-gray-500 text-sm space-y-1">
+                  {razonSocial && <p>{razonSocial}</p>}
+                  {cuit && <p>CUIT: {formatCuit(cuit)}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Divider */}
-        <div className="border-t border-luxury-gray mt-12 pt-8 flex flex-col items-center gap-3 text-center">
+        <div className="border-t border-luxury-gray pt-8 flex flex-col items-center gap-3 text-center">
           <p className="text-luxury-gray-light text-xs font-bold tracking-wider uppercase">
-            © {new Date().getFullYear()} {SITE_CONFIG.name} — Todos los derechos reservados.
+            © {new Date().getFullYear()} {displayName} — Todos los derechos reservados.
           </p>
           <p className="text-gray-400 text-xs">
             Página web desarrollada por{" "}
@@ -159,9 +238,12 @@ export default function Footer({ contact = {} }: { contact?: ContactConfig }) {
         </div>
       </div>
 
-      <NewsletterModal 
-        isOpen={isNewsletterOpen} 
-        onClose={() => setIsNewsletterOpen(false)} 
+      <NewsletterModal
+        isOpen={isNewsletterOpen}
+        onClose={() => setIsNewsletterOpen(false)}
+        title={newsletter.title}
+        body={newsletter.body}
+        footer={newsletter.footer}
       />
     </footer>
   );

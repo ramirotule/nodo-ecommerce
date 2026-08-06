@@ -14,6 +14,8 @@ import { formatPrice } from "@/lib/price-utils";
 import PrecioDetalleBlock from "@/components/productos/PrecioDetalleBlock";
 import SimuladorCuotas from "@/components/productos/SimuladorCuotas";
 import ShareButton from "@/components/productos/ShareButton";
+import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
+import { buildWhatsAppUrl } from "@/lib/whatsapp-url";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -76,10 +78,11 @@ export default async function ProductoPage({ params }: Props) {
 
   if (!producto) notFound();
 
-  const whatsappMsg = encodeURIComponent(
-    `Hola! Me interesa el producto *${producto.nombre}* de *${producto.marca}*. ¿Tienen stock disponible?`
+  const siteConfig = await getSiteConfig();
+  const whatsappUrl = buildWhatsAppUrl(
+    `Hola! Me interesa el producto *${producto.nombre}* de *${producto.marca}*. ¿Tienen stock disponible?`,
+    siteConfig.whatsapp
   );
-  const whatsappUrl = `https://wa.me/?text=${whatsappMsg}`;
   const productUrl = `${process.env.NEXT_PUBLIC_SITE_URL || ""}/productos/${slug}`;
 
   // JSON-LD Product schema
@@ -142,7 +145,7 @@ export default async function ProductoPage({ params }: Props) {
             <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
               {producto.marca}
             </p>
-            <h1 className="font-serif text-3xl md:text-4xl text-white mb-1 leading-tight">
+            <h1 className="product-title text-3xl md:text-[2.5rem] text-white mb-2">
               {producto.nombre}
             </h1>
             <PrecioDetalleBlock precioVenta={producto.precio_venta} moneda={producto.moneda} />
@@ -178,10 +181,12 @@ export default async function ProductoPage({ params }: Props) {
                   slug: producto.slug,
                   precio_venta: producto.precio_venta,
                   imagen_url: producto.imagen_url,
+                  imagenes_adicionales: producto.imagenes_adicionales,
                 }}
                 inStock={producto.stock > 0}
                 variant="page"
               />
+              {whatsappUrl && (
               <a
                 href={whatsappUrl}
                 target="_blank"
@@ -193,6 +198,7 @@ export default async function ProductoPage({ params }: Props) {
                 <img src="/what.png" alt="WhatsApp" className="w-5 h-5 rounded-full object-cover" />
                 Consultar
               </a>
+              )}
               <ShareButton nombre={producto.nombre} marca={producto.marca} url={productUrl} />
             </div>
 
@@ -213,8 +219,10 @@ export default async function ProductoPage({ params }: Props) {
         {/* Descripción */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-16">
           <div>
-            <h2 className="font-serif text-2xl text-white mb-4">Descripción</h2>
-            <p className="text-luxury-gray-light leading-relaxed">{producto.descripcion}</p>
+            <h2 className="font-product text-xs font-semibold uppercase tracking-[0.2em] text-luxury-gray-light mb-4">
+              Descripción
+            </h2>
+            <p className="product-description text-luxury-gray-light">{producto.descripcion}</p>
           </div>
 
         </div>
