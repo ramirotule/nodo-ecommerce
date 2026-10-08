@@ -1,140 +1,29 @@
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { Producto } from "@/types";
-import { PRODUCTS_TABLE } from "@/lib/supabase/tables";
-import ProductoGrid from "@/components/productos/ProductoGrid";
-import InstagramIcon from "@/components/ui/InstagramIcon";
-import { MapPin, ChevronRight, Award } from "lucide-react";
-import HeroSlider from "@/components/home/HeroSlider";
-import MarcasCarousel from "@/components/home/MarcasCarousel";
-import { getSiteConfig } from "@/lib/site-config/getSiteConfig";
+import Image from "next/image";
+import { Construction } from "lucide-react";
 
-async function getProductosDestacados(): Promise<Producto[]> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from(PRODUCTS_TABLE)
-      .select("*")
-      .eq("activo", true)
-      .eq("destacado", true)
-      .order("created_at", { ascending: false })
-      .limit(8);
-    return (data as Producto[]) || [];
-  } catch {
-    return [];
-  }
-}
-
-async function getProductosNuevos(): Promise<Producto[]> {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from(PRODUCTS_TABLE)
-      .select("*")
-      .eq("activo", true)
-      .eq("nuevo", true)
-      .order("created_at", { ascending: false })
-      .limit(4);
-    return (data as Producto[]) || [];
-  } catch {
-    return [];
-  }
-}
-
-async function getHeroSlides() {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("configuracion")
-      .select("valor")
-      .eq("clave", "hero_slides")
-      .single();
-    if (!data?.valor) return null;
-    const parsed = JSON.parse(data.valor);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-async function getMarcas() {
-  try {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("marcas")
-      .select("id, nombre, logo_url")
-      .eq("activo", true)
-      .order("nombre", { ascending: true });
-    return data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-export default async function HomePage() {
-  const [destacados, nuevos, marcas, siteConfig, heroSlides] = await Promise.all([
-    getProductosDestacados(),
-    getProductosNuevos(),
-    getMarcas(),
-    getSiteConfig(),
-    getHeroSlides(),
-  ]);
-
+export default function HomePage() {
   return (
-    <>
-      {/* HERO */}
-      <HeroSlider initialSlides={heroSlides ?? undefined} />
-
-      {/* NOVEDADES */}
-      {nuevos.length > 0 && (
-        <section className="w-full px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
-                Recién llegados
-              </p>
-              <h2 className="font-serif text-3xl md:text-4xl text-white">
-                Novedades
-              </h2>
-            </div>
-            <Link
-              href="/productos?nuevo=true"
-              className="hidden sm:flex items-center gap-1 text-luxury-gray-light hover:text-gold text-sm transition-colors"
-            >
-              Ver todos <ChevronRight size={16} />
-            </Link>
+    <main className="fixed inset-0 z-[9999] flex min-h-screen w-full items-center justify-center bg-white px-4">
+      <section className="mx-auto flex max-w-3xl flex-col items-center text-center">
+        <div className="mb-4 flex justify-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500 bg-blue-50 px-4 py-2 text-slate-900 shadow-sm">
+            <Construction className="h-5 w-5 text-blue-600" aria-hidden="true" />
+            <span className="text-sm font-semibold tracking-wide uppercase">En construcción</span>
           </div>
-          <ProductoGrid productos={nuevos} dolarEnabled={siteConfig.feature_precios_usd} showViewToggle={false} />
-        </section>
-      )}
-
-      {/* DESTACADOS */}
-      {destacados.length > 0 && (
-        <section className="w-full px-4 sm:px-6 lg:px-8 py-20">
-          <div className="flex items-center justify-between mb-10">
-            <div>
-              <p className="text-gold text-xs tracking-[0.3em] uppercase mb-2">
-                Selección exclusiva
-              </p>
-              <h2 className="font-serif text-3xl md:text-4xl text-white">
-                Destacados
-              </h2>
-            </div>
-            <Link
-              href="/productos?destacado=true"
-              className="hidden sm:flex items-center gap-1 text-luxury-gray-light hover:text-gold text-sm transition-colors"
-            >
-              Ver todos <ChevronRight size={16} />
-            </Link>
-          </div>
-          <ProductoGrid productos={destacados} dolarEnabled={siteConfig.feature_precios_usd} showViewToggle={false} />
-        </section>
-      )}
-
-      {/* MARCAS */}
-      {siteConfig.feature_marcas_carousel && marcas.length > 0 && (
-        <MarcasCarousel marcas={marcas} />
-      )}
-    </>
+        </div>
+        <Image
+          src="/images/mantenimiento-fondo.jpg"
+          alt="Logo RAM Informatica"
+          width={820}
+          height={280}
+          priority
+          className="h-auto w-full max-w-[620px]"
+        />
+        <h1 className="text-2xl font-semibold text-slate-950 sm:text-3xl">
+          Estamos actualizando la pagina para una mejor experiencia.
+        </h1>
+        <p className="mt-3 text-base text-slate-700 sm:text-lg">Disculpe las molestias.</p>
+      </section>
+    </main>
   );
 }
